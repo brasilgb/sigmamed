@@ -1,5 +1,6 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthInputProps = TextInputProps & {
@@ -12,7 +13,7 @@ export function AuthInput({ label, error, style, ...props }: AuthInputProps) {
     <View style={styles.wrapper}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <TextInput
-        placeholderTextColor="#8aa0a8"
+        placeholderTextColor={Colors.light.textSoft}
         style={[styles.input, error ? styles.inputError : null, style]}
         {...props}
       />
@@ -26,25 +27,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: '#35515a',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d7e1e5',
+    borderColor: Colors.light.border,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#17303a',
-    backgroundColor: '#fbfdfe',
+    color: Colors.light.text,
+    backgroundColor: Colors.light.surface,
   },
   inputError: {
-    borderColor: '#c85c5c',
+    borderColor: Colors.light.danger,
   },
   error: {
-    color: '#b14646',
+    color: Colors.light.danger,
     fontSize: 13,
     lineHeight: 18,
   },

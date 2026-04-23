@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Colors, ModulePalette } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { MetricTrend } from '@/types/health';
 
@@ -11,19 +12,19 @@ type TrendCardProps = {
 
 const palette = {
   pressure: {
-    background: '#ffffff',
-    accent: '#21438f',
-    soft: '#dfe8fb',
+    background: Colors.light.surface,
+    accent: ModulePalette.pressure.base,
+    soft: ModulePalette.pressure.soft,
   },
   glicose: {
-    background: '#ffffff',
-    accent: '#0f6c4d',
-    soft: '#dff4ec',
+    background: Colors.light.surface,
+    accent: ModulePalette.glicose.base,
+    soft: ModulePalette.glicose.soft,
   },
   weight: {
-    background: '#ffffff',
-    accent: '#7c4a19',
-    soft: '#f7ead8',
+    background: Colors.light.surface,
+    accent: ModulePalette.weight.base,
+    soft: ModulePalette.weight.soft,
   },
 };
 
@@ -62,7 +63,7 @@ export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: T
                   styles.bar,
                   {
                     height,
-                    backgroundColor: point.value === null ? '#d9e2e5' : colors.accent,
+                    backgroundColor: point.value === null ? Colors.light.border : colors.accent,
                     opacity: point.value === null ? 0.5 : 1,
                   },
                 ]}
@@ -82,7 +83,6 @@ export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: T
 const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
-    backgroundColor: '#ffffff',
     padding: 18,
     gap: 14,
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    color: '#5f747c',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -134,12 +134,12 @@ const styles = StyleSheet.create({
     minWidth: 8,
   },
   axisLabel: {
-    color: '#6e828a',
+    color: Colors.light.textSoft,
     fontSize: 10,
     lineHeight: 14,
   },
   detail: {
-    color: '#56707a',
+    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },

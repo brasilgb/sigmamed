@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
 
+import { BrandPalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthButtonProps = {
@@ -45,10 +46,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   primary: {
-    backgroundColor: '#0f6c73',
+    backgroundColor: BrandPalette.primary,
   },
   secondary: {
-    backgroundColor: '#ecf4f6',
+    backgroundColor: Colors.light.surfaceMuted,
   },
   pressed: {
     opacity: 0.9,
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   secondaryText: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
 });

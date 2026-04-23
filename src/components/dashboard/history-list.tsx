@@ -1,13 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 
+import { ModulePalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { HistoryItem } from '@/types/health';
 
 const categoryStyles: Record<HistoryItem['category'], { dot: string; label: string }> = {
-  pressure: { dot: '#d14d72', label: 'Pressao' },
-  glicose: { dot: '#d88828', label: 'Glicose' },
-  weight: { dot: '#2f7d8c', label: 'Peso' },
-  medication: { dot: '#56825d', label: 'Medicacao' },
+  pressure: { dot: ModulePalette.pressure.base, label: 'Pressao' },
+  glicose: { dot: ModulePalette.glicose.base, label: 'Glicose' },
+  weight: { dot: ModulePalette.weight.base, label: 'Peso' },
+  medication: { dot: ModulePalette.medication.base, label: 'Medicacao' },
 };
 
 type HistoryListProps = {
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 14,
     borderRadius: 22,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 16,
   },
   dot: {
@@ -69,22 +70,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     lineHeight: 22,
-    color: '#17303a',
+    color: Colors.light.text,
   },
   badge: {
     fontSize: 12,
     lineHeight: 18,
-    color: '#5b6f77',
+    color: Colors.light.textMuted,
     textTransform: 'uppercase',
   },
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#4e626b',
+    color: Colors.light.textMuted,
   },
   timestamp: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#748991',
+    color: Colors.light.textSoft,
   },
 });

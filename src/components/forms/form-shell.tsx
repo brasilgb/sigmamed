@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Screen } from '@/components/ui/screen';
 
@@ -36,24 +37,24 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    backgroundColor: '#e6eef1',
+    backgroundColor: Colors.light.surfaceMuted,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   backText: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   title: {
-    color: '#17303a',
+    color: Colors.light.text,
     lineHeight: 38,
   },
   description: {
-    color: '#58717a',
+    color: Colors.light.textMuted,
   },
   card: {
     borderRadius: 28,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 20,
     gap: 14,
   },

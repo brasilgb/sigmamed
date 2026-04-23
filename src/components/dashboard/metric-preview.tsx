@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 
+import { BrandPalette } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type MetricPreviewProps = {
@@ -24,12 +25,12 @@ export function MetricPreview({ label, value, detail, onPress, actionLabel }: Me
 const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
-    backgroundColor: '#0f2b34',
+    backgroundColor: BrandPalette.navy,
     padding: 20,
     gap: 8,
   },
   label: {
-    color: '#b9d6dd',
+    color: '#B5DCE4',
     fontSize: 14,
     lineHeight: 20,
   },
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   detail: {
-    color: '#c7d9de',
+    color: '#C7D9DE',
     fontSize: 14,
     lineHeight: 20,
   },

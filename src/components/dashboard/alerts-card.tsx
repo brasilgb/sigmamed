@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ModulePalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { DashboardAlert } from '@/types/health';
 
@@ -10,22 +11,22 @@ type AlertsCardProps = {
 
 const tones = {
   warning: {
-    backgroundColor: '#fff4df',
-    borderColor: '#f0be5a',
-    titleColor: '#8a5a00',
-    textColor: '#835f14',
+    backgroundColor: '#FFF6E4',
+    borderColor: Colors.light.warning,
+    titleColor: '#8A5A00',
+    textColor: '#835F14',
   },
   danger: {
-    backgroundColor: '#fde8e6',
-    borderColor: '#dd7b72',
-    titleColor: '#99352f',
-    textColor: '#7b403d',
+    backgroundColor: '#FDE8E6',
+    borderColor: Colors.light.danger,
+    titleColor: '#99352F',
+    textColor: '#7B403D',
   },
   info: {
-    backgroundColor: '#e7eefc',
-    borderColor: '#96addf',
-    titleColor: '#21438f',
-    textColor: '#425f9d',
+    backgroundColor: ModulePalette.glicose.soft,
+    borderColor: ModulePalette.glicose.base,
+    titleColor: ModulePalette.glicose.base,
+    textColor: '#425F9D',
   },
 };
 

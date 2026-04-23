@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BrandPalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type Option<T extends string> = {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: '#35515a',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -61,18 +62,18 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: '#ebf2f4',
+    backgroundColor: Colors.light.surfaceMuted,
   },
   optionSelected: {
-    backgroundColor: '#17303a',
+    backgroundColor: BrandPalette.navy,
   },
   textDefault: {
-    color: '#2f4b54',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   textSelected: {
-    color: '#ffffff',
+    color: BrandPalette.white,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '700',

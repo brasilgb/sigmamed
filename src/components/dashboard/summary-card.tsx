@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BrandPalette, ModulePalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type SummaryCardProps = {
@@ -12,16 +13,16 @@ type SummaryCardProps = {
 
 const tones = {
   default: {
-    backgroundColor: '#ffffff',
-    valueColor: '#16343f',
+    backgroundColor: Colors.light.surface,
+    valueColor: BrandPalette.navy,
   },
   accent: {
-    backgroundColor: '#dff4ec',
-    valueColor: '#0f6c4d',
+    backgroundColor: ModulePalette.weight.soft,
+    valueColor: ModulePalette.weight.base,
   },
   success: {
-    backgroundColor: '#e7eefc',
-    valueColor: '#21438f',
+    backgroundColor: ModulePalette.glicose.soft,
+    valueColor: ModulePalette.glicose.base,
   },
 };
 
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: '#52707a',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },

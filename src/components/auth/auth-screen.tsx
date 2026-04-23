@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrandPalette, Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthScreenProps = {
@@ -11,8 +13,10 @@ type AuthScreenProps = {
 };
 
 export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors[colorScheme].background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -24,7 +28,7 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
             </ThemedText>
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
           </View>
-          <View style={styles.card}>{children}</View>
+          <View style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -50,22 +54,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   kicker: {
-    color: '#0f6c73',
+    color: BrandPalette.primary,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   title: {
-    color: '#16343f',
+    color: BrandPalette.navy,
     lineHeight: 38,
   },
   subtitle: {
-    color: '#506971',
+    color: Colors.light.textMuted,
   },
   card: {
     borderRadius: 28,
-    backgroundColor: '#ffffff',
     padding: 20,
     gap: 14,
   },
