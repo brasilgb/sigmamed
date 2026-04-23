@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/features/auth/hooks/use-auth';
 import { configureMedicationNotifications } from '@/features/medications/services/medication-reminder.service';
@@ -14,26 +15,29 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isReady, error } = useAppBootstrap();
   configureMedicationNotifications();
+  const activeTheme = colorScheme ?? 'light';
 
   if (error) {
     return (
-      <View style={styles.stateScreen}>
-        <ThemedText type="title" style={styles.stateTitle}>
+      <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
+        <ThemedText type="title" style={[styles.stateTitle, { color: Colors[activeTheme].text }]}>
           SigmaMed
         </ThemedText>
-        <ThemedText style={styles.stateMessage}>
+        <ThemedText style={[styles.stateMessage, { color: Colors[activeTheme].textMuted }]}>
           Falha ao preparar o banco local.
         </ThemedText>
-        <ThemedText style={styles.stateDetail}>{error}</ThemedText>
+        <ThemedText style={[styles.stateDetail, { color: Colors[activeTheme].textSoft }]}>{error}</ThemedText>
       </View>
     );
   }
 
   if (!isReady) {
     return (
-      <View style={styles.stateScreen}>
-        <ActivityIndicator size="large" color="#0f6c73" />
-        <ThemedText style={styles.stateMessage}>Preparando seu historico local...</ThemedText>
+      <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
+        <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
+        <ThemedText style={[styles.stateMessage, { color: Colors[activeTheme].textMuted }]}>
+          Preparando seu historico local...
+        </ThemedText>
       </View>
     );
   }
@@ -59,18 +63,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: '#f4f7f8',
     paddingHorizontal: 24,
   },
-  stateTitle: {
-    color: '#17303a',
-  },
+  stateTitle: {},
   stateMessage: {
     textAlign: 'center',
-    color: '#35515a',
   },
   stateDetail: {
     textAlign: 'center',
-    color: '#6f858d',
   },
 });

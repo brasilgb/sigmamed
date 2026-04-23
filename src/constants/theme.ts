@@ -5,26 +5,71 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+export const BrandPalette = {
+  primary: '#00BFA5',
+  navy: '#0D1B2A',
+  pressureSoft: '#E6F7FF',
+  weightSoft: '#E8F9F1',
+  medicationSoft: '#F1E6FF',
+  white: '#FFFFFF',
+} as const;
+
+export const ModulePalette = {
+  pressure: {
+    base: BrandPalette.navy,
+    soft: BrandPalette.pressureSoft,
+  },
+  glicose: {
+    base: '#21438F',
+    soft: '#DCEBFF',
+  },
+  weight: {
+    base: '#0F8A6A',
+    soft: BrandPalette.weightSoft,
+  },
+  medication: {
+    base: '#5B3FA8',
+    soft: BrandPalette.medicationSoft,
+  },
+} as const;
+
+const semanticLight = {
+  text: BrandPalette.navy,
+  textMuted: '#58717A',
+  textSoft: '#6F858D',
+  background: '#F7FBFC',
+  surface: BrandPalette.white,
+  surfaceMuted: '#EEF6F8',
+  border: '#D7E4E8',
+  tint: BrandPalette.primary,
+  icon: '#688089',
+  tabIconDefault: '#688089',
+  tabIconSelected: BrandPalette.primary,
+  success: '#0F8A6A',
+  warning: '#C58A1A',
+  danger: '#B14646',
+};
+
+const semanticDark = {
+  text: '#ECEDEE',
+  textMuted: '#B8C4CA',
+  textSoft: '#90A0A8',
+  background: '#08131D',
+  surface: '#10202D',
+  surfaceMuted: '#132635',
+  border: '#223748',
+  tint: BrandPalette.primary,
+  icon: '#8CA0AA',
+  tabIconDefault: '#8CA0AA',
+  tabIconSelected: BrandPalette.primary,
+  success: '#33C48A',
+  warning: '#F0BE5A',
+  danger: '#F08A84',
+};
 
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  light: semanticLight,
+  dark: semanticDark,
 };
 
 export const Fonts = Platform.select({

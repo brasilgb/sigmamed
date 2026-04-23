@@ -2,6 +2,9 @@ import { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+
 type ScreenProps = ScrollViewProps & {
   children: ReactNode;
   isRefreshing?: boolean;
@@ -15,8 +18,12 @@ export function Screen({
   contentContainerStyle,
   ...props
 }: ScreenProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: Colors[colorScheme].background }]}
+      edges={['top']}>
       <ScrollView
         contentContainerStyle={[styles.content, contentContainerStyle]}
         refreshControl={
@@ -32,7 +39,6 @@ export function Screen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f4f7f8',
   },
   content: {
     paddingBottom: 40,
