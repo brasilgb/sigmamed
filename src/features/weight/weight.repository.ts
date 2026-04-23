@@ -22,6 +22,16 @@ function mapRow(row: WeightRow): WeightReading {
 }
 
 export class WeightRepository {
+  async getById(id: number) {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<WeightRow>(
+      'SELECT * FROM weight_readings WHERE id = ?',
+      id
+    );
+
+    return row ? mapRow(row) : null;
+  }
+
   async listRecent(limit = 10) {
     const database = await getDatabase();
     const rows = await database.getAllAsync<WeightRow>(
@@ -56,5 +66,32 @@ export class WeightRepository {
     }
 
     return mapRow(row);
+  }
+
+  async update(id: number, input: NewWeightReading) {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE weight_readings
+       SET weight = ?, unit = ?, measured_at = ?, notes = ?
+       WHERE id = ?`,
+      input.weight,
+      input.unit,
+      input.measuredAt,
+      input.notes,
+      id
+    );
+
+    const row = await this.getById(id);
+
+    if (!row) {
+      throw new Error('Failed to update weight reading');
+    }
+
+    return row;
+  }
+
+  async delete(id: number) {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM weight_readings WHERE id = ?', id);
   }
 }

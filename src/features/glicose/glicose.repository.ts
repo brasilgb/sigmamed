@@ -26,6 +26,16 @@ function mapRow(row: GlicoseRow): GlicoseReading {
 }
 
 export class GlicoseRepository {
+  async getById(id: number) {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<GlicoseRow>(
+      'SELECT * FROM glicose_readings WHERE id = ?',
+      id
+    );
+
+    return row ? mapRow(row) : null;
+  }
+
   async listRecent(limit = 10) {
     const database = await getDatabase();
     const rows = await database.getAllAsync<GlicoseRow>(
@@ -62,5 +72,34 @@ export class GlicoseRepository {
     }
 
     return mapRow(row);
+  }
+
+  async update(id: number, input: NewGlicoseReading) {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE glicose_readings
+       SET glicose_value = ?, unit = ?, context = ?, measured_at = ?, source = ?, notes = ?
+       WHERE id = ?`,
+      input.glicoseValue,
+      input.unit,
+      input.context,
+      input.measuredAt,
+      input.source,
+      input.notes,
+      id
+    );
+
+    const row = await this.getById(id);
+
+    if (!row) {
+      throw new Error('Failed to update glicose reading');
+    }
+
+    return row;
+  }
+
+  async delete(id: number) {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM glicose_readings WHERE id = ?', id);
   }
 }

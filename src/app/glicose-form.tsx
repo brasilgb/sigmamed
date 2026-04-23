@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -12,12 +13,35 @@ import type { EntrySource, GlicoseContext } from '@/types/health';
 const glicoseRepository = new GlicoseRepository();
 
 export default function GlicoseFormScreen() {
-  const [glicoseValue, setGlicoseValue] = useState('');
-  const [notes, setNotes] = useState('');
+  const params = useLocalSearchParams<{
+    id?: string;
+    glicoseValue?: string;
+    rawText?: string;
+  }>();
+  const editingId = params.id ? Number(params.id) : null;
+  const [glicoseValue, setGlicoseValue] = useState(params.glicoseValue ?? '');
+  const [notes, setNotes] = useState(params.rawText ?? '');
   const [source, setSource] = useState<EntrySource>('manual');
   const [context, setContext] = useState<GlicoseContext>('fasting');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) {
+      return;
+    }
+
+    glicoseRepository.getById(editingId).then((record) => {
+      if (!record) {
+        return;
+      }
+
+      setGlicoseValue(String(record.glicoseValue));
+      setNotes(record.notes ?? '');
+      setSource(record.source);
+      setContext(record.context);
+    });
+  }, [editingId]);
 
   async function handleSubmit() {
     const numericValue = Number(glicoseValue);
@@ -30,14 +54,19 @@ export default function GlicoseFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await glicoseRepository.create({
+      const payload = {
         glicoseValue: numericValue,
-        unit: 'mg/dL',
+        unit: 'mg/dL' as const,
         context,
         measuredAt: new Date().toISOString(),
         source,
         notes: notes.trim() || null,
-      });
+      };
+      if (editingId) {
+        await glicoseRepository.update(editingId, payload);
+      } else {
+        await glicoseRepository.create(payload);
+      }
       router.replace('/(tabs)');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar glicose.');
@@ -49,7 +78,11 @@ export default function GlicoseFormScreen() {
   return (
     <FormShell
       title="Registrar glicose"
-      description="Mantenha o contexto da medicao para a leitura fazer sentido depois.">
+      description={
+        editingId
+          ? 'Ajuste o valor salvo e o contexto da medicao.'
+          : 'Mantenha o contexto da medicao para a leitura fazer sentido depois.'
+      }>
       <RecordInput
         label="Glicose"
         keyboardType="number-pad"
@@ -78,6 +111,19 @@ export default function GlicoseFormScreen() {
           { label: 'Bluetooth', value: 'bluetooth' },
         ]}
       />
+      <Pressable
+        onPress={() => router.push('/glicose-scan')}
+        style={{
+          borderRadius: 18,
+          backgroundColor: '#ecf4f6',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        }}>
+        <ThemedText style={{ color: '#17303a', fontWeight: '700' }}>Preencher por foto</ThemedText>
+        <ThemedText style={{ color: '#5f747c', fontSize: 14, lineHeight: 20 }}>
+          Tire uma foto do visor e confirme a glicose detectada.
+        </ThemedText>
+      </Pressable>
       <RecordInput
         label="Observacoes"
         placeholder="Ex.: 2h apos o almoco"
@@ -86,7 +132,7 @@ export default function GlicoseFormScreen() {
       />
       {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : 'Salvar glicose'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar glicose' : 'Salvar glicose'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />

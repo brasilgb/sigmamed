@@ -26,6 +26,16 @@ function mapRow(row: BloodPressureRow): BloodPressureReading {
 }
 
 export class PressureRepository {
+  async getById(id: number) {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<BloodPressureRow>(
+      'SELECT * FROM blood_pressure_readings WHERE id = ?',
+      id
+    );
+
+    return row ? mapRow(row) : null;
+  }
+
   async listRecent(limit = 10) {
     const database = await getDatabase();
     const rows = await database.getAllAsync<BloodPressureRow>(
@@ -62,5 +72,34 @@ export class PressureRepository {
     }
 
     return mapRow(row);
+  }
+
+  async update(id: number, input: NewBloodPressureReading) {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE blood_pressure_readings
+       SET systolic = ?, diastolic = ?, pulse = ?, measured_at = ?, source = ?, notes = ?
+       WHERE id = ?`,
+      input.systolic,
+      input.diastolic,
+      input.pulse,
+      input.measuredAt,
+      input.source,
+      input.notes,
+      id
+    );
+
+    const row = await this.getById(id);
+
+    if (!row) {
+      throw new Error('Failed to update blood pressure reading');
+    }
+
+    return row;
+  }
+
+  async delete(id: number) {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM blood_pressure_readings WHERE id = ?', id);
   }
 }

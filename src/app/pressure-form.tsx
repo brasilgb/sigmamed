@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -12,13 +13,39 @@ import type { EntrySource } from '@/types/health';
 const pressureRepository = new PressureRepository();
 
 export default function PressureFormScreen() {
-  const [systolic, setSystolic] = useState('');
-  const [diastolic, setDiastolic] = useState('');
-  const [pulse, setPulse] = useState('');
-  const [notes, setNotes] = useState('');
+  const params = useLocalSearchParams<{
+    id?: string;
+    systolic?: string;
+    diastolic?: string;
+    pulse?: string;
+    rawText?: string;
+  }>();
+  const editingId = params.id ? Number(params.id) : null;
+  const [systolic, setSystolic] = useState(params.systolic ?? '');
+  const [diastolic, setDiastolic] = useState(params.diastolic ?? '');
+  const [pulse, setPulse] = useState(params.pulse ?? '');
+  const [notes, setNotes] = useState(params.rawText ?? '');
   const [source, setSource] = useState<EntrySource>('manual');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) {
+      return;
+    }
+
+    pressureRepository.getById(editingId).then((record) => {
+      if (!record) {
+        return;
+      }
+
+      setSystolic(String(record.systolic));
+      setDiastolic(String(record.diastolic));
+      setPulse(record.pulse ? String(record.pulse) : '');
+      setNotes(record.notes ?? '');
+      setSource(record.source);
+    });
+  }, [editingId]);
 
   async function handleSubmit() {
     const systolicValue = Number(systolic);
@@ -33,14 +60,19 @@ export default function PressureFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await pressureRepository.create({
+      const payload = {
         systolic: systolicValue,
         diastolic: diastolicValue,
         pulse: pulseValue,
         measuredAt: new Date().toISOString(),
         source,
         notes: notes.trim() || null,
-      });
+      };
+      if (editingId) {
+        await pressureRepository.update(editingId, payload);
+      } else {
+        await pressureRepository.create(payload);
+      }
       router.replace('/(tabs)');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar pressao.');
@@ -52,7 +84,11 @@ export default function PressureFormScreen() {
   return (
     <FormShell
       title="Registrar pressao"
-      description="Salve a leitura do marcador e mantenha o historico local atualizado.">
+      description={
+        editingId
+          ? 'Ajuste a leitura salva e mantenha o historico correto.'
+          : 'Salve a leitura do marcador e mantenha o historico local atualizado.'
+      }>
       <RecordInput
         label="Sistolica"
         keyboardType="number-pad"
@@ -85,6 +121,19 @@ export default function PressureFormScreen() {
           { label: 'Bluetooth', value: 'bluetooth' },
         ]}
       />
+      <Pressable
+        onPress={() => router.push('/pressure-scan')}
+        style={{
+          borderRadius: 18,
+          backgroundColor: '#ecf4f6',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        }}>
+        <ThemedText style={{ color: '#17303a', fontWeight: '700' }}>Preencher por foto</ThemedText>
+        <ThemedText style={{ color: '#5f747c', fontSize: 14, lineHeight: 20 }}>
+          Tire uma foto do visor e confirme os valores detectados.
+        </ThemedText>
+      </Pressable>
       <RecordInput
         label="Observacoes"
         placeholder="Ex.: apos cafe da manha"
@@ -93,7 +142,7 @@ export default function PressureFormScreen() {
       />
       {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : 'Salvar pressao'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar pressao' : 'Salvar pressao'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />

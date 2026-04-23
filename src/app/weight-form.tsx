@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -10,10 +10,27 @@ import { WeightRepository } from '@/features/weight/weight.repository';
 const weightRepository = new WeightRepository();
 
 export default function WeightFormScreen() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const editingId = params.id ? Number(params.id) : null;
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) {
+      return;
+    }
+
+    weightRepository.getById(editingId).then((record) => {
+      if (!record) {
+        return;
+      }
+
+      setWeight(String(record.weight));
+      setNotes(record.notes ?? '');
+    });
+  }, [editingId]);
 
   async function handleSubmit() {
     const numericValue = Number(weight.replace(',', '.'));
@@ -26,12 +43,17 @@ export default function WeightFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await weightRepository.create({
+      const payload = {
         weight: numericValue,
-        unit: 'kg',
+        unit: 'kg' as const,
         measuredAt: new Date().toISOString(),
         notes: notes.trim() || null,
-      });
+      };
+      if (editingId) {
+        await weightRepository.update(editingId, payload);
+      } else {
+        await weightRepository.create(payload);
+      }
       router.replace('/(tabs)');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar peso.');
@@ -43,7 +65,11 @@ export default function WeightFormScreen() {
   return (
     <FormShell
       title="Registrar peso"
-      description="Registre pesagens frequentes para acompanhar variacao corporal.">
+      description={
+        editingId
+          ? 'Ajuste a pesagem salva e mantenha a serie correta.'
+          : 'Registre pesagens frequentes para acompanhar variacao corporal.'
+      }>
       <RecordInput
         label="Peso"
         keyboardType="decimal-pad"
@@ -60,7 +86,7 @@ export default function WeightFormScreen() {
       />
       {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : 'Salvar peso'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar peso' : 'Salvar peso'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />

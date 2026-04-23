@@ -38,6 +38,14 @@ export default function DashboardScreen() {
           <ThemedText style={styles.actionTitle}>Nova glicose</ThemedText>
           <ThemedText style={styles.actionText}>Salvar com contexto da medicao.</ThemedText>
         </Pressable>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/pressure-scan')}>
+          <ThemedText style={styles.actionTitle}>Foto pressao</ThemedText>
+          <ThemedText style={styles.actionText}>Capturar o visor e sugerir valores.</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/glicose-scan')}>
+          <ThemedText style={styles.actionTitle}>Foto glicose</ThemedText>
+          <ThemedText style={styles.actionText}>Ler o medidor e preencher o formulario.</ThemedText>
+        </Pressable>
         <Pressable style={styles.actionCard} onPress={() => router.push('/weight-form')}>
           <ThemedText style={styles.actionTitle}>Novo peso</ThemedText>
           <ThemedText style={styles.actionText}>Atualizar pesagem em poucos toques.</ThemedText>

@@ -1,13 +1,18 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
+import { SearchInput } from '@/components/forms/search-input';
+import { OptionSelector } from '@/components/forms/option-selector';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useMedications } from '@/hooks/use-medications';
+import { useRecordManagement } from '@/hooks/use-record-management';
+import { formatDateTime } from '@/utils/date';
 
 const moduleCards = [
   {
@@ -32,11 +37,188 @@ export default function HistoryScreen() {
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
   const { history, isLoading, refresh, summary } = useDashboardData();
   const { items: medications, logStatus } = useMedications();
+  const {
+    pressureReadings,
+    glicoseReadings,
+    weightReadings,
+    medications: allMedications,
+    refresh: refreshRecords,
+    deletePressure,
+    deleteGlicose,
+    deleteWeight,
+    deleteMedication,
+  } = useRecordManagement();
+  const [query, setQuery] = useState('');
+  const [recordFilter, setRecordFilter] = useState<'all' | 'pressure' | 'glicose' | 'weight' | 'medication'>('all');
+  const [recordSort, setRecordSort] = useState<'newest' | 'oldest' | 'highest'>('newest');
+  const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '30d'>('all');
+  const [medicationStatusFilter, setMedicationStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [visibleCounts, setVisibleCounts] = useState({
+    pressure: 3,
+    glicose: 3,
+    weight: 3,
+    medication: 3,
+  });
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const now = Date.now();
+
+  const withinSelectedTime = useCallback((isoDate: string) => {
+    if (timeFilter === 'all') {
+      return true;
+    }
+
+    const diffMs = now - new Date(isoDate).getTime();
+    const limitDays = timeFilter === '7d' ? 7 : 30;
+    return diffMs <= limitDays * 24 * 60 * 60 * 1000;
+  }, [now, timeFilter]);
+
+  const sortByDateAndValue = useCallback(<T,>(
+    items: T[],
+    getDate: (item: T) => string,
+    getValue?: (item: T) => number
+  ) => {
+    return [...items].sort((a, b) => {
+      if (recordSort === 'oldest') {
+        return new Date(getDate(a)).getTime() - new Date(getDate(b)).getTime();
+      }
+
+      if (recordSort === 'highest' && getValue) {
+        return getValue(b) - getValue(a);
+      }
+
+      return new Date(getDate(b)).getTime() - new Date(getDate(a)).getTime();
+    });
+  }, [recordSort]);
 
   async function handleMedicationStatus(medicationId: number, status: 'taken' | 'skipped') {
     await logStatus(medicationId, status);
     await refresh();
   }
+
+  function confirmDelete(label: string, onConfirm: () => Promise<void>) {
+    Alert.alert('Excluir registro', `Deseja excluir ${label}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            await onConfirm();
+            await refreshRecords();
+            await refresh();
+          })();
+        },
+      },
+    ]);
+  }
+
+  function showMore(section: keyof typeof visibleCounts) {
+    setVisibleCounts((current) => ({
+      ...current,
+      [section]: current[section] + 5,
+    }));
+  }
+
+  const filteredPressure = useMemo(
+    () =>
+      pressureReadings.filter((item) => {
+        if (!withinSelectedTime(item.measuredAt)) {
+          return false;
+        }
+
+        return (
+          !normalizedQuery ||
+          [item.systolic, item.diastolic, item.pulse ?? '', item.notes ?? '']
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)
+        );
+      }),
+    [normalizedQuery, pressureReadings, withinSelectedTime]
+  );
+  const sortedPressure = useMemo(
+    () => sortByDateAndValue(filteredPressure, (item) => item.measuredAt, (item) => item.systolic),
+    [filteredPressure, sortByDateAndValue]
+  );
+
+  const filteredGlicose = useMemo(
+    () =>
+      glicoseReadings.filter((item) => {
+        if (!withinSelectedTime(item.measuredAt)) {
+          return false;
+        }
+
+        return (
+          !normalizedQuery ||
+          [item.glicoseValue, item.context, item.notes ?? '']
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)
+        );
+      }),
+    [glicoseReadings, normalizedQuery, withinSelectedTime]
+  );
+  const sortedGlicose = useMemo(
+    () => sortByDateAndValue(filteredGlicose, (item) => item.measuredAt, (item) => item.glicoseValue),
+    [filteredGlicose, sortByDateAndValue]
+  );
+
+  const filteredWeight = useMemo(
+    () =>
+      weightReadings.filter((item) => {
+        if (!withinSelectedTime(item.measuredAt)) {
+          return false;
+        }
+
+        return (
+          !normalizedQuery ||
+          [item.weight, item.notes ?? ''].join(' ').toLowerCase().includes(normalizedQuery)
+        );
+      }),
+    [normalizedQuery, weightReadings, withinSelectedTime]
+  );
+  const sortedWeight = useMemo(
+    () => sortByDateAndValue(filteredWeight, (item) => item.measuredAt, (item) => item.weight),
+    [filteredWeight, sortByDateAndValue]
+  );
+
+  const filteredMedications = useMemo(
+    () =>
+      allMedications.filter((item) => {
+        if (medicationStatusFilter === 'active' && !item.active) {
+          return false;
+        }
+
+        if (medicationStatusFilter === 'inactive' && item.active) {
+          return false;
+        }
+
+        return (
+          !normalizedQuery ||
+          [item.name, item.dosage, item.instructions ?? '', item.active ? 'ativa' : 'inativa']
+            .join(' ')
+            .toLowerCase()
+            .includes(normalizedQuery)
+        );
+      }),
+    [allMedications, medicationStatusFilter, normalizedQuery]
+  );
+  const sortedMedications = useMemo(
+    () =>
+      [...filteredMedications].sort((a, b) => {
+        if (recordSort === 'oldest') {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+
+        if (recordSort === 'highest') {
+          return a.name.localeCompare(b.name);
+        }
+
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }),
+    [filteredMedications, recordSort]
+  );
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
@@ -136,6 +318,195 @@ export default function HistoryScreen() {
           </View>
         </View>
       ) : null}
+
+      <View style={styles.managementSection}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Editar e excluir registros
+        </ThemedText>
+
+        <View style={styles.manageCard}>
+          <SearchInput
+            label="Buscar registros"
+            placeholder="Ex.: losartana, 120, jejum, 78"
+            value={query}
+            onChangeText={setQuery}
+          />
+          <OptionSelector
+            label="Filtrar modulo"
+            value={recordFilter}
+            onChange={setRecordFilter}
+            options={[
+              { label: 'Todos', value: 'all' },
+              { label: 'Pressao', value: 'pressure' },
+              { label: 'Glicose', value: 'glicose' },
+              { label: 'Peso', value: 'weight' },
+              { label: 'Medicacao', value: 'medication' },
+            ]}
+          />
+          <OptionSelector
+            label="Periodo"
+            value={timeFilter}
+            onChange={setTimeFilter}
+            options={[
+              { label: 'Tudo', value: 'all' },
+              { label: '7 dias', value: '7d' },
+              { label: '30 dias', value: '30d' },
+            ]}
+          />
+          <OptionSelector
+            label="Ordenar"
+            value={recordSort}
+            onChange={setRecordSort}
+            options={[
+              { label: 'Mais novos', value: 'newest' },
+              { label: 'Mais antigos', value: 'oldest' },
+              { label: 'Maior valor', value: 'highest' },
+            ]}
+          />
+          {(recordFilter === 'all' || recordFilter === 'medication') ? (
+            <OptionSelector
+              label="Status da medicacao"
+              value={medicationStatusFilter}
+              onChange={setMedicationStatusFilter}
+              options={[
+                { label: 'Todas', value: 'all' },
+                { label: 'Ativas', value: 'active' },
+                { label: 'Inativas', value: 'inactive' },
+              ]}
+            />
+          ) : null}
+        </View>
+
+        {recordFilter === 'all' || recordFilter === 'pressure' ? (
+          <View style={styles.manageCard}>
+          <ThemedText style={styles.manageTitle}>Pressao</ThemedText>
+          {sortedPressure.slice(0, visibleCounts.pressure).map((item) => (
+            <View key={item.id} style={styles.manageRow}>
+              <View style={styles.manageInfo}>
+                <ThemedText style={styles.manageValue}>
+                  {item.systolic}/{item.diastolic} mmHg
+                </ThemedText>
+                <ThemedText style={styles.manageMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+              </View>
+              <View style={styles.manageActions}>
+                <AuthButton
+                  label="Editar"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}
+                  style={styles.manageButton}
+                />
+                <AuthButton
+                  label="Excluir"
+                  onPress={() => confirmDelete('esta leitura de pressao', () => deletePressure(item.id))}
+                  style={styles.manageButton}
+                />
+              </View>
+            </View>
+          ))}
+          {sortedPressure.length > visibleCounts.pressure ? (
+            <AuthButton label="Mostrar mais" variant="secondary" onPress={() => showMore('pressure')} />
+          ) : null}
+        </View>
+        ) : null}
+
+        {recordFilter === 'all' || recordFilter === 'glicose' ? (
+          <View style={styles.manageCard}>
+          <ThemedText style={styles.manageTitle}>Glicose</ThemedText>
+          {sortedGlicose.slice(0, visibleCounts.glicose).map((item) => (
+            <View key={item.id} style={styles.manageRow}>
+              <View style={styles.manageInfo}>
+                <ThemedText style={styles.manageValue}>
+                  {item.glicoseValue} {item.unit}
+                </ThemedText>
+                <ThemedText style={styles.manageMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+              </View>
+              <View style={styles.manageActions}>
+                <AuthButton
+                  label="Editar"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/glicose-form', params: { id: String(item.id) } })}
+                  style={styles.manageButton}
+                />
+                <AuthButton
+                  label="Excluir"
+                  onPress={() => confirmDelete('esta leitura de glicose', () => deleteGlicose(item.id))}
+                  style={styles.manageButton}
+                />
+              </View>
+            </View>
+          ))}
+          {sortedGlicose.length > visibleCounts.glicose ? (
+            <AuthButton label="Mostrar mais" variant="secondary" onPress={() => showMore('glicose')} />
+          ) : null}
+        </View>
+        ) : null}
+
+        {recordFilter === 'all' || recordFilter === 'weight' ? (
+          <View style={styles.manageCard}>
+          <ThemedText style={styles.manageTitle}>Peso</ThemedText>
+          {sortedWeight.slice(0, visibleCounts.weight).map((item) => (
+            <View key={item.id} style={styles.manageRow}>
+              <View style={styles.manageInfo}>
+                <ThemedText style={styles.manageValue}>
+                  {item.weight} {item.unit}
+                </ThemedText>
+                <ThemedText style={styles.manageMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+              </View>
+              <View style={styles.manageActions}>
+                <AuthButton
+                  label="Editar"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/weight-form', params: { id: String(item.id) } })}
+                  style={styles.manageButton}
+                />
+                <AuthButton
+                  label="Excluir"
+                  onPress={() => confirmDelete('esta pesagem', () => deleteWeight(item.id))}
+                  style={styles.manageButton}
+                />
+              </View>
+            </View>
+          ))}
+          {sortedWeight.length > visibleCounts.weight ? (
+            <AuthButton label="Mostrar mais" variant="secondary" onPress={() => showMore('weight')} />
+          ) : null}
+        </View>
+        ) : null}
+
+        {recordFilter === 'all' || recordFilter === 'medication' ? (
+          <View style={styles.manageCard}>
+          <ThemedText style={styles.manageTitle}>Medicacoes</ThemedText>
+          {sortedMedications.slice(0, visibleCounts.medication).map((item) => (
+            <View key={item.id} style={styles.manageRow}>
+              <View style={styles.manageInfo}>
+                <ThemedText style={styles.manageValue}>
+                  {item.name} {item.dosage}
+                </ThemedText>
+                <ThemedText style={styles.manageMeta}>
+                  {item.active ? 'Ativa' : 'Inativa'} · {item.instructions || 'Sem instrucoes'}
+                </ThemedText>
+              </View>
+              <View style={styles.manageActions}>
+                <AuthButton
+                  label="Editar"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/medication-form', params: { id: String(item.id) } })}
+                  style={styles.manageButton}
+                />
+                <AuthButton
+                  label="Excluir"
+                  onPress={() => confirmDelete('esta medicacao', () => deleteMedication(item.id))}
+                  style={styles.manageButton}
+                />
+              </View>
+            </View>
+          ))}
+          {sortedMedications.length > visibleCounts.medication ? (
+            <AuthButton label="Mostrar mais" variant="secondary" onPress={() => showMore('medication')} />
+          ) : null}
+        </View>
+        ) : null}
+      </View>
 
       <View style={styles.sectionHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -293,5 +664,45 @@ const styles = StyleSheet.create({
     color: '#6a8089',
     fontSize: 13,
     lineHeight: 18,
+  },
+  managementSection: {
+    gap: 12,
+  },
+  manageCard: {
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    padding: 18,
+    gap: 12,
+  },
+  manageTitle: {
+    color: '#17303a',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  manageRow: {
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#d9e2e5',
+    paddingTop: 12,
+  },
+  manageInfo: {
+    gap: 4,
+  },
+  manageValue: {
+    color: '#17303a',
+    fontWeight: '700',
+  },
+  manageMeta: {
+    color: '#5f747c',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  manageActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  manageButton: {
+    flex: 1,
   },
 });

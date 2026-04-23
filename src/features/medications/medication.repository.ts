@@ -47,12 +47,32 @@ function mapLog(row: MedicationLogRow): MedicationLog {
 }
 
 export class MedicationRepository {
+  async getById(id: number) {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<MedicationRow>(
+      'SELECT * FROM medications WHERE id = ?',
+      id
+    );
+
+    return row ? mapMedication(row) : null;
+  }
+
   async listActive() {
     const database = await getDatabase();
     const rows = await database.getAllAsync<MedicationRow>(
       `SELECT * FROM medications
        WHERE active = 1
        ORDER BY name ASC`
+    );
+
+    return rows.map(mapMedication);
+  }
+
+  async listAll() {
+    const database = await getDatabase();
+    const rows = await database.getAllAsync<MedicationRow>(
+      `SELECT * FROM medications
+       ORDER BY active DESC, name ASC`
     );
 
     return rows.map(mapMedication);
@@ -82,6 +102,28 @@ export class MedicationRepository {
     return mapMedication(row);
   }
 
+  async updateMedication(id: number, input: NewMedication) {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE medications
+       SET name = ?, dosage = ?, instructions = ?, active = ?
+       WHERE id = ?`,
+      input.name,
+      input.dosage,
+      input.instructions,
+      input.active ? 1 : 0,
+      id
+    );
+
+    const row = await this.getById(id);
+
+    if (!row) {
+      throw new Error('Failed to update medication');
+    }
+
+    return row;
+  }
+
   async createLog(input: NewMedicationLog) {
     const database = await getDatabase();
     const result = await database.runAsync(
@@ -104,5 +146,13 @@ export class MedicationRepository {
     }
 
     return mapLog(row);
+  }
+
+  async deleteMedication(id: number) {
+    const database = await getDatabase();
+    await database.withTransactionAsync(async () => {
+      await database.runAsync('DELETE FROM medication_logs WHERE medication_id = ?', id);
+      await database.runAsync('DELETE FROM medications WHERE id = ?', id);
+    });
   }
 }

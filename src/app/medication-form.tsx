@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,12 +11,31 @@ import { MedicationRepository } from '@/features/medications/medication.reposito
 const medicationRepository = new MedicationRepository();
 
 export default function MedicationFormScreen() {
+  const params = useLocalSearchParams<{ id?: string }>();
+  const editingId = params.id ? Number(params.id) : null;
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
   const [active, setActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) {
+      return;
+    }
+
+    medicationRepository.getById(editingId).then((record) => {
+      if (!record) {
+        return;
+      }
+
+      setName(record.name);
+      setDosage(record.dosage);
+      setInstructions(record.instructions ?? '');
+      setActive(record.active);
+    });
+  }, [editingId]);
 
   async function handleSubmit() {
     if (!name.trim() || !dosage.trim()) {
@@ -27,12 +46,17 @@ export default function MedicationFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await medicationRepository.createMedication({
+      const payload = {
         name: name.trim(),
         dosage: dosage.trim(),
         instructions: instructions.trim() || null,
         active,
-      });
+      };
+      if (editingId) {
+        await medicationRepository.updateMedication(editingId, payload);
+      } else {
+        await medicationRepository.createMedication(payload);
+      }
       router.replace('/(tabs)/explore');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar medicacao.');
@@ -44,7 +68,11 @@ export default function MedicationFormScreen() {
   return (
     <FormShell
       title="Cadastrar medicacao"
-      description="Crie a medicação ativa e depois registre as tomadas na tela principal.">
+      description={
+        editingId
+          ? 'Atualize o tratamento salvo e ajuste se ele continua ativo.'
+          : 'Crie a medicação ativa e depois registre as tomadas na tela principal.'
+      }>
       <RecordInput
         label="Nome"
         placeholder="Ex.: Losartana"
@@ -83,7 +111,7 @@ export default function MedicationFormScreen() {
       </View>
       {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : 'Salvar medicacao'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar medicacao' : 'Salvar medicacao'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />
