@@ -120,47 +120,50 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
   const database = await getDatabase();
   const rows = await database.getAllAsync<UnifiedHistoryRow>(
     `
-      SELECT
-        id,
-        'pressure' as category,
-        systolic || '/' || diastolic || ' mmHg' as title,
-        COALESCE('Pulso ' || pulse || ' bpm', 'Sem pulso informado') as subtitle,
-        measured_at
-      FROM blood_pressure_readings
-      UNION ALL
-      SELECT
-        id,
-        'glicose' as category,
-        glicose_value || ' ' || unit as title,
-        CASE context
-          WHEN 'fasting' THEN 'Jejum'
-          WHEN 'post_meal' THEN 'Pós-refeição'
-          ELSE 'Aleatória'
-        END as subtitle,
-        measured_at
-      FROM glicose_readings
-      UNION ALL
-      SELECT
-        id,
-        'weight' as category,
-        weight || ' ' || unit as title,
-        COALESCE(notes, 'Peso registrado') as subtitle,
-        measured_at
-      FROM weight_readings
-      UNION ALL
-      SELECT
-        medication_logs.id as id,
-        'medication' as category,
-        medications.name || ' ' || medications.dosage as title,
-        CASE medication_logs.status
-          WHEN 'taken' THEN 'Dose tomada'
-          WHEN 'skipped' THEN 'Dose ignorada'
-          ELSE 'Dose pendente'
-        END as subtitle,
-        medication_logs.scheduled_at as measured_at
-      FROM medication_logs
-      INNER JOIN medications ON medications.id = medication_logs.medication_id
-      ORDER BY datetime(measured_at) DESC
+      SELECT id, category, title, subtitle, measured_at
+      FROM (
+        SELECT
+          id,
+          'pressure' as category,
+          systolic || '/' || diastolic || ' mmHg' as title,
+          COALESCE('Pulso ' || pulse || ' bpm', 'Sem pulso informado') as subtitle,
+          measured_at
+        FROM blood_pressure_readings
+        UNION ALL
+        SELECT
+          id,
+          'glicose' as category,
+          glicose_value || ' ' || unit as title,
+          CASE context
+            WHEN 'fasting' THEN 'Jejum'
+            WHEN 'post_meal' THEN 'Pós-refeição'
+            ELSE 'Aleatória'
+          END as subtitle,
+          measured_at
+        FROM glicose_readings
+        UNION ALL
+        SELECT
+          id,
+          'weight' as category,
+          weight || ' ' || unit as title,
+          COALESCE(notes, 'Peso registrado') as subtitle,
+          measured_at
+        FROM weight_readings
+        UNION ALL
+        SELECT
+          medication_logs.id as id,
+          'medication' as category,
+          medications.name || ' ' || medications.dosage as title,
+          CASE medication_logs.status
+            WHEN 'taken' THEN 'Dose tomada'
+            WHEN 'skipped' THEN 'Dose ignorada'
+            ELSE 'Dose pendente'
+          END as subtitle,
+          medication_logs.scheduled_at as measured_at
+        FROM medication_logs
+        INNER JOIN medications ON medications.id = medication_logs.medication_id
+      )
+      ORDER BY measured_at DESC
       LIMIT ?
     `,
     limit
