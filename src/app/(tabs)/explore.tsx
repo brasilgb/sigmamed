@@ -1,4 +1,5 @@
-import { StyleSheet, Switch, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -6,6 +7,7 @@ import { HistoryList } from '@/components/dashboard/history-list';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useMedications } from '@/hooks/use-medications';
 
 const moduleCards = [
   {
@@ -29,6 +31,12 @@ const moduleCards = [
 export default function HistoryScreen() {
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
   const { history, isLoading, refresh, summary } = useDashboardData();
+  const { items: medications, logStatus } = useMedications();
+
+  async function handleMedicationStatus(medicationId: number, status: 'taken' | 'skipped') {
+    await logStatus(medicationId, status);
+    await refresh();
+  }
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
@@ -50,10 +58,48 @@ export default function HistoryScreen() {
         ))}
       </View>
 
+      <Pressable style={styles.createMedicationCta} onPress={() => router.push('/medication-form')}>
+        <ThemedText style={styles.createMedicationTitle}>Cadastrar medicacao</ThemedText>
+        <ThemedText style={styles.createMedicationText}>
+          Adicione um tratamento e registre tomadas ou pulos logo abaixo.
+        </ThemedText>
+      </Pressable>
+
+      {medications.length > 0 ? (
+        <View style={styles.medicationsSection}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Uso diario de medicacoes
+          </ThemedText>
+          {medications.map((medication) => (
+            <View key={medication.id} style={styles.medicationCard}>
+              <ThemedText style={styles.medicationName}>
+                {medication.name} {medication.dosage}
+              </ThemedText>
+              <ThemedText style={styles.medicationInstructions}>
+                {medication.instructions || 'Sem instrucoes cadastradas'}
+              </ThemedText>
+              <View style={styles.actionRow}>
+                <AuthButton
+                  label="Tomado"
+                  variant="secondary"
+                  onPress={() => void handleMedicationStatus(medication.id, 'taken')}
+                  style={styles.actionButton}
+                />
+                <AuthButton
+                  label="Pular"
+                  onPress={() => void handleMedicationStatus(medication.id, 'skipped')}
+                  style={styles.actionButton}
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.roadmapCard}>
         <ThemedText style={styles.roadmapTitle}>Proximo passo sugerido</ThemedText>
         <ThemedText style={styles.roadmapText}>
-          Criar formularios reais de cadastro e CRUD por modulo usando os repositories ja prontos.
+          Evoluir para edicao/exclusao dos registros e agendamento de doses.
         </ThemedText>
         {summary ? (
           <ThemedText style={styles.roadmapMeta}>
@@ -130,6 +176,43 @@ const styles = StyleSheet.create({
     color: '#17303a',
   },
   moduleDescription: {
+    color: '#5a6f76',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  createMedicationCta: {
+    borderRadius: 24,
+    backgroundColor: '#17303a',
+    padding: 18,
+    gap: 6,
+  },
+  createMedicationTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
+  createMedicationText: {
+    color: '#c2d6db',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  medicationsSection: {
+    gap: 12,
+  },
+  medicationCard: {
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    padding: 18,
+    gap: 10,
+  },
+  medicationName: {
+    color: '#17303a',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  medicationInstructions: {
     color: '#5a6f76',
     fontSize: 14,
     lineHeight: 20,

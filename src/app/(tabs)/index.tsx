@@ -1,6 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useMedications } from '@/hooks/use-medications';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { MetricPreview } from '@/components/dashboard/metric-preview';
 import { SummaryCard } from '@/components/dashboard/summary-card';
@@ -12,6 +14,7 @@ import { formatDateTime } from '@/utils/date';
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { error, history, isLoading, refresh, summary } = useDashboardData();
+  const { items: medications } = useMedications();
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
@@ -24,6 +27,25 @@ export default function DashboardScreen() {
           {user ? `${user.name.split(' ')[0]}, ` : ''}
           registre pressao, glicose, peso e medicacoes com historico local primeiro.
         </ThemedText>
+      </View>
+
+      <View style={styles.quickActions}>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/pressure-form')}>
+          <ThemedText style={styles.actionTitle}>Nova pressao</ThemedText>
+          <ThemedText style={styles.actionText}>Registrar sistolica, diastolica e pulso.</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/glicose-form')}>
+          <ThemedText style={styles.actionTitle}>Nova glicose</ThemedText>
+          <ThemedText style={styles.actionText}>Salvar com contexto da medicao.</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/weight-form')}>
+          <ThemedText style={styles.actionTitle}>Novo peso</ThemedText>
+          <ThemedText style={styles.actionText}>Atualizar pesagem em poucos toques.</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionCard} onPress={() => router.push('/medication-form')}>
+          <ThemedText style={styles.actionTitle}>Nova medicacao</ThemedText>
+          <ThemedText style={styles.actionText}>Cadastrar tratamento ativo.</ThemedText>
+        </Pressable>
       </View>
 
       {summary ? (
@@ -88,6 +110,26 @@ export default function DashboardScreen() {
         </>
       ) : null}
 
+      {medications.length > 0 ? (
+        <View style={styles.medicationCard}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Medicacoes ativas
+          </ThemedText>
+          {medications.slice(0, 3).map((medication) => (
+            <View key={medication.id} style={styles.medicationRow}>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={styles.medicationName}>
+                  {medication.name} {medication.dosage}
+                </ThemedText>
+                <ThemedText style={styles.medicationInstructions}>
+                  {medication.instructions || 'Sem instrucoes cadastradas'}
+                </ThemedText>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       <View style={styles.sectionHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Historico recente
@@ -127,6 +169,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  quickActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionCard: {
+    width: '47%',
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    gap: 6,
+  },
+  actionTitle: {
+    color: '#17303a',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  actionText: {
+    color: '#5f747c',
+    fontSize: 13,
+    lineHeight: 18,
+  },
   metricRow: {
     flexDirection: 'row',
     gap: 12,
@@ -154,6 +219,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  medicationCard: {
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    padding: 18,
+    gap: 12,
+  },
+  medicationRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  medicationName: {
+    color: '#17303a',
+    fontWeight: '700',
+  },
+  medicationInstructions: {
+    color: '#5f747c',
+    fontSize: 14,
+    lineHeight: 20,
   },
   sectionTitle: {
     color: '#17303a',
