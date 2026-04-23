@@ -1,0 +1,151 @@
+import { Pressable, StyleSheet, View } from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import type { MetricTrend } from '@/types/health';
+
+type TrendCardProps = {
+  metric: MetricTrend;
+  onPress?: (metric: MetricTrend) => void;
+  actionLabel?: string;
+};
+
+const palette = {
+  pressure: {
+    background: '#ffffff',
+    accent: '#21438f',
+    soft: '#dfe8fb',
+  },
+  glicose: {
+    background: '#ffffff',
+    accent: '#0f6c4d',
+    soft: '#dff4ec',
+  },
+  weight: {
+    background: '#ffffff',
+    accent: '#7c4a19',
+    soft: '#f7ead8',
+  },
+};
+
+export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: TrendCardProps) {
+  const colors = palette[metric.key];
+  const numericValues = metric.points.flatMap((point) => (point.value === null ? [] : [point.value]));
+  const max = numericValues.length > 0 ? Math.max(...numericValues) : 1;
+  const min = numericValues.length > 0 ? Math.min(...numericValues) : 0;
+  const range = Math.max(max - min, 1);
+  const deltaPrefix = metric.delta && metric.delta > 0 ? '+' : '';
+
+  return (
+    <Pressable style={styles.card} onPress={onPress ? () => onPress(metric) : undefined}>
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <ThemedText style={styles.label}>{metric.label}</ThemedText>
+          <ThemedText style={[styles.value, { color: colors.accent }]}>
+            {metric.latestValue !== null ? `${metric.latestValue.toFixed(metric.key === 'weight' ? 1 : 0)} ${metric.unit}` : 'Sem dado'}
+          </ThemedText>
+        </View>
+        <View style={[styles.badge, { backgroundColor: colors.soft }]}>
+          <ThemedText style={[styles.badgeText, { color: colors.accent }]}>
+            {metric.delta !== null ? `${deltaPrefix}${metric.delta.toFixed(metric.key === 'weight' ? 1 : 0)}` : '0'}
+          </ThemedText>
+        </View>
+      </View>
+
+      <View style={styles.chart}>
+        {metric.points.map((point) => {
+          const height = point.value === null ? 8 : 18 + ((point.value - min) / range) * 44;
+
+          return (
+            <View key={`${metric.key}-${point.date}`} style={styles.column}>
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    height,
+                    backgroundColor: point.value === null ? '#d9e2e5' : colors.accent,
+                    opacity: point.value === null ? 0.5 : 1,
+                  },
+                ]}
+              />
+              <ThemedText style={styles.axisLabel}>{point.label}</ThemedText>
+            </View>
+          );
+        })}
+      </View>
+
+      <ThemedText style={styles.detail}>{metric.detail}</ThemedText>
+      {onPress ? <ThemedText style={[styles.action, { color: colors.accent }]}>{actionLabel}</ThemedText> : null}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    padding: 18,
+    gap: 14,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  label: {
+    color: '#5f747c',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  value: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
+  },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  badgeText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  chart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+    minHeight: 78,
+  },
+  column: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  bar: {
+    width: '100%',
+    borderRadius: 999,
+    minWidth: 8,
+  },
+  axisLabel: {
+    color: '#6e828a',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  detail: {
+    color: '#56707a',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  action: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+});

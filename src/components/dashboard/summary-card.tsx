@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -6,6 +6,8 @@ type SummaryCardProps = {
   label: string;
   value: string;
   tone?: 'default' | 'accent' | 'success';
+  onPress?: () => void;
+  actionLabel?: string;
 };
 
 const tones = {
@@ -23,14 +25,17 @@ const tones = {
   },
 };
 
-export function SummaryCard({ label, value, tone = 'default' }: SummaryCardProps) {
+export function SummaryCard({ label, value, tone = 'default', onPress, actionLabel }: SummaryCardProps) {
   const colors = tones[tone];
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.backgroundColor }]}>
+    <Pressable style={[styles.card, { backgroundColor: colors.backgroundColor }]} onPress={onPress}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <ThemedText style={[styles.value, { color: colors.valueColor }]}>{value}</ThemedText>
-    </View>
+      <View style={styles.content}>
+        <ThemedText style={[styles.value, { color: colors.valueColor }]}>{value}</ThemedText>
+        {actionLabel ? <ThemedText style={[styles.action, { color: colors.valueColor }]}>{actionLabel}</ThemedText> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -42,6 +47,9 @@ const styles = StyleSheet.create({
     padding: 18,
     justifyContent: 'space-between',
   },
+  content: {
+    gap: 8,
+  },
   label: {
     color: '#52707a',
     fontSize: 14,
@@ -50,6 +58,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 28,
     lineHeight: 32,
+    fontWeight: '700',
+  },
+  action: {
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '700',
   },
 });

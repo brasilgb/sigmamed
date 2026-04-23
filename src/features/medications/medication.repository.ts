@@ -12,6 +12,9 @@ type MedicationRow = {
   dosage: string;
   instructions: string | null;
   active: number;
+  scheduled_time: string | null;
+  reminder_enabled: number;
+  reminder_minutes_before: number;
   created_at: string;
 };
 
@@ -31,6 +34,9 @@ function mapMedication(row: MedicationRow): Medication {
     dosage: row.dosage,
     instructions: row.instructions,
     active: Boolean(row.active),
+    scheduledTime: row.scheduled_time,
+    reminderEnabled: Boolean(row.reminder_enabled),
+    reminderMinutesBefore: row.reminder_minutes_before,
     createdAt: row.created_at,
   };
 }
@@ -82,12 +88,15 @@ export class MedicationRepository {
     const database = await getDatabase();
     const result = await database.runAsync(
       `INSERT INTO medications
-        (name, dosage, instructions, active)
-       VALUES (?, ?, ?, ?)`,
+        (name, dosage, instructions, active, scheduled_time, reminder_enabled, reminder_minutes_before)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       input.name,
       input.dosage,
       input.instructions,
-      input.active ? 1 : 0
+      input.active ? 1 : 0,
+      input.scheduledTime,
+      input.reminderEnabled ? 1 : 0,
+      input.reminderMinutesBefore
     );
 
     const row = await database.getFirstAsync<MedicationRow>(
@@ -106,12 +115,15 @@ export class MedicationRepository {
     const database = await getDatabase();
     await database.runAsync(
       `UPDATE medications
-       SET name = ?, dosage = ?, instructions = ?, active = ?
+       SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, reminder_enabled = ?, reminder_minutes_before = ?
        WHERE id = ?`,
       input.name,
       input.dosage,
       input.instructions,
       input.active ? 1 : 0,
+      input.scheduledTime,
+      input.reminderEnabled ? 1 : 0,
+      input.reminderMinutesBefore,
       id
     );
 

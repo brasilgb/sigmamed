@@ -88,4 +88,13 @@ export const migrations = [
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `,
+  `
+    ALTER TABLE medications ADD COLUMN scheduled_time TEXT;
+  `,
+  `
+    ALTER TABLE medications ADD COLUMN reminder_enabled INTEGER NOT NULL DEFAULT 0;
+  `,
+  `
+    ALTER TABLE medications ADD COLUMN reminder_minutes_before INTEGER NOT NULL DEFAULT 5;
+  `,
 ];

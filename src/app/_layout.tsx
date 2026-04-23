@@ -7,11 +7,13 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/features/auth/hooks/use-auth';
+import { configureMedicationNotifications } from '@/features/medications/services/medication-reminder.service';
 import { useAppBootstrap } from '@/hooks/use-app-bootstrap';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isReady, error } = useAppBootstrap();
+  configureMedicationNotifications();
 
   if (error) {
     return (

@@ -1,10 +1,11 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
+import { TrendCard } from '@/components/dashboard/trend-card';
 import { SearchInput } from '@/components/forms/search-input';
 import { OptionSelector } from '@/components/forms/option-selector';
 import { Screen } from '@/components/ui/screen';
@@ -34,8 +35,15 @@ const moduleCards = [
 ];
 
 export default function HistoryScreen() {
+  const params = useLocalSearchParams<{
+    recordFilter?: 'all' | 'pressure' | 'glicose' | 'weight' | 'medication';
+    recordSort?: 'newest' | 'oldest' | 'highest';
+    timeFilter?: 'all' | '7d' | '30d';
+    medicationStatusFilter?: 'all' | 'active' | 'inactive';
+  }>();
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
-  const { history, isLoading, refresh, summary } = useDashboardData();
+  const [trendRange, setTrendRange] = useState<'7d' | '30d'>('7d');
+  const { history, isLoading, refresh, summary, trends } = useDashboardData(trendRange === '7d' ? 7 : 30);
   const { items: medications, logStatus } = useMedications();
   const {
     pressureReadings,
@@ -62,6 +70,33 @@ export default function HistoryScreen() {
 
   const normalizedQuery = query.trim().toLowerCase();
   const now = Date.now();
+
+  function handleTrendPress(metric: { key: 'pressure' | 'glicose' | 'weight' }) {
+    setRecordFilter(metric.key);
+    setTimeFilter(trendRange);
+    setRecordSort('newest');
+  }
+
+  useEffect(() => {
+    if (params.recordFilter) {
+      setRecordFilter(params.recordFilter);
+    }
+
+    if (params.recordSort) {
+      setRecordSort(params.recordSort);
+    }
+
+    if (params.timeFilter) {
+      setTimeFilter(params.timeFilter);
+      if (params.timeFilter === '7d' || params.timeFilter === '30d') {
+        setTrendRange(params.timeFilter);
+      }
+    }
+
+    if (params.medicationStatusFilter) {
+      setMedicationStatusFilter(params.medicationStatusFilter);
+    }
+  }, [params.medicationStatusFilter, params.recordFilter, params.recordSort, params.timeFilter]);
 
   const withinSelectedTime = useCallback((isoDate: string) => {
     if (timeFilter === 'all') {
@@ -315,6 +350,31 @@ export default function HistoryScreen() {
           <View style={styles.actionRow}>
             <AuthButton label="Bloquear app" variant="secondary" onPress={lock} style={styles.actionButton} />
             <AuthButton label="Logout" onPress={() => void logout()} style={styles.actionButton} />
+          </View>
+        </View>
+      ) : null}
+
+      {trends ? (
+        <View style={styles.managementSection}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Tendencias por periodo
+            </ThemedText>
+            <ThemedText style={styles.sectionHint}>Series locais</ThemedText>
+          </View>
+          <View style={styles.manageCard}>
+            <OptionSelector
+              label="Janela de analise"
+              value={trendRange}
+              onChange={setTrendRange}
+              options={[
+                { label: '7 dias', value: '7d' },
+                { label: '30 dias', value: '30d' },
+              ]}
+            />
+            <TrendCard metric={trends.pressure} onPress={handleTrendPress} actionLabel="Filtrar pressao abaixo" />
+            <TrendCard metric={trends.glicose} onPress={handleTrendPress} actionLabel="Filtrar glicose abaixo" />
+            <TrendCard metric={trends.weight} onPress={handleTrendPress} actionLabel="Filtrar peso abaixo" />
           </View>
         </View>
       ) : null}

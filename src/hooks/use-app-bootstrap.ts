@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 
 import { initDatabase } from '@/database/client';
 import { seedDatabaseIfEmpty } from '@/database/seed';
+import { MedicationService } from '@/features/medications/services/medication.service';
+
+const medicationService = new MedicationService();
 
 type BootstrapState = {
   isReady: boolean;
@@ -21,6 +24,7 @@ export function useAppBootstrap(): BootstrapState {
       try {
         await initDatabase();
         await seedDatabaseIfEmpty();
+        await medicationService.syncReminders();
 
         if (isMounted) {
           setState({

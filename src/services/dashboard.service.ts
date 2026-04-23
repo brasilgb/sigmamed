@@ -1,10 +1,15 @@
 import { getDatabase } from '@/database/client';
-import type { DashboardSummary, HistoryItem } from '@/types/health';
-import { formatDateTime } from '@/utils/date';
+import type { DashboardSummary, DashboardTrends, HistoryItem, MetricTrend, TrendDirection, TrendPoint } from '@/types/health';
+import { formatDateTime, formatDayLabel } from '@/utils/date';
 
 type CountRow = { count: number };
 
 type AdherenceRow = { adherence: number };
+
+type MetricRow = {
+  measuredAt: string;
+  value: number;
+};
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const database = await getDatabase();
@@ -105,6 +110,125 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     latestPressure: latestPressure ?? null,
     latestGlicose: latestGlicose ?? null,
     latestWeight: latestWeight ?? null,
+  };
+}
+
+function buildDaySeries(periodDays: 7 | 30) {
+  const dates: string[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let offset = periodDays - 1; offset >= 0; offset -= 1) {
+    const current = new Date(today);
+    current.setDate(today.getDate() - offset);
+    dates.push(current.toISOString());
+  }
+
+  return dates;
+}
+
+function getTrendDirection(delta: number | null): TrendDirection {
+  if (delta === null || Math.abs(delta) < 0.01) {
+    return 'stable';
+  }
+
+  return delta > 0 ? 'up' : 'down';
+}
+
+function buildTrendDetail(label: string, unit: string, latestValue: number | null, delta: number | null) {
+  if (latestValue === null) {
+    return `Sem leituras de ${label.toLowerCase()} no periodo.`;
+  }
+
+  if (delta === null || Math.abs(delta) < 0.01) {
+    return `Estavel no periodo em ${latestValue.toFixed(0)} ${unit}.`;
+  }
+
+  const signal = delta > 0 ? 'Alta' : 'Queda';
+  return `${signal} de ${Math.abs(delta).toFixed(0)} ${unit} frente ao valor anterior.`;
+}
+
+function buildMetricTrend(
+  key: MetricTrend['key'],
+  label: string,
+  unit: string,
+  periodDays: 7 | 30,
+  rows: MetricRow[]
+): MetricTrend {
+  const grouped = new Map<string, number[]>();
+
+  rows.forEach((row) => {
+    const dayKey = row.measuredAt.slice(0, 10);
+    const values = grouped.get(dayKey) ?? [];
+    values.push(row.value);
+    grouped.set(dayKey, values);
+  });
+
+  const points: TrendPoint[] = buildDaySeries(periodDays).map((date) => {
+    const dayKey = date.slice(0, 10);
+    const values = grouped.get(dayKey);
+    const value = values && values.length > 0
+      ? values.reduce((total, current) => total + current, 0) / values.length
+      : null;
+
+    return {
+      date,
+      label: formatDayLabel(date),
+      value,
+    };
+  });
+
+  const numericPoints = points.filter((point) => point.value !== null);
+  const latestValue = numericPoints.at(-1)?.value ?? null;
+  const previousValue = numericPoints.length > 1 ? numericPoints.at(-2)?.value ?? null : null;
+  const delta = latestValue !== null && previousValue !== null ? latestValue - previousValue : null;
+
+  return {
+    key,
+    label,
+    unit,
+    points,
+    latestValue,
+    previousValue,
+    delta,
+    direction: getTrendDirection(delta),
+    detail: buildTrendDetail(label, unit, latestValue, delta),
+  };
+}
+
+export async function getDashboardTrends(periodDays: 7 | 30 = 7): Promise<DashboardTrends> {
+  const database = await getDatabase();
+  const periodModifier = `-${periodDays} day`;
+
+  const [pressureRows, glicoseRows, weightRows] = await Promise.all([
+    database.getAllAsync<MetricRow>(
+      `SELECT measured_at as measuredAt, systolic as value
+       FROM blood_pressure_readings
+       WHERE datetime(measured_at) >= datetime('now', ?)
+       ORDER BY datetime(measured_at) ASC`,
+      periodModifier
+    ),
+    database.getAllAsync<MetricRow>(
+      `SELECT measured_at as measuredAt, glicose_value as value
+       FROM glicose_readings
+       WHERE datetime(measured_at) >= datetime('now', ?)
+       ORDER BY datetime(measured_at) ASC`,
+      periodModifier
+    ),
+    database.getAllAsync<MetricRow>(
+      `SELECT measured_at as measuredAt, weight as value
+       FROM weight_readings
+       WHERE datetime(measured_at) >= datetime('now', ?)
+       ORDER BY datetime(measured_at) ASC`,
+      periodModifier
+    ),
+  ]);
+
+  return {
+    periodDays,
+    pressure: buildMetricTrend('pressure', 'Sistolica media', 'mmHg', periodDays, pressureRows),
+    glicose: buildMetricTrend('glicose', 'Glicose media', 'mg/dL', periodDays, glicoseRows),
+    weight: buildMetricTrend('weight', 'Peso medio', 'kg', periodDays, weightRows),
   };
 }
 

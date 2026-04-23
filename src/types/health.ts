@@ -47,6 +47,9 @@ export type Medication = {
   dosage: string;
   instructions: string | null;
   active: boolean;
+  scheduledTime: string | null;
+  reminderEnabled: boolean;
+  reminderMinutesBefore: number;
   createdAt: string;
 };
 
@@ -81,4 +84,42 @@ export type DashboardSummary = {
   latestPressure: BloodPressureReading | null;
   latestGlicose: GlicoseReading | null;
   latestWeight: WeightReading | null;
+};
+
+export type TrendDirection = 'up' | 'down' | 'stable';
+
+export type TrendPoint = {
+  label: string;
+  date: string;
+  value: number | null;
+};
+
+export type MetricTrend = {
+  key: 'pressure' | 'glicose' | 'weight';
+  label: string;
+  unit: string;
+  points: TrendPoint[];
+  latestValue: number | null;
+  previousValue: number | null;
+  delta: number | null;
+  direction: TrendDirection;
+  detail: string;
+};
+
+export type DashboardTrends = {
+  periodDays: 7 | 30;
+  pressure: MetricTrend;
+  glicose: MetricTrend;
+  weight: MetricTrend;
+};
+
+export type DashboardAlertTone = 'warning' | 'danger' | 'info';
+
+export type DashboardAlert = {
+  id: string;
+  title: string;
+  description: string;
+  tone: DashboardAlertTone;
+  metric: 'pressure' | 'glicose' | 'weight' | 'medication';
+  actionLabel: string;
 };

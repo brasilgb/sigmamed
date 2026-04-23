@@ -70,12 +70,15 @@ export async function seedDatabaseIfEmpty() {
 
     const medication = await database.runAsync(
       `INSERT INTO medications
-        (name, dosage, instructions, active)
-       VALUES (?, ?, ?, ?)`,
+        (name, dosage, instructions, active, scheduled_time, reminder_enabled, reminder_minutes_before)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       'Losartana',
       '50 mg',
       'Tomar após o café',
-      1
+      1,
+      '08:00',
+      1,
+      5
     );
 
     await database.runAsync(
