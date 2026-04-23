@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+# SigmaMed
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile em Expo/React Native para monitoramento domestico de saude com foco em:
 
-## Get started
+- pressao arterial
+- glicose
+- peso
+- medicacoes
 
-1. Install dependencies
+## Estrutura
 
-   ```bash
-   npm install
-   ```
+O projeto usa `expo-router` com rotas em `src/app`.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```txt
+src/
+  app/
+  components/
+  constants/
+  database/
+  features/
+  hooks/
+  services/
+  types/
+  utils/
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Desenvolvimento
 
-## Learn more
+Instale as dependencias:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Inicie o projeto:
 
-## Join the community
+```bash
+npx expo start
+```
 
-Join our community of developers creating universal apps.
+## Modulos ja iniciados
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- dashboard local com historico unificado
+- SQLite com migrations e seed inicial
+- autenticacao local com e-mail e senha
+- desbloqueio por PIN
+- biometria opcional
+- sessao protegida com Secure Store
+
+## Documentacao interna
+
+- [PROJECT-CONTEXT.md](./PROJECT-CONTEXT.md)
+- [AUTH-CONTEXT.md](./AUTH-CONTEXT.md)
