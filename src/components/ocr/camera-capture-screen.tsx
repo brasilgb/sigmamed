@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
+import { BrandPalette, Colors } from '@/constants/theme';
 import { Screen } from '@/components/ui/screen';
 
 type CameraCaptureScreenProps = {
@@ -130,7 +131,7 @@ export function CameraCaptureScreen({
 
       {isProcessing ? (
         <View style={styles.processingRow}>
-          <ActivityIndicator color="#0f6c73" />
+          <ActivityIndicator color={BrandPalette.primary} />
           <ThemedText style={styles.processingText}>{processingLabel}</ThemedText>
         </View>
       ) : null}
@@ -151,26 +152,26 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    backgroundColor: '#e6eef1',
+    backgroundColor: Colors.light.surfaceMuted,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   backText: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   title: {
-    color: '#17303a',
+    color: Colors.light.text,
     lineHeight: 38,
   },
   description: {
-    color: '#56707a',
+    color: Colors.light.textMuted,
   },
   cameraCard: {
     height: 420,
     borderRadius: 28,
     overflow: 'hidden',
-    backgroundColor: '#d6e1e5',
+    backgroundColor: Colors.light.border,
   },
   camera: {
     flex: 1,
@@ -195,20 +196,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   processingText: {
-    color: '#35515a',
+    color: Colors.light.textMuted,
   },
   error: {
-    color: '#b14646',
+    color: Colors.light.danger,
   },
   preview: {
     width: '100%',
     height: 220,
     borderRadius: 24,
-    backgroundColor: '#d6e1e5',
+    backgroundColor: Colors.light.border,
   },
   infoCard: {
     borderRadius: 28,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 20,
     gap: 14,
   },

@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { CameraCaptureScreen } from '@/components/ocr/camera-capture-screen';
 import { ValueSuggestions } from '@/components/ocr/value-suggestions';
+import { Colors } from '@/constants/theme';
 import { detectPressureFromImage } from '@/features/ocr/services/ocr-reading-workflow.service';
 import type { PressureOcrCandidate } from '@/features/ocr/types/ocr';
 
@@ -54,20 +55,20 @@ export default function PressureScanScreen() {
         <View
           style={{
             borderRadius: 24,
-            backgroundColor: '#ffffff',
+            backgroundColor: Colors.light.surface,
             padding: 18,
             gap: 10,
           }}>
-          <ThemedText type="subtitle" style={{ color: '#17303a' }}>
+          <ThemedText type="subtitle" style={{ color: Colors.light.text }}>
             Valores detectados
           </ThemedText>
-          <ThemedText style={{ color: '#35515a' }}>
+          <ThemedText style={{ color: Colors.light.textMuted }}>
             Sistolica: {result.systolic || 'nao detectada'}
           </ThemedText>
-          <ThemedText style={{ color: '#35515a' }}>
+          <ThemedText style={{ color: Colors.light.textMuted }}>
             Diastolica: {result.diastolic || 'nao detectada'}
           </ThemedText>
-          <ThemedText style={{ color: '#35515a' }}>
+          <ThemedText style={{ color: Colors.light.textMuted }}>
             Pulso: {result.pulse || 'nao detectado'}
           </ThemedText>
           <ValueSuggestions
@@ -88,10 +89,10 @@ export default function PressureScanScreen() {
             selected={result.pulse}
             onSelect={(value) => setResult((current) => (current ? { ...current, pulse: value } : current))}
           />
-          <ThemedText style={{ color: '#5f747c', fontSize: 13, lineHeight: 18 }}>
+          <ThemedText style={{ color: Colors.light.textMuted, fontSize: 13, lineHeight: 18 }}>
             Melhor leitura: {result.variant} · score {result.score} · {candidateCount} tentativas
           </ThemedText>
-          <ThemedText style={{ color: '#6f858d', fontSize: 13, lineHeight: 18 }}>
+          <ThemedText style={{ color: Colors.light.textSoft, fontSize: 13, lineHeight: 18 }}>
             OCR bruto: {result.rawText || 'sem texto reconhecido'}
           </ThemedText>
           <AuthButton

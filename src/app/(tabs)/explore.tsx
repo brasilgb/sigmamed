@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { TrendCard } from '@/components/dashboard/trend-card';
+import { BrandPalette, Colors, ModulePalette } from '@/constants/theme';
 import { SearchInput } from '@/components/forms/search-input';
 import { OptionSelector } from '@/components/forms/option-selector';
 import { Screen } from '@/components/ui/screen';
@@ -585,18 +586,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: '#17303a',
+    color: Colors.light.text,
     lineHeight: 38,
   },
   description: {
-    color: '#56707a',
+    color: Colors.light.textMuted,
   },
   moduleList: {
     gap: 12,
   },
   moduleCard: {
     borderRadius: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 6,
   },
@@ -604,27 +605,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '700',
-    color: '#17303a',
+    color: Colors.light.text,
   },
   moduleDescription: {
-    color: '#5a6f76',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   createMedicationCta: {
     borderRadius: 24,
-    backgroundColor: '#17303a',
+    backgroundColor: BrandPalette.navy,
     padding: 18,
     gap: 6,
   },
   createMedicationTitle: {
-    color: '#ffffff',
+    color: BrandPalette.white,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '700',
   },
   createMedicationText: {
-    color: '#c2d6db',
+    color: '#C7E3E6',
     fontSize: 14,
     lineHeight: 20,
   },
@@ -633,24 +634,24 @@ const styles = StyleSheet.create({
   },
   medicationCard: {
     borderRadius: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 10,
   },
   medicationName: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '700',
   },
   medicationInstructions: {
-    color: '#5a6f76',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   roadmapCard: {
     borderRadius: 28,
-    backgroundColor: '#dff4ec',
+    backgroundColor: ModulePalette.weight.soft,
     padding: 20,
     gap: 8,
   },
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '700',
-    color: '#0f6c4d',
+    color: ModulePalette.weight.base,
   },
   roadmapText: {
     color: '#275847',
@@ -670,18 +671,18 @@ const styles = StyleSheet.create({
   },
   accountCard: {
     borderRadius: 28,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 20,
     gap: 12,
   },
   accountTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '700',
   },
   accountMeta: {
-    color: '#5a6f76',
+    color: Colors.light.textMuted,
   },
   preferenceRow: {
     flexDirection: 'row',
@@ -689,7 +690,7 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center',
     borderRadius: 18,
-    backgroundColor: '#f4f8f9',
+    backgroundColor: Colors.light.surfaceMuted,
     padding: 16,
   },
   preferenceText: {
@@ -697,11 +698,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   preferenceTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   preferenceDescription: {
-    color: '#57717a',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -718,10 +719,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
   },
   sectionHint: {
-    color: '#6a8089',
+    color: Colors.light.textSoft,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -730,12 +731,12 @@ const styles = StyleSheet.create({
   },
   manageCard: {
     borderRadius: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 12,
   },
   manageTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '700',
@@ -743,18 +744,18 @@ const styles = StyleSheet.create({
   manageRow: {
     gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#d9e2e5',
+    borderTopColor: Colors.light.border,
     paddingTop: 12,
   },
   manageInfo: {
     gap: 4,
   },
   manageValue: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   manageMeta: {
-    color: '#5f747c',
+    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },

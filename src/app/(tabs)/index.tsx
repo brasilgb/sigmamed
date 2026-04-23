@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AlertsCard } from '@/components/dashboard/alerts-card';
 import { ThemedText } from '@/components/themed-text';
+import { BrandPalette, Colors, ModulePalette } from '@/constants/theme';
 import { useMedications } from '@/hooks/use-medications';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { MetricPreview } from '@/components/dashboard/metric-preview';
@@ -284,22 +285,22 @@ const styles = StyleSheet.create({
   hero: {
     gap: 8,
     borderRadius: 32,
-    backgroundColor: '#17303a',
+    backgroundColor: BrandPalette.navy,
     padding: 24,
   },
   kicker: {
-    color: '#98c6ce',
+    color: '#9DDDE2',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     fontSize: 12,
     lineHeight: 16,
   },
   title: {
-    color: '#ffffff',
+    color: BrandPalette.white,
     lineHeight: 38,
   },
   description: {
-    color: '#c2d6db',
+    color: '#C7E3E6',
     fontSize: 16,
     lineHeight: 24,
   },
@@ -315,18 +316,18 @@ const styles = StyleSheet.create({
   actionCard: {
     width: '47%',
     borderRadius: 22,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 16,
     gap: 6,
   },
   actionTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '700',
   },
   actionText: {
-    color: '#5f747c',
+    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -340,23 +341,23 @@ const styles = StyleSheet.create({
   metricTile: {
     flex: 1,
     borderRadius: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 6,
   },
   metricLabel: {
-    color: '#5f747c',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   metricValue: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontSize: 24,
     lineHeight: 28,
     fontWeight: '700',
   },
   metricAction: {
-    color: '#21438f',
+    color: ModulePalette.glicose.base,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   },
   medicationCard: {
     borderRadius: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 12,
   },
@@ -378,23 +379,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   medicationName: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   medicationInstructions: {
-    color: '#5f747c',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   sectionTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
   },
   sectionHint: {
-    color: '#688089',
+    color: Colors.light.textSoft,
     fontSize: 13,
     lineHeight: 18,
   },
   errorText: {
-    color: '#a34343',
+    color: Colors.light.danger,
   },
 });
