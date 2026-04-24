@@ -6,13 +6,13 @@
 import { Platform } from 'react-native';
 
 export const BrandPalette = {
-  primary: '#00BFA5',
-  navy: '#0D1B2A',
-  navySoft: '#14324A',
-  pressureSoft: '#E6F7FF',
-  weightSoft: '#E8F9F1',
-  medicationSoft: '#F1E6FF',
-  mist: '#F4F8FA',
+  primary: '#0E9F8C',
+  navy: '#102532',
+  navySoft: '#1D4456',
+  pressureSoft: '#DCEEFF',
+  weightSoft: '#DCF4E8',
+  medicationSoft: '#ECE5FF',
+  mist: '#F1F6F8',
   white: '#FFFFFF',
 } as const;
 
@@ -22,33 +22,33 @@ export const ModulePalette = {
     soft: BrandPalette.pressureSoft,
   },
   glicose: {
-    base: '#21438F',
-    soft: '#DCEBFF',
+    base: '#284E99',
+    soft: '#DCE8FF',
   },
   weight: {
-    base: '#0F8A6A',
+    base: '#137B62',
     soft: BrandPalette.weightSoft,
   },
   medication: {
-    base: '#5B3FA8',
+    base: '#6146A8',
     soft: BrandPalette.medicationSoft,
   },
 } as const;
 
 const semanticLight = {
   text: BrandPalette.navy,
-  textMuted: '#49626B',
-  textSoft: '#5B747D',
-  background: '#F7FBFC',
+  textMuted: '#2F4753',
+  textSoft: '#4E6671',
+  background: '#F3F8F9',
   surface: BrandPalette.white,
-  surfaceMuted: '#F1F6F8',
-  border: '#D5E2E7',
+  surfaceMuted: '#EAF2F4',
+  border: '#CBDADF',
   tint: BrandPalette.primary,
-  icon: '#688089',
-  tabIconDefault: '#688089',
+  icon: '#5B717B',
+  tabIconDefault: '#5B717B',
   tabIconSelected: BrandPalette.primary,
-  success: '#0F8A6A',
-  warning: '#C58A1A',
+  success: '#137B62',
+  warning: '#B67915',
   danger: '#B14646',
 };
 
@@ -91,8 +91,8 @@ export const Space = {
 } as const;
 
 export const Surface = {
-  cardBorder: '#DDE8EC',
-  cardSubtle: '#FAFCFD',
+  cardBorder: '#D6E2E6',
+  cardSubtle: '#F7FAFB',
   shadow: 'rgba(13, 27, 42, 0.08)',
 } as const;
 

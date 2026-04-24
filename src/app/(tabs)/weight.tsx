@@ -8,9 +8,11 @@ import { Colors, ModulePalette } from '@/constants/theme';
 import { formatBodyMassIndex, formatHeight } from '@/features/weight/weight-utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useRecordManagement } from '@/hooks/use-record-management';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatDateTime } from '@/utils/date';
 
 export default function WeightTabScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
   const { weightReadings, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
 
@@ -64,10 +66,12 @@ export default function WeightTabScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: Colors[colorScheme].text }]}>
             Recentes
           </ThemedText>
-          <ThemedText style={styles.sectionHint}>Ultimas 5 pesagens</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: Colors[colorScheme].textMuted }]}>
+            Ultimas 5 pesagens
+          </ThemedText>
         </View>
 
         {weightReadings.length > 0 ? (
@@ -161,12 +165,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: {
-    color: Colors.light.text,
+    fontWeight: '800',
   },
   sectionHint: {
-    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '600',
   },
   recordCard: {
     borderRadius: 24,

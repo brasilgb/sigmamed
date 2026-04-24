@@ -2,15 +2,18 @@ import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
 import { AuthScreen } from '@/components/auth/auth-screen';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function UnlockScreen() {
   const { biometricAvailable, isUnlocked, unlockByBiometric, unlockByPin, user } = useAuth();
+  const colorScheme = useColorScheme() ?? 'light';
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -59,12 +62,25 @@ export default function UnlockScreen() {
     <AuthScreen
       title={`Olá, ${user.name.split(' ')[0]}`}
       subtitle="Use seu PIN para continuar. Se a biometria estiver ativa, voce tambem pode entrar por ela.">
-      <View style={styles.accountCard}>
+      <View
+        style={[
+          styles.accountCard,
+          {
+            backgroundColor: Colors[colorScheme].surfaceMuted,
+            borderColor: Colors[colorScheme].border,
+          },
+        ]}>
         <ProfileAvatar name={user.name} photoUri={user.photoUri} size={72} />
         <View style={styles.accountCopy}>
-          <ThemedText style={styles.accountLabel}>Conta ativa</ThemedText>
-          <ThemedText style={styles.accountName}>{user.name}</ThemedText>
-          <ThemedText style={styles.accountValue}>{user.email}</ThemedText>
+          <ThemedText style={[styles.accountLabel, { color: Colors[colorScheme].textMuted }]}>
+            Conta ativa
+          </ThemedText>
+          <ThemedText style={[styles.accountName, { color: Colors[colorScheme].text }]}>
+            {user.name}
+          </ThemedText>
+          <ThemedText style={[styles.accountValue, { color: Colors[colorScheme].text }]}>
+            {user.email}
+          </ThemedText>
         </View>
       </View>
 
@@ -100,34 +116,29 @@ export default function UnlockScreen() {
 const styles = StyleSheet.create({
   accountCard: {
     borderRadius: 22,
-    backgroundColor: '#F5F9FB',
     padding: 18,
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: '#DDE8EC',
   },
   accountCopy: {
     alignItems: 'center',
     gap: 4,
   },
   accountLabel: {
-    color: '#5b7279',
     fontSize: 13,
     lineHeight: 18,
   },
   accountName: {
-    color: '#17303a',
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '800',
   },
   accountValue: {
-    color: '#17303a',
     fontWeight: '700',
     lineHeight: 20,
   },
   error: {
-    color: '#b14646',
+    color: Colors.light.danger,
   },
 });

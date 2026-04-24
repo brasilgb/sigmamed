@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: Colors.light.textMuted,
+    color: Colors.light.text,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',

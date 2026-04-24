@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { BrandPalette, Colors, Surface } from '@/constants/theme';
+import { BrandPalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthInputProps = TextInputProps & {
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: Colors.light.textMuted,
+    color: Colors.light.text,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: Colors.light.text,
-    backgroundColor: Surface.cardSubtle,
+    backgroundColor: Colors.light.surface,
     shadowColor: BrandPalette.navy,
     shadowOpacity: 0.05,
     shadowRadius: 10,

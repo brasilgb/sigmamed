@@ -75,7 +75,7 @@ export function getDashboardAlerts(
       tone: summary.adherenceToday < 50 ? 'danger' : 'warning',
       title: 'Aderencia de hoje abaixo do ideal',
       actionLabel: 'Ver medicacoes',
-      description: `Aderencia registrada em ${summary.adherenceToday}%. Confira as medicacoes pendentes ou ignoradas hoje.`,
+      description: `Aderencia registrada em ${summary.adherenceToday}%. Confira as medicacoes pendentes ou esquecidas hoje.`,
     });
   }
 

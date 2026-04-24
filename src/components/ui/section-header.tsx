@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 
 type SectionHeaderProps = {
@@ -9,12 +10,16 @@ type SectionHeaderProps = {
 };
 
 export function SectionHeader({ title, hint }: SectionHeaderProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+
   return (
     <View style={styles.header}>
-      <ThemedText type="subtitle" style={styles.title}>
+      <ThemedText type="subtitle" style={[styles.title, { color: Colors[colorScheme].text }]}>
         {title}
       </ThemedText>
-      {hint ? <ThemedText style={styles.hint}>{hint}</ThemedText> : null}
+      {hint ? (
+        <ThemedText style={[styles.hint, { color: Colors[colorScheme].textMuted }]}>{hint}</ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -27,11 +32,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: Colors.light.text,
+    fontWeight: '800',
   },
   hint: {
-    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '600',
   },
 });

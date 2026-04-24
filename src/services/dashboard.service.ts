@@ -281,7 +281,7 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
           medications.name || ' ' || medications.dosage as title,
           CASE medication_logs.status
             WHEN 'taken' THEN 'Dose tomada'
-            WHEN 'skipped' THEN 'Dose ignorada'
+            WHEN 'skipped' THEN 'Dose esquecida'
             ELSE 'Dose pendente'
           END as subtitle,
           medication_logs.scheduled_at as measured_at

@@ -35,16 +35,6 @@ function parseTime(value: string) {
   return { hour, minute };
 }
 
-function subtractMinutes(hour: number, minute: number, offset: number) {
-  const total = hour * 60 + minute - offset;
-  const normalized = ((total % 1440) + 1440) % 1440;
-
-  return {
-    hour: Math.floor(normalized / 60),
-    minute: normalized % 60,
-  };
-}
-
 async function cancelMedicationReminderNotifications() {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
@@ -72,34 +62,98 @@ function buildReminderBody(medication: Medication) {
   return `${base}. ${timeText}`;
 }
 
-async function scheduleMedicationReminder(medication: Medication) {
-  if (!medication.active || !medication.reminderEnabled || !medication.scheduledTime) {
-    return;
-  }
-
-  const parsed = parseTime(medication.scheduledTime);
+function buildTodayAtTime(value: string) {
+  const parsed = parseTime(value);
 
   if (!parsed) {
+    return null;
+  }
+
+  const current = new Date();
+  current.setHours(parsed.hour, parsed.minute, 0, 0);
+  return current;
+}
+
+function roundUpToNextFiveMinutes(date: Date) {
+  const next = new Date(date);
+  next.setSeconds(0, 0);
+
+  const minutes = next.getMinutes();
+  const remainder = minutes % 5;
+
+  if (remainder !== 0 || date.getSeconds() !== 0 || date.getMilliseconds() !== 0) {
+    next.setMinutes(minutes + (remainder === 0 ? 5 : 5 - remainder));
+  }
+
+  return next;
+}
+
+function buildRepeatTimes(start: Date) {
+  const dates: Date[] = [];
+  const cursor = new Date(start);
+  const endOfDay = new Date(start);
+  endOfDay.setHours(23, 55, 0, 0);
+
+  while (cursor <= endOfDay && dates.length < 36) {
+    dates.push(new Date(cursor));
+    cursor.setMinutes(cursor.getMinutes() + 5);
+  }
+
+  return dates;
+}
+
+async function scheduleMedicationReminder(medication: Medication) {
+  if (!medication.active || !medication.reminderEnabled || !medication.scheduledTime || medication.todayStatus === 'taken') {
     return;
   }
 
-  const triggerTime = subtractMinutes(parsed.hour, parsed.minute, medication.reminderMinutesBefore);
+  const doseTime = buildTodayAtTime(medication.scheduledTime);
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Lembrete de medicamento',
-      body: buildReminderBody(medication),
-      data: {
-        kind: REMINDER_KIND,
-        medicationId: medication.id,
+  if (!doseTime) {
+    return;
+  }
+
+  const now = new Date();
+  const reminderTime = new Date(doseTime);
+  reminderTime.setMinutes(reminderTime.getMinutes() - medication.reminderMinutesBefore);
+
+  if (reminderTime > now) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Lembrete de medicamento',
+        body: buildReminderBody(medication),
+        data: {
+          kind: REMINDER_KIND,
+          medicationId: medication.id,
+        },
       },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: triggerTime.hour,
-      minute: triggerTime.minute,
-    },
-  });
+      trigger: reminderTime,
+    });
+  }
+
+  if (!medication.repeatReminderEveryFiveMinutes) {
+    return;
+  }
+
+  const repeatStart = doseTime > now ? doseTime : roundUpToNextFiveMinutes(now);
+  const repeatTimes = buildRepeatTimes(repeatStart).filter((date) => date > now);
+
+  await Promise.all(
+    repeatTimes.map((date) =>
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Lembrete recorrente de medicamento',
+          body: `${medication.name} ${medication.dosage}`.trim(),
+          data: {
+            kind: REMINDER_KIND,
+            medicationId: medication.id,
+            repeating: true,
+          },
+        },
+        trigger: date,
+      })
+    )
+  );
 }
 
 export async function syncMedicationReminderNotifications(medications: Medication[]) {

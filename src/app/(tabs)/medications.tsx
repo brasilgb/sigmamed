@@ -9,15 +9,22 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useMedications } from '@/hooks/use-medications';
 import { useRecordManagement } from '@/hooks/use-record-management';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function MedicationsTabScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
   const { biometricAvailable, updateBiometric, user } = useAuth();
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
-  const { items: activeMedications, logStatus, refresh: refreshActive } = useMedications();
+  const { items: activeMedications, toggleTakenStatus, refresh: refreshActive } = useMedications();
   const { medications, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
 
   async function handleRefresh() {
     await Promise.all([refreshDashboard(), refreshActive(), refreshRecords()]);
+  }
+
+  async function handleMedicationTaken(medicationId: number, isTaken: boolean) {
+    await toggleTakenStatus(medicationId, isTaken);
+    await Promise.all([refreshDashboard(), refreshRecords()]);
   }
 
   return (
@@ -55,7 +62,7 @@ export default function MedicationsTabScreen() {
 
       {activeMedications.length > 0 ? (
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: Colors[colorScheme].text }]}>
             Uso diario
           </ThemedText>
 
@@ -71,26 +78,34 @@ export default function MedicationsTabScreen() {
                   </ThemedText>
                 </View>
                 <View style={[styles.badge, { backgroundColor: ModulePalette.medication.soft }]}>
-                  <ThemedText style={[styles.badgeText, { color: ModulePalette.medication.base }]}>Ativa</ThemedText>
+                  <ThemedText style={[styles.badgeText, { color: ModulePalette.medication.base }]}>
+                    {medication.todayStatus === 'taken' ? 'Tomado hoje' : 'Nao tomado'}
+                  </ThemedText>
                 </View>
               </View>
 
               {medication.instructions ? <ThemedText style={styles.recordNotes}>{medication.instructions}</ThemedText> : null}
 
+              {medication.todayLoggedAt ? (
+                <ThemedText style={styles.recordStatus}>
+                  {medication.todayStatus === 'taken'
+                    ? `Registrado como tomado hoje às ${medication.todayLoggedAt.slice(11, 16)}`
+                      : null}
+                </ThemedText>
+              ) : null}
+
               <View style={styles.actionRow}>
                 <AuthButton
                   label="Tomado"
                   variant="secondary"
-                  onPress={() => void logStatus(medication.id, 'taken')}
+                  selected={medication.todayStatus === 'taken'}
+                  selectedBackgroundColor={ModulePalette.medication.base}
+                  selectedBorderColor={ModulePalette.medication.base}
+                  onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
                   style={styles.actionButton}
                 />
                 <AuthButton
-                  label="Pular"
-                  onPress={() => void logStatus(medication.id, 'skipped')}
-                  style={styles.actionButton}
-                />
-                <AuthButton
-                  label="Editar"
+                  label="Horario"
                   variant="secondary"
                   onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
                   style={styles.actionButton}
@@ -110,7 +125,7 @@ export default function MedicationsTabScreen() {
 
       {medications.some((item) => !item.active) ? (
         <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
+          <ThemedText type="subtitle" style={[styles.sectionTitle, { color: Colors[colorScheme].text }]}>
             Inativas
           </ThemedText>
           {medications
@@ -211,7 +226,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   sectionTitle: {
-    color: Colors.light.text,
+    fontWeight: '800',
   },
   medicationCard: {
     borderRadius: 24,
@@ -242,6 +257,12 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  recordStatus: {
+    color: ModulePalette.medication.base,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   badge: {
     borderRadius: 999,

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthScreen } from '@/components/auth/auth-screen';
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   feature: {
-    color: '#4d656d',
+    color: Colors.light.textMuted,
     lineHeight: 20,
   },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { BrandPalette, Colors, Radius, Surface } from '@/constants/theme';
+import { BrandPalette, Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type RecordInputProps = TextInputProps & {
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: Colors.light.textMuted,
+    color: Colors.light.text,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
     borderRadius: Radius.md,
-    backgroundColor: Surface.cardSubtle,
+    backgroundColor: Colors.light.surface,
     paddingHorizontal: 4,
     paddingVertical: 2,
     shadowColor: BrandPalette.navy,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7F7',
   },
   hint: {
-    color: Colors.light.textSoft,
+    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },

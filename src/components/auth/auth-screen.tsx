@@ -14,6 +14,7 @@ type AuthScreenProps = {
 
 export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
   const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors[colorScheme].background }]}>
@@ -22,15 +23,32 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <View style={styles.kickerWrap}>
-              <ThemedText style={styles.kicker}>SigmaMed</ThemedText>
+            <View
+              style={[
+                styles.kickerWrap,
+                { backgroundColor: isDark ? 'rgba(14, 159, 140, 0.18)' : '#D8F1EC' },
+              ]}>
+              <ThemedText style={[styles.kicker, { color: isDark ? '#D9FFF7' : BrandPalette.navy }]}>
+                SigmaMed
+              </ThemedText>
             </View>
-            <ThemedText type="title" style={styles.title}>
+            <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme].text }]}>
               {title}
             </ThemedText>
-            <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: Colors[colorScheme].textMuted }]}>
+              {subtitle}
+            </ThemedText>
           </View>
-          <View style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>{children}</View>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: Colors[colorScheme].surface,
+                borderColor: Colors[colorScheme].border,
+              },
+            ]}>
+            {children}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -40,7 +58,7 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f3f7f9',
+    backgroundColor: Colors.light.background,
   },
   flex: {
     flex: 1,
@@ -58,12 +76,10 @@ const styles = StyleSheet.create({
   kickerWrap: {
     alignSelf: 'flex-start',
     borderRadius: Radius.pill,
-    backgroundColor: '#DFF6F1',
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   kicker: {
-    color: BrandPalette.navySoft,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '800',
@@ -71,11 +87,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    color: BrandPalette.navy,
     lineHeight: 38,
   },
   subtitle: {
-    color: Colors.light.textMuted,
     lineHeight: 22,
   },
   card: {

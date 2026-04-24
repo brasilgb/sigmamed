@@ -32,7 +32,7 @@ const moduleCards = [
   },
   {
     title: 'Medicacao',
-    description: 'Mantenha tratamentos ativos e registre tomado ou pulado no dia.',
+    description: 'Mantenha tratamentos ativos e registre tomado ou esquecido no dia.',
   },
 ];
 
@@ -46,7 +46,7 @@ export default function HistoryScreen() {
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
   const [trendRange, setTrendRange] = useState<'7d' | '30d'>('7d');
   const { history, isLoading, refresh, summary, trends } = useDashboardData(trendRange === '7d' ? 7 : 30);
-  const { items: medications, logStatus } = useMedications();
+  const { items: medications, toggleTakenStatus } = useMedications();
   const {
     pressureReadings,
     glicoseReadings,
@@ -128,8 +128,8 @@ export default function HistoryScreen() {
     });
   }, [recordSort]);
 
-  async function handleMedicationStatus(medicationId: number, status: 'taken' | 'skipped') {
-    await logStatus(medicationId, status);
+  async function handleMedicationTaken(medicationId: number, isTaken: boolean) {
+    await toggleTakenStatus(medicationId, isTaken);
     await refresh();
   }
 
@@ -294,6 +294,18 @@ export default function HistoryScreen() {
               <ThemedText style={styles.medicationName}>
                 {medication.name} {medication.dosage}
               </ThemedText>
+              <View style={styles.medicationStatusRow}>
+                <View style={[styles.medicationBadge, { backgroundColor: ModulePalette.medication.soft }]}>
+                  <ThemedText style={[styles.medicationBadgeText, { color: ModulePalette.medication.base }]}>
+                    {medication.todayStatus === 'taken' ? 'Tomado hoje' : 'Nao tomado'}
+                  </ThemedText>
+                </View>
+                {medication.todayLoggedAt ? (
+                  <ThemedText style={styles.medicationStatusText}>
+                    {medication.todayStatus === 'taken' ? `às ${medication.todayLoggedAt.slice(11, 16)}` : ''}
+                  </ThemedText>
+                ) : null}
+              </View>
               <ThemedText style={styles.medicationInstructions}>
                 {medication.instructions || 'Sem instrucoes cadastradas'}
               </ThemedText>
@@ -301,12 +313,16 @@ export default function HistoryScreen() {
                 <AuthButton
                   label="Tomado"
                   variant="secondary"
-                  onPress={() => void handleMedicationStatus(medication.id, 'taken')}
+                  selected={medication.todayStatus === 'taken'}
+                  selectedBackgroundColor={ModulePalette.medication.base}
+                  selectedBorderColor={ModulePalette.medication.base}
+                  onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
                   style={styles.actionButton}
                 />
                 <AuthButton
-                  label="Pular"
-                  onPress={() => void handleMedicationStatus(medication.id, 'skipped')}
+                  label="Horario"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
                   style={styles.actionButton}
                 />
               </View>
@@ -654,6 +670,30 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  medicationStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  medicationBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  medicationBadgeText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  medicationStatusText: {
+    color: ModulePalette.medication.base,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   roadmapCard: {
     borderRadius: 28,

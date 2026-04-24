@@ -50,11 +50,14 @@ export type Medication = {
   active: boolean;
   scheduledTime: string | null;
   reminderEnabled: boolean;
+  repeatReminderEveryFiveMinutes: boolean;
   reminderMinutesBefore: number;
+  todayStatus?: MedicationLogStatus | null;
+  todayLoggedAt?: string | null;
   createdAt: string;
 };
 
-export type NewMedication = Omit<Medication, 'id' | 'createdAt'>;
+export type NewMedication = Omit<Medication, 'id' | 'createdAt' | 'todayStatus' | 'todayLoggedAt'>;
 
 export type MedicationLog = {
   id: number;

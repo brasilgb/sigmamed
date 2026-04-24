@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
@@ -62,11 +63,11 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   error: {
-    color: '#b14646',
+    color: Colors.light.danger,
   },
   link: {
     textAlign: 'center',
-    color: '#0f6c73',
+    color: Colors.light.tint,
     fontWeight: '700',
   },
 });

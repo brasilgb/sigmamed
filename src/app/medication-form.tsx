@@ -22,6 +22,7 @@ export default function MedicationFormScreen() {
   const [active, setActive] = useState(true);
   const [scheduledTime, setScheduledTime] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [repeatReminderEveryFiveMinutes, setRepeatReminderEveryFiveMinutes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,6 +42,7 @@ export default function MedicationFormScreen() {
       setActive(record.active);
       setScheduledTime(record.scheduledTime ?? '');
       setReminderEnabled(record.reminderEnabled);
+      setRepeatReminderEveryFiveMinutes(record.repeatReminderEveryFiveMinutes);
     });
   }, [editingId]);
 
@@ -79,6 +81,7 @@ export default function MedicationFormScreen() {
         active,
         scheduledTime: isValidTime(scheduledTime) ? scheduledTime : null,
         reminderEnabled,
+        repeatReminderEveryFiveMinutes,
         reminderMinutesBefore: 5,
       };
       if (editingId) {
@@ -145,6 +148,18 @@ export default function MedicationFormScreen() {
           </ThemedText>
         </View>
         <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
+      </View>
+      <View style={styles.preferenceCard}>
+        <View style={styles.preferenceCopy}>
+          <ThemedText style={styles.preferenceTitle}>Repetir a cada 5 min</ThemedText>
+          <ThemedText style={styles.preferenceText}>
+            Continua lembrando enquanto a medicacao nao estiver marcada como tomada no dia.
+          </ThemedText>
+        </View>
+        <Switch
+          value={repeatReminderEveryFiveMinutes}
+          onValueChange={setRepeatReminderEveryFiveMinutes}
+        />
       </View>
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton

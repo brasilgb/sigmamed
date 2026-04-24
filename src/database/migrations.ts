@@ -104,6 +104,9 @@ export const migrations = [
     ALTER TABLE users ADD COLUMN photo_uri TEXT;
   `,
   `
+    ALTER TABLE medications ADD COLUMN repeat_reminder_every_five_minutes INTEGER NOT NULL DEFAULT 0;
+  `,
+  `
     UPDATE blood_pressure_readings
     SET source = 'manual'
     WHERE source = 'photo';

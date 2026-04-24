@@ -2,9 +2,11 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { MedicationRepository } from '@/features/medications/medication.repository';
+import { MedicationService } from '@/features/medications/services/medication.service';
 import type { Medication } from '@/types/health';
 
 const medicationRepository = new MedicationRepository();
+const medicationService = new MedicationService();
 
 export function useMedications() {
   const [items, setItems] = useState<Medication[]>([]);
@@ -35,6 +37,28 @@ export function useMedications() {
         status,
       });
 
+      await medicationService.syncReminders();
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const toggleTakenStatus = useCallback(
+    async (medicationId: number, isTaken: boolean) => {
+      if (isTaken) {
+        await medicationRepository.clearTodayLogs(medicationId);
+      } else {
+        const now = new Date().toISOString();
+
+        await medicationRepository.createLog({
+          medicationId,
+          scheduledAt: now,
+          takenAt: now,
+          status: 'taken',
+        });
+      }
+
+      await medicationService.syncReminders();
       await refresh();
     },
     [refresh]
@@ -52,5 +76,6 @@ export function useMedications() {
     error,
     refresh,
     logStatus,
+    toggleTakenStatus,
   };
 }

@@ -9,6 +9,10 @@ type AuthButtonProps = {
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
   style?: ViewStyle;
+  selected?: boolean;
+  selectedBackgroundColor?: string;
+  selectedBorderColor?: string;
+  selectedTextColor?: string;
 };
 
 export function AuthButton({
@@ -17,7 +21,13 @@ export function AuthButton({
   disabled = false,
   variant = 'primary',
   style,
+  selected = false,
+  selectedBackgroundColor,
+  selectedBorderColor,
+  selectedTextColor,
 }: AuthButtonProps) {
+  const isSecondary = variant === 'secondary';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,12 +35,22 @@ export function AuthButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        variant === 'primary' ? styles.primary : styles.secondary,
+        isSecondary ? styles.secondary : styles.primary,
+        isSecondary && selected
+          ? {
+              backgroundColor: selectedBackgroundColor ?? BrandPalette.navy,
+              borderColor: selectedBorderColor ?? selectedBackgroundColor ?? BrandPalette.navy,
+            }
+          : null,
         pressed && !disabled ? styles.pressed : null,
-        disabled ? styles.disabled : null,
+        disabled ? (selected ? styles.disabledSelected : styles.disabled) : null,
         style,
       ]}>
-      <ThemedText style={variant === 'primary' ? styles.primaryText : styles.secondaryText}>
+      <ThemedText
+        style={[
+          isSecondary ? styles.secondaryText : styles.primaryText,
+          isSecondary && selected ? { color: selectedTextColor ?? BrandPalette.white } : null,
+        ]}>
         {label}
       </ThemedText>
     </Pressable>
@@ -43,7 +63,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 14,
   },
   primary: {
     backgroundColor: BrandPalette.navy,
@@ -69,14 +89,19 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.55,
   },
+  disabledSelected: {
+    opacity: 1,
+  },
   primaryText: {
     color: '#ffffff',
     fontWeight: '700',
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   secondaryText: {
     color: Colors.light.text,
     fontWeight: '700',
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
 });

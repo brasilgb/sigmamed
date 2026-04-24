@@ -9,8 +9,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/features/auth/hooks/use-auth';
+import { MedicationService } from '@/features/medications/services/medication.service';
 import { configureMedicationNotifications } from '@/features/medications/services/medication-reminder.service';
 import { useAppBootstrap } from '@/hooks/use-app-bootstrap';
+
+const medicationService = new MedicationService();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -20,6 +23,14 @@ export default function RootLayout() {
   useEffect(() => {
     configureMedicationNotifications();
   }, []);
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+
+    medicationService.syncReminders().catch(() => null);
+  }, [isReady]);
 
   if (error) {
     return (

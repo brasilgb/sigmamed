@@ -14,7 +14,10 @@ type MedicationRow = {
   active: number;
   scheduled_time: string | null;
   reminder_enabled: number;
+  repeat_reminder_every_five_minutes: number;
   reminder_minutes_before: number;
+  today_status: MedicationLog['status'] | null;
+  today_logged_at: string | null;
   created_at: string;
 };
 
@@ -36,7 +39,10 @@ function mapMedication(row: MedicationRow): Medication {
     active: Boolean(row.active),
     scheduledTime: row.scheduled_time,
     reminderEnabled: Boolean(row.reminder_enabled),
+    repeatReminderEveryFiveMinutes: Boolean(row.repeat_reminder_every_five_minutes),
     reminderMinutesBefore: row.reminder_minutes_before,
+    todayStatus: row.today_status,
+    todayLoggedAt: row.today_logged_at,
     createdAt: row.created_at,
   };
 }
@@ -66,7 +72,25 @@ export class MedicationRepository {
   async listActive() {
     const database = await getDatabase();
     const rows = await database.getAllAsync<MedicationRow>(
-      `SELECT * FROM medications
+      `SELECT
+          medications.*,
+          (
+            SELECT medication_logs.status
+            FROM medication_logs
+            WHERE medication_logs.medication_id = medications.id
+              AND date(medication_logs.scheduled_at) = date('now', 'localtime')
+            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
+            LIMIT 1
+          ) as today_status,
+          (
+            SELECT COALESCE(medication_logs.taken_at, medication_logs.scheduled_at)
+            FROM medication_logs
+            WHERE medication_logs.medication_id = medications.id
+              AND date(medication_logs.scheduled_at) = date('now', 'localtime')
+            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
+            LIMIT 1
+          ) as today_logged_at
+        FROM medications
        WHERE active = 1
        ORDER BY name ASC`
     );
@@ -77,7 +101,25 @@ export class MedicationRepository {
   async listAll() {
     const database = await getDatabase();
     const rows = await database.getAllAsync<MedicationRow>(
-      `SELECT * FROM medications
+      `SELECT
+          medications.*,
+          (
+            SELECT medication_logs.status
+            FROM medication_logs
+            WHERE medication_logs.medication_id = medications.id
+              AND date(medication_logs.scheduled_at) = date('now', 'localtime')
+            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
+            LIMIT 1
+          ) as today_status,
+          (
+            SELECT COALESCE(medication_logs.taken_at, medication_logs.scheduled_at)
+            FROM medication_logs
+            WHERE medication_logs.medication_id = medications.id
+              AND date(medication_logs.scheduled_at) = date('now', 'localtime')
+            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
+            LIMIT 1
+          ) as today_logged_at
+        FROM medications
        ORDER BY active DESC, name ASC`
     );
 
@@ -88,14 +130,15 @@ export class MedicationRepository {
     const database = await getDatabase();
     const result = await database.runAsync(
       `INSERT INTO medications
-        (name, dosage, instructions, active, scheduled_time, reminder_enabled, reminder_minutes_before)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (name, dosage, instructions, active, scheduled_time, reminder_enabled, repeat_reminder_every_five_minutes, reminder_minutes_before)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       input.name,
       input.dosage,
       input.instructions,
       input.active ? 1 : 0,
       input.scheduledTime,
       input.reminderEnabled ? 1 : 0,
+      input.repeatReminderEveryFiveMinutes ? 1 : 0,
       input.reminderMinutesBefore
     );
 
@@ -115,7 +158,7 @@ export class MedicationRepository {
     const database = await getDatabase();
     await database.runAsync(
       `UPDATE medications
-       SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, reminder_enabled = ?, reminder_minutes_before = ?
+       SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, reminder_enabled = ?, repeat_reminder_every_five_minutes = ?, reminder_minutes_before = ?
        WHERE id = ?`,
       input.name,
       input.dosage,
@@ -123,6 +166,7 @@ export class MedicationRepository {
       input.active ? 1 : 0,
       input.scheduledTime,
       input.reminderEnabled ? 1 : 0,
+      input.repeatReminderEveryFiveMinutes ? 1 : 0,
       input.reminderMinutesBefore,
       id
     );
@@ -158,6 +202,16 @@ export class MedicationRepository {
     }
 
     return mapLog(row);
+  }
+
+  async clearTodayLogs(medicationId: number) {
+    const database = await getDatabase();
+    await database.runAsync(
+      `DELETE FROM medication_logs
+       WHERE medication_id = ?
+         AND date(scheduled_at) = date('now', 'localtime')`,
+      medicationId
+    );
   }
 
   async deleteMedication(id: number) {

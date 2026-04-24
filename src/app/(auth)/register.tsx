@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
+import { Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
@@ -108,33 +109,35 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   preferenceRow: {
-    borderRadius: 18,
-    backgroundColor: '#f4f8f9',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.light.surfaceMuted,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   preferenceText: {
     flex: 1,
     gap: 4,
   },
   preferenceTitle: {
-    color: '#17303a',
+    color: Colors.light.text,
     fontWeight: '700',
   },
   preferenceDescription: {
-    color: '#57717a',
+    color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
   },
   error: {
-    color: '#b14646',
+    color: Colors.light.danger,
   },
   link: {
     textAlign: 'center',
-    color: '#0f6c73',
+    color: Colors.light.tint,
     fontWeight: '700',
   },
 });
