@@ -2,7 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { getDashboardSummary, getDashboardTrends, getRecentHistory } from '@/services/dashboard.service';
-import type { DashboardSummary, DashboardTrends, HistoryItem } from '@/types/health';
+import type { DashboardSummary, DashboardTrends, HistoryItem, ReportPeriodDays } from '@/types/health';
 
 type DashboardState = {
   isLoading: boolean;
@@ -13,7 +13,7 @@ type DashboardState = {
   refresh: () => Promise<void>;
 };
 
-export function useDashboardData(trendDays: 7 | 30 = 7): DashboardState {
+export function useDashboardData(trendDays: ReportPeriodDays = 7): DashboardState {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);

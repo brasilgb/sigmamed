@@ -1,5 +1,13 @@
 import { getDatabase } from '@/database/client';
-import type { DashboardSummary, DashboardTrends, HistoryItem, MetricTrend, TrendDirection, TrendPoint } from '@/types/health';
+import type {
+  DashboardSummary,
+  DashboardTrends,
+  HistoryItem,
+  MetricTrend,
+  ReportPeriodDays,
+  TrendDirection,
+  TrendPoint,
+} from '@/types/health';
 import { formatDateTime, formatDayLabel } from '@/utils/date';
 
 type CountRow = { count: number };
@@ -114,7 +122,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   };
 }
 
-function buildDaySeries(periodDays: 7 | 30) {
+function buildDaySeries(periodDays: ReportPeriodDays) {
   const dates: string[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -153,7 +161,7 @@ function buildMetricTrend(
   key: MetricTrend['key'],
   label: string,
   unit: string,
-  periodDays: 7 | 30,
+  periodDays: ReportPeriodDays,
   rows: MetricRow[]
 ): MetricTrend {
   const grouped = new Map<string, number[]>();
@@ -197,7 +205,7 @@ function buildMetricTrend(
   };
 }
 
-export async function getDashboardTrends(periodDays: 7 | 30 = 7): Promise<DashboardTrends> {
+export async function getDashboardTrends(periodDays: ReportPeriodDays = 7): Promise<DashboardTrends> {
   const database = await getDatabase();
   const periodModifier = `-${periodDays} day`;
 

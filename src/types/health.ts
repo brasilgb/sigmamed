@@ -1,5 +1,7 @@
 export type EntrySource = 'manual';
 
+export type ReportPeriodDays = 7 | 30 | 90;
+
 export type GlicoseContext = 'fasting' | 'post_meal' | 'random';
 
 export type MedicationLogStatus = 'pending' | 'taken' | 'skipped';
@@ -111,7 +113,7 @@ export type MetricTrend = {
 };
 
 export type DashboardTrends = {
-  periodDays: 7 | 30;
+  periodDays: ReportPeriodDays;
   pressure: MetricTrend;
   glicose: MetricTrend;
   weight: MetricTrend;
@@ -126,4 +128,45 @@ export type DashboardAlert = {
   tone: DashboardAlertTone;
   metric: 'pressure' | 'glicose' | 'weight' | 'medication';
   actionLabel: string;
+};
+
+export type ReportMetricSummary = {
+  label: string;
+  count: number;
+  latestLabel: string;
+  latestMeasuredAt: string | null;
+};
+
+export type ReportMedicationSummary = {
+  activeCount: number;
+  adherenceRate: number;
+  logsCount: number;
+  takenCount: number;
+  skippedCount: number;
+  pendingCount: number;
+};
+
+export type ReportData = {
+  periodDays: ReportPeriodDays;
+  generatedAt: string;
+  summary: DashboardSummary;
+  trends: DashboardTrends;
+  alerts: DashboardAlert[];
+  history: HistoryItem[];
+  pressure: {
+    summary: ReportMetricSummary;
+    readings: BloodPressureReading[];
+  };
+  glicose: {
+    summary: ReportMetricSummary;
+    readings: GlicoseReading[];
+  };
+  weight: {
+    summary: ReportMetricSummary;
+    readings: WeightReading[];
+  };
+  medications: {
+    summary: ReportMedicationSummary;
+    items: Medication[];
+  };
 };

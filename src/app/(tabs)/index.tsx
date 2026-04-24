@@ -148,6 +148,9 @@ export default function HomeTabScreen() {
         <AuthButton label="Novo peso" variant="secondary" onPress={() => router.push('/weight-form')} style={styles.quickButton} />
         <AuthButton label="Nova medicacao" onPress={() => router.push('/medication-form')} style={styles.quickButton} />
       </View>
+      <View style={styles.quickRow}>
+        <AuthButton label="Relatorio" variant="secondary" onPress={() => router.push('/report')} style={styles.quickButton} />
+      </View>
 
       {trends ? (
         <View style={styles.section}>
