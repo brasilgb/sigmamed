@@ -71,9 +71,7 @@ export default function GlicoseTabScreen() {
                     <ThemedText style={styles.recordSubtitle}>{item.context}</ThemedText>
                   </View>
                   <View style={[styles.badge, { backgroundColor: ModulePalette.glicose.soft }]}>
-                    <ThemedText style={[styles.badgeText, { color: ModulePalette.glicose.base }]}>
-                      {item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
-                    </ThemedText>
+                    <ThemedText style={[styles.badgeText, { color: ModulePalette.glicose.base }]}>Manual</ThemedText>
                   </View>
                 </View>
                 <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>

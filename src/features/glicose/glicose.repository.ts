@@ -7,7 +7,7 @@ type GlicoseRow = {
   unit: 'mg/dL';
   context: GlicoseReading['context'];
   measured_at: string;
-  source: GlicoseReading['source'];
+  source: string;
   notes: string | null;
   created_at: string;
 };
@@ -19,7 +19,7 @@ function mapRow(row: GlicoseRow): GlicoseReading {
     unit: row.unit,
     context: row.context,
     measuredAt: row.measured_at,
-    source: row.source,
+    source: 'manual',
     notes: row.notes,
     createdAt: row.created_at,
   };

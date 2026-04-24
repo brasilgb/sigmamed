@@ -75,9 +75,7 @@ export default function PressureTabScreen() {
                     </ThemedText>
                   </View>
                   <View style={[styles.badge, { backgroundColor: ModulePalette.pressure.soft }]}>
-                    <ThemedText style={[styles.badgeText, { color: ModulePalette.pressure.base }]}>
-                      {item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
-                    </ThemedText>
+                    <ThemedText style={[styles.badgeText, { color: ModulePalette.pressure.base }]}>Manual</ThemedText>
                   </View>
                 </View>
                 <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>

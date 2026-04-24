@@ -7,7 +7,7 @@ type BloodPressureRow = {
   diastolic: number;
   pulse: number | null;
   measured_at: string;
-  source: BloodPressureReading['source'];
+  source: string;
   notes: string | null;
   created_at: string;
 };
@@ -19,7 +19,7 @@ function mapRow(row: BloodPressureRow): BloodPressureReading {
     diastolic: row.diastolic,
     pulse: row.pulse,
     measuredAt: row.measured_at,
-    source: row.source,
+    source: 'manual',
     notes: row.notes,
     createdAt: row.created_at,
   };

@@ -9,7 +9,7 @@ import { OptionSelector } from '@/components/forms/option-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
 import { GlicoseRepository } from '@/features/glicose/glicose.repository';
-import type { EntrySource, GlicoseContext } from '@/types/health';
+import type { GlicoseContext } from '@/types/health';
 
 const glicoseRepository = new GlicoseRepository();
 
@@ -22,7 +22,6 @@ export default function GlicoseFormScreen() {
   const editingId = params.id ? Number(params.id) : null;
   const [glicoseValue, setGlicoseValue] = useState(params.glicoseValue ?? '');
   const [notes, setNotes] = useState(params.rawText ?? '');
-  const [source, setSource] = useState<EntrySource>('manual');
   const [context, setContext] = useState<GlicoseContext>('fasting');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,7 +38,6 @@ export default function GlicoseFormScreen() {
 
       setGlicoseValue(String(record.glicoseValue));
       setNotes(record.notes ?? '');
-      setSource(record.source);
       setContext(record.context);
     });
   }, [editingId]);
@@ -60,7 +58,7 @@ export default function GlicoseFormScreen() {
         unit: 'mg/dL' as const,
         context,
         measuredAt: new Date().toISOString(),
-        source,
+        source: 'manual' as const,
         notes: notes.trim() || null,
       };
       if (editingId) {
@@ -100,15 +98,6 @@ export default function GlicoseFormScreen() {
           { label: 'Jejum', value: 'fasting' },
           { label: 'Pos-refeicao', value: 'post_meal' },
           { label: 'Aleatoria', value: 'random' },
-        ]}
-      />
-      <OptionSelector
-        label="Origem da leitura"
-        value={source}
-        onChange={setSource}
-        options={[
-          { label: 'Manual', value: 'manual' },
-          { label: 'Bluetooth', value: 'bluetooth' },
         ]}
       />
       <RecordInput

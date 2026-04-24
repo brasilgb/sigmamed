@@ -5,11 +5,9 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
-import { OptionSelector } from '@/components/forms/option-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
 import { PressureRepository } from '@/features/pressure/pressure.repository';
-import type { EntrySource } from '@/types/health';
 
 const pressureRepository = new PressureRepository();
 
@@ -26,7 +24,6 @@ export default function PressureFormScreen() {
   const [diastolic, setDiastolic] = useState(params.diastolic ?? '');
   const [pulse, setPulse] = useState(params.pulse ?? '');
   const [notes, setNotes] = useState(params.rawText ?? '');
-  const [source, setSource] = useState<EntrySource>('manual');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,7 +41,6 @@ export default function PressureFormScreen() {
       setDiastolic(String(record.diastolic));
       setPulse(record.pulse ? String(record.pulse) : '');
       setNotes(record.notes ?? '');
-      setSource(record.source);
     });
   }, [editingId]);
 
@@ -66,7 +62,7 @@ export default function PressureFormScreen() {
         diastolic: diastolicValue,
         pulse: pulseValue,
         measuredAt: new Date().toISOString(),
-        source,
+        source: 'manual' as const,
         notes: notes.trim() || null,
       };
       if (editingId) {
@@ -117,15 +113,6 @@ export default function PressureFormScreen() {
         hint="Opcional. Informe em batimentos por minuto."
         value={pulse}
         onChangeText={setPulse}
-      />
-      <OptionSelector
-        label="Origem da leitura"
-        value={source}
-        onChange={setSource}
-        options={[
-          { label: 'Manual', value: 'manual' },
-          { label: 'Bluetooth', value: 'bluetooth' },
-        ]}
       />
       <RecordInput
         label="Observacoes"
