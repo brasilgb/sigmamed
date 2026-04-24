@@ -5,6 +5,7 @@ import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
 import { Screen } from '@/components/ui/screen';
 import { Colors, ModulePalette } from '@/constants/theme';
+import { formatBodyMassIndex, formatHeight } from '@/features/weight/weight-utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useRecordManagement } from '@/hooks/use-record-management';
 import { formatDateTime } from '@/utils/date';
@@ -39,7 +40,14 @@ export default function WeightTabScreen() {
               {latest ? `${latest.weight} ${latest.unit}` : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>
-              {latest ? formatDateTime(latest.measuredAt) : 'Nenhum registro ainda'}
+              {latest
+                ? [
+                    formatDateTime(latest.measuredAt),
+                    latest.height ? `IMC ${formatBodyMassIndex(latest.weight, latest.height)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')
+                : 'Nenhum registro ainda'}
             </ThemedText>
           </View>
           <View style={styles.statCard}>
@@ -70,6 +78,11 @@ export default function WeightTabScreen() {
               onPress={() => router.push({ pathname: '/weight-form', params: { id: String(item.id) } })}>
               <ThemedText style={styles.recordTitle}>{item.weight} {item.unit}</ThemedText>
               <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+              {item.height ? (
+                <ThemedText style={styles.recordMeta}>
+                  {`Altura ${formatHeight(item.height)} m • IMC ${formatBodyMassIndex(item.weight, item.height)}`}
+                </ThemedText>
+              ) : null}
               {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
             </Pressable>
           ))

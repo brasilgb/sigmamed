@@ -33,6 +33,7 @@ export type NewGlicoseReading = Omit<GlicoseReading, 'id' | 'createdAt'>;
 export type WeightReading = {
   id: number;
   weight: number;
+  height: number | null;
   unit: 'kg';
   measuredAt: string;
   notes: string | null;

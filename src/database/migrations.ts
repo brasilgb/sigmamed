@@ -97,4 +97,7 @@ export const migrations = [
   `
     ALTER TABLE medications ADD COLUMN reminder_minutes_before INTEGER NOT NULL DEFAULT 5;
   `,
+  `
+    ALTER TABLE weight_readings ADD COLUMN height REAL;
+  `,
 ];

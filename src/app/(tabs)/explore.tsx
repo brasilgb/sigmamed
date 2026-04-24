@@ -11,6 +11,7 @@ import { SearchInput } from '@/components/forms/search-input';
 import { OptionSelector } from '@/components/forms/option-selector';
 import { Screen } from '@/components/ui/screen';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { formatBodyMassIndex, formatHeight } from '@/features/weight/weight-utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useMedications } from '@/hooks/use-medications';
 import { useRecordManagement } from '@/hooks/use-record-management';
@@ -512,6 +513,11 @@ export default function HistoryScreen() {
                   {item.weight} {item.unit}
                 </ThemedText>
                 <ThemedText style={styles.manageMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                {item.height ? (
+                  <ThemedText style={styles.manageMeta}>
+                    {`Altura ${formatHeight(item.height)} m • IMC ${formatBodyMassIndex(item.weight, item.height)}`}
+                  </ThemedText>
+                ) : null}
               </View>
               <View style={styles.manageActions}>
                 <AuthButton

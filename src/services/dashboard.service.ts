@@ -62,6 +62,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       `SELECT
         id,
         weight,
+        height,
         unit,
         measured_at as measuredAt,
         notes,

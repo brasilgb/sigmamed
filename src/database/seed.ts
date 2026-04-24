@@ -60,9 +60,10 @@ export async function seedDatabaseIfEmpty() {
 
     await database.runAsync(
       `INSERT INTO weight_readings
-        (weight, unit, measured_at, notes)
-       VALUES (?, ?, ?, ?)`,
+        (weight, height, unit, measured_at, notes)
+       VALUES (?, ?, ?, ?, ?)`,
       78.4,
+      1.72,
       'kg',
       daysAgoIso(1),
       'Pesagem matinal'

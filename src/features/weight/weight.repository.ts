@@ -4,6 +4,7 @@ import type { NewWeightReading, WeightReading } from '@/types/health';
 type WeightRow = {
   id: number;
   weight: number;
+  height: number | null;
   unit: 'kg';
   measured_at: string;
   notes: string | null;
@@ -14,6 +15,7 @@ function mapRow(row: WeightRow): WeightReading {
   return {
     id: row.id,
     weight: row.weight,
+    height: row.height,
     unit: row.unit,
     measuredAt: row.measured_at,
     notes: row.notes,
@@ -48,9 +50,10 @@ export class WeightRepository {
     const database = await getDatabase();
     const result = await database.runAsync(
       `INSERT INTO weight_readings
-        (weight, unit, measured_at, notes)
-       VALUES (?, ?, ?, ?)`,
+        (weight, height, unit, measured_at, notes)
+       VALUES (?, ?, ?, ?, ?)`,
       input.weight,
+      input.height,
       input.unit,
       input.measuredAt,
       input.notes
@@ -72,9 +75,10 @@ export class WeightRepository {
     const database = await getDatabase();
     await database.runAsync(
       `UPDATE weight_readings
-       SET weight = ?, unit = ?, measured_at = ?, notes = ?
+       SET weight = ?, height = ?, unit = ?, measured_at = ?, notes = ?
        WHERE id = ?`,
       input.weight,
+      input.height,
       input.unit,
       input.measuredAt,
       input.notes,
