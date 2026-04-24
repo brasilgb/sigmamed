@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -16,6 +16,9 @@ const medicationService = new MedicationService();
 export default function MedicationFormScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const editingId = params.id ? Number(params.id) : null;
+  const dosageRef = useRef<TextInput>(null);
+  const instructionsRef = useRef<TextInput>(null);
+  const scheduledTimeRef = useRef<TextInput>(null);
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -108,28 +111,39 @@ export default function MedicationFormScreen() {
       <RecordInput
         label="Nome"
         placeholder="Ex.: Losartana"
+        returnKeyType="next"
         value={name}
         onChangeText={setName}
+        onSubmitEditing={() => dosageRef.current?.focus()}
       />
       <RecordInput
+        ref={dosageRef}
         label="Dosagem"
         placeholder="Ex.: 50 mg"
+        returnKeyType="next"
         value={dosage}
         onChangeText={setDosage}
+        onSubmitEditing={() => instructionsRef.current?.focus()}
       />
       <RecordInput
+        ref={instructionsRef}
         label="Instrucoes"
         placeholder="Ex.: tomar apos o cafe da manha"
+        returnKeyType="next"
         value={instructions}
         onChangeText={setInstructions}
+        onSubmitEditing={() => scheduledTimeRef.current?.focus()}
       />
       <RecordInput
+        ref={scheduledTimeRef}
         label="Horario da dose"
         placeholder="Ex.: 08:00"
         hint="Use HH:mm para o lembrete tocar 5 minutos antes."
         keyboardType="number-pad"
+        returnKeyType="done"
         value={scheduledTime}
         onChangeText={(value) => setScheduledTime(normalizeTimeInput(value))}
+        onSubmitEditing={() => void handleSubmit()}
       />
       <View style={styles.preferenceCard}>
         <View style={styles.preferenceCopy}>

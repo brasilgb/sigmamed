@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -11,6 +11,10 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function RegisterScreen() {
   const { biometricAvailable, register } = useAuth();
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+  const pinRef = useRef<TextInput>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,35 +52,63 @@ export default function RegisterScreen() {
     <AuthScreen
       title="Criar conta"
       subtitle="Preencha seus dados para começar a registrar e acompanhar sua rotina de saude.">
-      <AuthInput label="Nome" autoCapitalize="words" value={name} onChangeText={setName} />
       <AuthInput
+        label="Nome"
+        autoCapitalize="words"
+        returnKeyType="next"
+        textContentType="name"
+        autoComplete="name"
+        value={name}
+        onChangeText={setName}
+        onSubmitEditing={() => emailRef.current?.focus()}
+      />
+      <AuthInput
+        ref={emailRef}
         label="E-mail"
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="email-address"
+        returnKeyType="next"
+        textContentType="emailAddress"
+        autoComplete="email"
         value={email}
         onChangeText={setEmail}
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
       <AuthInput
+        ref={passwordRef}
         label="Senha"
         autoCapitalize="none"
         secureTextEntry
+        returnKeyType="next"
+        textContentType="newPassword"
+        autoComplete="password-new"
         value={password}
         onChangeText={setPassword}
+        onSubmitEditing={() => confirmPasswordRef.current?.focus()}
       />
       <AuthInput
+        ref={confirmPasswordRef}
         label="Confirmar senha"
         autoCapitalize="none"
         secureTextEntry
+        returnKeyType="next"
+        textContentType="password"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        onSubmitEditing={() => pinRef.current?.focus()}
       />
       <AuthInput
+        ref={pinRef}
         label="PIN de acesso"
         keyboardType="number-pad"
         maxLength={6}
+        returnKeyType="done"
+        textContentType="oneTimeCode"
+        autoComplete="one-time-code"
         value={pin}
         onChangeText={setPin}
+        onSubmitEditing={() => void handleSubmit()}
         hint="Use 4 ou 6 digitos para desbloquear o app com mais rapidez."
       />
 

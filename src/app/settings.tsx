@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -13,6 +13,9 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function SettingsScreen() {
   const { biometricAvailable, lock, logout, updateAccount, updateBiometric, user } = useAuth();
+  const emailRef = useRef<TextInput>(null);
+  const currentPasswordRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -148,14 +151,29 @@ export default function SettingsScreen() {
             {photoUri ? <AuthButton label="Remover foto" onPress={() => setPhotoUri(null)} /> : null}
           </View>
         </View>
-        <RecordInput label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
         <RecordInput
+          label="Nome"
+          value={name}
+          onChangeText={setName}
+          placeholder="Seu nome"
+          returnKeyType="next"
+          textContentType="name"
+          autoComplete="name"
+          onSubmitEditing={() => emailRef.current?.focus()}
+        />
+        <RecordInput
+          ref={emailRef}
           label="E-mail"
           value={email}
           onChangeText={setEmail}
           placeholder="voce@email.com"
           keyboardType="email-address"
           autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="next"
+          textContentType="emailAddress"
+          autoComplete="email"
+          onSubmitEditing={() => currentPasswordRef.current?.focus()}
         />
       </View>
 
@@ -163,18 +181,28 @@ export default function SettingsScreen() {
         <ThemedText style={styles.sectionEyebrow}>Seguranca</ThemedText>
         <ThemedText style={styles.sectionTitle}>Senha e biometria</ThemedText>
         <RecordInput
+          ref={currentPasswordRef}
           label="Senha atual"
           value={currentPassword}
           onChangeText={setCurrentPassword}
           placeholder="Obrigatoria para trocar e-mail ou senha"
           secureTextEntry
+          returnKeyType="next"
+          textContentType="password"
+          autoComplete="current-password"
+          onSubmitEditing={() => newPasswordRef.current?.focus()}
         />
         <RecordInput
+          ref={newPasswordRef}
           label="Nova senha"
           value={newPassword}
           onChangeText={setNewPassword}
           placeholder="Minimo de 6 caracteres"
           secureTextEntry
+          returnKeyType="done"
+          textContentType="newPassword"
+          autoComplete="password-new"
+          onSubmitEditing={() => void handleSave()}
           hint="Deixe em branco se quiser manter a senha atual."
         />
 

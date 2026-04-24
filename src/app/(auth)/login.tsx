@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, TextInput } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const passwordRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -38,15 +39,24 @@ export default function LoginScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="email-address"
+        returnKeyType="next"
+        textContentType="emailAddress"
+        autoComplete="email"
         value={email}
         onChangeText={setEmail}
+        onSubmitEditing={() => passwordRef.current?.focus()}
       />
       <AuthInput
+        ref={passwordRef}
         label="Senha"
         autoCapitalize="none"
         secureTextEntry
+        returnKeyType="done"
+        textContentType="password"
+        autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
+        onSubmitEditing={() => void handleSubmit()}
       />
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton

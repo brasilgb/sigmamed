@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -9,6 +10,7 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const { isLoading, isUnlocked, user } = useAuth();
 
   if (isLoading) {
@@ -31,9 +33,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors[colorScheme ?? 'light'].surface,
           borderTopColor: Colors[colorScheme ?? 'light'].border,
-          height: 78,
+          height: 68 + insets.bottom,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: Math.max(insets.bottom, 10),
         },
         tabBarLabelStyle: {
           fontSize: 12,

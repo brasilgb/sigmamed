@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -32,6 +34,14 @@ export default function RootLayout() {
     medicationService.syncReminders().catch(() => null);
   }, [isReady]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    NavigationBar.setStyle(activeTheme === 'dark' ? 'light' : 'dark');
+  }, [activeTheme]);
+
   if (error) {
     return (
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
@@ -58,18 +68,23 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="unlock" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="settings" />
-        </Stack>
-      </AuthProvider>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AuthProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="unlock" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="settings" />
+          </Stack>
+        </AuthProvider>
+        <StatusBar
+          style={activeTheme === 'dark' ? 'light' : 'dark'}
+          backgroundColor={Colors[activeTheme].background}
+        />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

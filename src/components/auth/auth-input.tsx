@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { BrandPalette, Colors } from '@/constants/theme';
@@ -8,11 +9,15 @@ type AuthInputProps = TextInputProps & {
   error?: string | null;
 };
 
-export function AuthInput({ label, error, style, ...props }: AuthInputProps) {
+export const AuthInput = forwardRef<TextInput, AuthInputProps>(function AuthInput(
+  { label, error, style, ...props },
+  ref
+) {
   return (
     <View style={styles.wrapper}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <TextInput
+        ref={ref}
         placeholderTextColor={Colors.light.textSoft}
         style={[styles.input, error ? styles.inputError : null, style]}
         {...props}
@@ -20,7 +25,7 @@ export function AuthInput({ label, error, style, ...props }: AuthInputProps) {
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

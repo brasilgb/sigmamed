@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { BrandPalette, Colors, Radius } from '@/constants/theme';
@@ -9,12 +10,16 @@ type RecordInputProps = TextInputProps & {
   error?: string | null;
 };
 
-export function RecordInput({ label, hint, error, style, ...props }: RecordInputProps) {
+export const RecordInput = forwardRef<TextInput, RecordInputProps>(function RecordInput(
+  { label, hint, error, style, ...props },
+  ref
+) {
   return (
     <View style={styles.wrapper}>
       <ThemedText style={styles.label}>{label}</ThemedText>
       <View style={[styles.inputShell, error ? styles.inputShellError : null]}>
         <TextInput
+          ref={ref}
           placeholderTextColor={Colors.light.textSoft}
           style={[styles.input, style]}
           {...props}
@@ -24,7 +29,7 @@ export function RecordInput({ label, hint, error, style, ...props }: RecordInput
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {
