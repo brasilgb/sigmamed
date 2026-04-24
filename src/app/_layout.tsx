@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -14,8 +15,11 @@ import { useAppBootstrap } from '@/hooks/use-app-bootstrap';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isReady, error } = useAppBootstrap();
-  configureMedicationNotifications();
   const activeTheme = colorScheme ?? 'light';
+
+  useEffect(() => {
+    configureMedicationNotifications();
+  }, []);
 
   if (error) {
     return (

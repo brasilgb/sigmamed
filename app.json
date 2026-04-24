@@ -1,15 +1,27 @@
 {
   "expo": {
-    "name": "sigmamed",
+    "name": "SigmaMed",
     "slug": "sigmamed",
+    "description": "Aplicativo para registro local de pressao, glicose, peso e lembretes de medicamentos.",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sigmamed",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.andersonrodrigues.sigmamed",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Permitir que o SigmaMed use biometria para desbloquear o aplicativo com seguranca."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,12 +33,10 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
-      "package": "com.anonymous.sigmamed"
+      "versionCode": 1,
+      "package": "com.andersonrodrigues.sigmamed"
     },
     "web": {
       "output": "static",
