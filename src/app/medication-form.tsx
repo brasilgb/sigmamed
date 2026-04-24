@@ -99,8 +99,8 @@ export default function MedicationFormScreen() {
       title="Cadastrar medicacao"
       description={
         editingId
-          ? 'Atualize o tratamento salvo e ajuste se ele continua ativo.'
-          : 'Crie a medicação ativa e depois registre as tomadas na tela principal.'
+          ? 'Atualize o tratamento salvo e ajuste seus dados de uso.'
+          : 'Cadastre a medicacao para acompanhar uso diario, horario e adesao.'
       }>
       <RecordInput
         label="Nome"
@@ -116,7 +116,7 @@ export default function MedicationFormScreen() {
       />
       <RecordInput
         label="Instrucoes"
-        placeholder="Ex.: tomar apos o cafe"
+        placeholder="Ex.: tomar apos o cafe da manha"
         value={instructions}
         onChangeText={setInstructions}
       />
@@ -146,7 +146,7 @@ export default function MedicationFormScreen() {
         </View>
         <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
       </View>
-      {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
+      {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
         label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar medicacao' : 'Salvar medicacao'}
         disabled={isSubmitting}
@@ -165,6 +165,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   preferenceCopy: {
     flex: 1,
@@ -178,5 +180,10 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  error: {
+    color: Colors.light.danger,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });

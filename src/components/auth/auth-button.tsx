@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, ViewStyle } from 'react-native';
 
-import { BrandPalette, Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthButtonProps = {
@@ -39,20 +39,32 @@ export function AuthButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 54,
-    borderRadius: 18,
+    minHeight: 56,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
   },
   primary: {
-    backgroundColor: BrandPalette.primary,
+    backgroundColor: BrandPalette.navy,
+    borderWidth: 1,
+    borderColor: '#0A1724',
+    shadowColor: Surface.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 3,
   },
   secondary: {
-    backgroundColor: Colors.light.surfaceMuted,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   pressed: {
-    opacity: 0.9,
+    opacity: 0.94,
   },
   disabled: {
     opacity: 0.55,
@@ -60,9 +72,11 @@ const styles = StyleSheet.create({
   primaryText: {
     color: '#ffffff',
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
   secondaryText: {
     color: Colors.light.text,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });

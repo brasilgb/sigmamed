@@ -27,7 +27,7 @@ export default function GlicoseTabScreen() {
         <View style={styles.heroHeader}>
           <ThemedText style={[styles.eyebrow, { color: ModulePalette.glicose.base }]}>Modulo de glicose</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
-            Registros por contexto, com leitura manual ou por foto.
+            Registros por contexto, com leitura manual mais direta.
           </ThemedText>
           <ThemedText style={styles.heroText}>
             Jejum, pos-refeicao e leituras aleatorias ficam organizadas sem misturar origem e horario.
@@ -53,12 +53,6 @@ export default function GlicoseTabScreen() {
 
         <View style={styles.actionRow}>
           <AuthButton label="Nova leitura" onPress={() => router.push('/glicose-form')} style={styles.actionButton} />
-          <AuthButton
-            label="Ler por foto"
-            variant="secondary"
-            onPress={() => router.push('/glicose-scan')}
-            style={styles.actionButton}
-          />
         </View>
       </View>
 
@@ -68,20 +62,22 @@ export default function GlicoseTabScreen() {
         {glicoseReadings.length > 0 ? (
           glicoseReadings.map((item) => (
             <Card key={item.id} style={styles.recordCard}>
-              <Pressable onPress={() => router.push({ pathname: '/glicose-form', params: { id: String(item.id) } })}>
-              <View style={styles.recordHeader}>
-                <View>
-                  <ThemedText style={styles.recordTitle}>{item.glicoseValue} {item.unit}</ThemedText>
-                  <ThemedText style={styles.recordSubtitle}>{item.context}</ThemedText>
+              <Pressable
+                style={styles.recordPressable}
+                onPress={() => router.push({ pathname: '/glicose-form', params: { id: String(item.id) } })}>
+                <View style={styles.recordHeader}>
+                  <View>
+                    <ThemedText style={styles.recordTitle}>{item.glicoseValue} {item.unit}</ThemedText>
+                    <ThemedText style={styles.recordSubtitle}>{item.context}</ThemedText>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: ModulePalette.glicose.soft }]}>
+                    <ThemedText style={[styles.badgeText, { color: ModulePalette.glicose.base }]}>
+                      {item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
+                    </ThemedText>
+                  </View>
                 </View>
-                <View style={[styles.badge, { backgroundColor: ModulePalette.glicose.soft }]}>
-                  <ThemedText style={[styles.badgeText, { color: ModulePalette.glicose.base }]}>
-                    {item.source === 'photo' ? 'Foto' : item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
-                  </ThemedText>
-                </View>
-              </View>
-              <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
-              {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
+                <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
               </Pressable>
             </Card>
           ))
@@ -89,7 +85,7 @@ export default function GlicoseTabScreen() {
           <Card style={styles.emptyCard}>
             <ThemedText style={styles.emptyTitle}>Nenhuma leitura de glicose ainda.</ThemedText>
             <ThemedText style={styles.emptyText}>
-              Registre uma leitura manual ou use a captura por foto para preencher mais rapido.
+              Registre uma leitura manual para acompanhar os valores com contexto.
             </ThemedText>
           </Card>
         )}
@@ -103,6 +99,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     padding: Space.xl,
     gap: 18,
+    borderWidth: 1,
+    borderColor: '#D4E3FF',
   },
   heroHeader: {
     gap: 8,
@@ -119,6 +117,7 @@ const styles = StyleSheet.create({
   },
   heroText: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   heroStats: {
     flexDirection: 'row',
@@ -131,6 +130,7 @@ const styles = StyleSheet.create({
   statLabel: {
     color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
   statValue: {
     fontSize: 26,
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
   statMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   actionRow: {
     flexDirection: 'row',
@@ -153,6 +154,10 @@ const styles = StyleSheet.create({
   recordCard: {
     padding: 0,
   },
+  recordPressable: {
+    padding: Space.md,
+    gap: 8,
+  },
   recordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -162,20 +167,24 @@ const styles = StyleSheet.create({
   recordTitle: {
     color: Colors.light.text,
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: '800',
   },
   recordSubtitle: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
     textTransform: 'capitalize',
   },
   recordMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   recordNotes: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   badge: {
     borderRadius: 999,
@@ -193,8 +202,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: Colors.light.text,
     fontWeight: '700',
+    lineHeight: 22,
   },
   emptyText: {
     color: Colors.light.textMuted,
+    lineHeight: 20,
   },
 });

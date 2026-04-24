@@ -5,6 +5,7 @@ import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { TrendCard } from '@/components/dashboard/trend-card';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -18,7 +19,7 @@ const modules = [
   {
     key: 'pressure',
     title: 'Pressao',
-    description: 'Leituras, foto do visor e ultimo registro em um fluxo unico.',
+    description: 'Leituras e ultimo registro em um fluxo unico.',
     route: '/(tabs)/pressure' as const,
     color: ModulePalette.pressure.base,
     icon: 'waveform.path.ecg' as const,
@@ -26,7 +27,7 @@ const modules = [
   {
     key: 'glicose',
     title: 'Glicose',
-    description: 'Contexto da medicao e captura por foto sem sair do modulo.',
+    description: 'Contexto da medicao e historico rapido no mesmo modulo.',
     route: '/(tabs)/glicose' as const,
     color: ModulePalette.glicose.base,
     icon: 'drop.fill' as const,
@@ -34,7 +35,7 @@ const modules = [
   {
     key: 'weight',
     title: 'Peso',
-    description: 'Pesagens recentes e historico mais limpo para acompanhar rotina.',
+    description: 'Pesagens e IMC em um acompanhamento mais simples da rotina.',
     route: '/(tabs)/weight' as const,
     color: ModulePalette.weight.base,
     icon: 'scalemass.fill' as const,
@@ -42,7 +43,7 @@ const modules = [
   {
     key: 'medications',
     title: 'Medicacao',
-    description: 'Tratamentos ativos, adesao diaria e cadastro no mesmo lugar.',
+    description: 'Tratamentos ativos, registro diario e ajustes no mesmo lugar.',
     route: '/(tabs)/medications' as const,
     color: ModulePalette.medication.base,
     icon: 'pills.fill' as const,
@@ -79,13 +80,14 @@ export default function HomeTabScreen() {
             {firstName}, cada cuidado agora tem seu proprio lugar.
           </ThemedText>
           <ThemedText style={styles.heroDescription}>
-            Home para resumo rapido e abas dedicadas para pressao, glicose, peso e medicacao, tudo na paleta do app.
+            Veja seus totais, acompanhe os ultimos registros e acesse rapidamente pressao, glicose, peso e medicacao.
           </ThemedText>
         </View>
 
         {user ? (
           <View style={styles.accountCard}>
-            <View style={{ flex: 1 }}>
+            <ProfileAvatar name={user.name} photoUri={user.photoUri} size={58} />
+            <View style={styles.accountCopy}>
               <ThemedText style={styles.accountTitle}>{user.name}</ThemedText>
               <ThemedText style={styles.accountMeta}>{user.email}</ThemedText>
             </View>
@@ -106,8 +108,8 @@ export default function HomeTabScreen() {
       {summary ? (
         <>
           <View style={styles.summaryGrid}>
-            <SummaryCard label="Registros totais" value={String(summary.totalReadings)} tone="default" />
-            <SummaryCard label="Aderencia hoje" value={`${summary.adherenceToday}%`} tone="accent" />
+            <SummaryCard label="Registros salvos" value={String(summary.totalReadings)} tone="default" />
+            <SummaryCard label="Adesao hoje" value={`${summary.adherenceToday}%`} tone="accent" />
           </View>
 
           <View style={styles.summaryGrid}>
@@ -120,11 +122,13 @@ export default function HomeTabScreen() {
       <View style={styles.moduleGrid}>
         {modules.map((module) => (
           <Card key={module.key} style={styles.moduleCard}>
-            <Pressable onPress={() => router.push(module.route)}>
-              <View style={[styles.moduleIcon, { backgroundColor: `${module.color}18` }]}>
-                <IconSymbol name={module.icon} size={20} color={module.color} />
+            <Pressable style={styles.moduleCardPressable} onPress={() => router.push(module.route)}>
+              <View style={styles.moduleHeader}>
+                <View style={[styles.moduleIcon, { backgroundColor: `${module.color}18` }]}>
+                  <IconSymbol name={module.icon} size={20} color={module.color} />
+                </View>
+                <ThemedText style={styles.moduleTitle}>{module.title}</ThemedText>
               </View>
-              <ThemedText style={styles.moduleTitle}>{module.title}</ThemedText>
               <ThemedText style={styles.moduleText}>{module.description}</ThemedText>
             </Pressable>
           </Card>
@@ -156,7 +160,7 @@ export default function HomeTabScreen() {
 
       {history.length > 0 ? (
         <View style={styles.section}>
-          <SectionHeader title="Atividade recente" hint="Linha do tempo local" />
+          <SectionHeader title="Atividade recente" hint="Ultimos registros" />
           <HistoryList items={history.slice(0, 6)} />
         </View>
       ) : null}
@@ -170,6 +174,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surfaceMuted,
     padding: Space.xl,
     gap: 18,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   heroTop: {
     flexDirection: 'row',
@@ -211,6 +217,7 @@ const styles = StyleSheet.create({
   },
   heroDescription: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   accountCard: {
     borderRadius: Radius.lg,
@@ -219,6 +226,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
+  },
+  accountCopy: {
+    flex: 1,
+    gap: 2,
   },
   accountTitle: {
     color: Colors.light.text,
@@ -228,6 +241,7 @@ const styles = StyleSheet.create({
   accountMeta: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   biometricWrap: {
     alignItems: 'center',
@@ -248,6 +262,15 @@ const styles = StyleSheet.create({
   moduleCard: {
     padding: 0,
   },
+  moduleCardPressable: {
+    padding: Space.md,
+    gap: 12,
+  },
+  moduleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   moduleIcon: {
     width: 42,
     height: 42,
@@ -256,6 +279,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   moduleTitle: {
+    flex: 1,
     color: Colors.light.text,
     fontSize: 18,
     fontWeight: '800',
@@ -263,6 +287,7 @@ const styles = StyleSheet.create({
   moduleText: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   quickRow: {
     flexDirection: 'row',

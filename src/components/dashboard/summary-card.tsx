@@ -49,6 +49,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: Surface.cardBorder,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 2,
   },
   content: {
     gap: 8,
@@ -62,9 +70,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   value: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: '800',
+    letterSpacing: -0.6,
   },
   action: {
     fontSize: 13,

@@ -2,6 +2,7 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
+  photoUri: string | null;
   useBiometric: boolean;
   createdAt: string;
   updatedAt: string;
@@ -38,6 +39,7 @@ export type LoginInput = {
 export type UpdateAccountInput = {
   name: string;
   email: string;
+  photoUri?: string | null;
   currentPassword?: string;
   newPassword?: string;
 };

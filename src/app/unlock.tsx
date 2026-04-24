@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
 import { AuthScreen } from '@/components/auth/auth-screen';
+import { ProfileAvatar } from '@/components/profile-avatar';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function UnlockScreen() {
@@ -57,10 +58,14 @@ export default function UnlockScreen() {
   return (
     <AuthScreen
       title={`Olá, ${user.name.split(' ')[0]}`}
-      subtitle="Desbloqueie o app com seu PIN. Se a biometria estiver ativa, voce pode usar os dois modos.">
+      subtitle="Use seu PIN para continuar. Se a biometria estiver ativa, voce tambem pode entrar por ela.">
       <View style={styles.accountCard}>
-        <ThemedText style={styles.accountLabel}>Conta ativa</ThemedText>
-        <ThemedText style={styles.accountValue}>{user.email}</ThemedText>
+        <ProfileAvatar name={user.name} photoUri={user.photoUri} size={72} />
+        <View style={styles.accountCopy}>
+          <ThemedText style={styles.accountLabel}>Conta ativa</ThemedText>
+          <ThemedText style={styles.accountName}>{user.name}</ThemedText>
+          <ThemedText style={styles.accountValue}>{user.email}</ThemedText>
+        </View>
       </View>
 
       <AuthInput
@@ -94,9 +99,16 @@ export default function UnlockScreen() {
 
 const styles = StyleSheet.create({
   accountCard: {
-    borderRadius: 18,
-    backgroundColor: '#f4f8f9',
-    padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#F5F9FB',
+    padding: 18,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#DDE8EC',
+  },
+  accountCopy: {
+    alignItems: 'center',
     gap: 4,
   },
   accountLabel: {
@@ -104,9 +116,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  accountName: {
+    color: '#17303a',
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
   accountValue: {
     color: '#17303a',
     fontWeight: '700',
+    lineHeight: 20,
   },
   error: {
     color: '#b14646',

@@ -31,7 +31,7 @@ export default function LoginScreen() {
   return (
     <AuthScreen
       title="Entrar com e-mail e senha"
-      subtitle="Use a senha da conta para iniciar sessao neste dispositivo.">
+      subtitle="Acesse sua conta para visualizar seus registros e continuar seu acompanhamento.">
       <AuthInput
         label="E-mail"
         autoCapitalize="none"
@@ -54,7 +54,7 @@ export default function LoginScreen() {
         onPress={handleSubmit}
       />
       <Pressable onPress={() => router.replace('/(auth)/register')}>
-        <ThemedText style={styles.link}>Criar nova conta</ThemedText>
+        <ThemedText style={styles.link}>Criar conta</ThemedText>
       </Pressable>
     </AuthScreen>
   );

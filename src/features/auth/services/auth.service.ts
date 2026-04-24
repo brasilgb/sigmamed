@@ -154,6 +154,7 @@ export async function updateAccount(userId: number, input: UpdateAccountInput): 
   return userRepository.updateUserAccount(userId, {
     name,
     email,
+    photoUri: input.photoUri,
     passwordHash: newPassword ? await hashSecret(newPassword) : undefined,
   });
 }

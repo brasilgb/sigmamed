@@ -41,12 +41,14 @@ export function FormShell({ title, description, children }: FormShellProps) {
 
 const styles = StyleSheet.create({
   header: {
-    gap: 10,
+    gap: 12,
   },
   backButton: {
     alignSelf: 'flex-start',
     borderRadius: Radius.pill,
-    backgroundColor: Colors.light.surfaceMuted,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
@@ -59,6 +61,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surfaceMuted,
     padding: Space.xl,
     gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   heroTop: {
     flexDirection: 'row',
@@ -86,6 +90,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   card: {
     borderRadius: Radius.xl,
@@ -94,5 +99,13 @@ const styles = StyleSheet.create({
     gap: Space.md,
     borderWidth: 1,
     borderColor: Surface.cardBorder,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 2,
   },
 });

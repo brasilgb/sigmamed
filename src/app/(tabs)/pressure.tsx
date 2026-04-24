@@ -27,7 +27,7 @@ export default function PressureTabScreen() {
         <View style={styles.heroHeader}>
           <ThemedText style={[styles.eyebrow, { color: ModulePalette.pressure.base }]}>Modulo de pressao</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
-            Leituras organizadas, com acesso rapido a cadastro e foto.
+            Leituras organizadas, com acesso rapido ao cadastro.
           </ThemedText>
           <ThemedText style={styles.heroText}>
             Centralize medidores, revise a ultima leitura e mantenha o historico num lugar fixo.
@@ -55,12 +55,6 @@ export default function PressureTabScreen() {
 
         <View style={styles.actionRow}>
           <AuthButton label="Nova leitura" onPress={() => router.push('/pressure-form')} style={styles.actionButton} />
-          <AuthButton
-            label="Ler por foto"
-            variant="secondary"
-            onPress={() => router.push('/pressure-scan')}
-            style={styles.actionButton}
-          />
         </View>
       </View>
 
@@ -70,22 +64,24 @@ export default function PressureTabScreen() {
         {pressureReadings.length > 0 ? (
           pressureReadings.map((item) => (
             <Card key={item.id} style={styles.recordCard}>
-              <Pressable onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}>
-              <View style={styles.recordHeader}>
-                <View>
-                  <ThemedText style={styles.recordTitle}>{item.systolic}/{item.diastolic} mmHg</ThemedText>
-                  <ThemedText style={styles.recordSubtitle}>
-                    {item.pulse ? `Pulso ${item.pulse} bpm` : 'Pulso nao informado'}
-                  </ThemedText>
+              <Pressable
+                style={styles.recordPressable}
+                onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}>
+                <View style={styles.recordHeader}>
+                  <View>
+                    <ThemedText style={styles.recordTitle}>{item.systolic}/{item.diastolic} mmHg</ThemedText>
+                    <ThemedText style={styles.recordSubtitle}>
+                      {item.pulse ? `Pulso ${item.pulse} bpm` : 'Pulso nao informado'}
+                    </ThemedText>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: ModulePalette.pressure.soft }]}>
+                    <ThemedText style={[styles.badgeText, { color: ModulePalette.pressure.base }]}>
+                      {item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
+                    </ThemedText>
+                  </View>
                 </View>
-                <View style={[styles.badge, { backgroundColor: ModulePalette.pressure.soft }]}>
-                  <ThemedText style={[styles.badgeText, { color: ModulePalette.pressure.base }]}>
-                    {item.source === 'photo' ? 'Foto' : item.source === 'bluetooth' ? 'Bluetooth' : 'Manual'}
-                  </ThemedText>
-                </View>
-              </View>
-              <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
-              {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
+                <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
               </Pressable>
             </Card>
           ))
@@ -93,7 +89,7 @@ export default function PressureTabScreen() {
           <Card style={styles.emptyCard}>
             <ThemedText style={styles.emptyTitle}>Nenhuma leitura de pressao ainda.</ThemedText>
             <ThemedText style={styles.emptyText}>
-              Comece por uma medicao manual ou use a captura por foto do medidor.
+              Comece por uma medicao manual para montar seu historico.
             </ThemedText>
           </Card>
         )}
@@ -107,6 +103,8 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     padding: Space.xl,
     gap: 18,
+    borderWidth: 1,
+    borderColor: '#D7E7F0',
   },
   heroHeader: {
     gap: 8,
@@ -123,6 +121,7 @@ const styles = StyleSheet.create({
   },
   heroText: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   heroStats: {
     flexDirection: 'row',
@@ -135,6 +134,7 @@ const styles = StyleSheet.create({
   statLabel: {
     color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
   statValue: {
     fontSize: 26,
@@ -143,6 +143,7 @@ const styles = StyleSheet.create({
   statMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   actionRow: {
     flexDirection: 'row',
@@ -157,6 +158,10 @@ const styles = StyleSheet.create({
   recordCard: {
     padding: 0,
   },
+  recordPressable: {
+    padding: Space.md,
+    gap: 8,
+  },
   recordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -166,19 +171,23 @@ const styles = StyleSheet.create({
   recordTitle: {
     color: Colors.light.text,
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: '800',
   },
   recordSubtitle: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   recordMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   recordNotes: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   badge: {
     borderRadius: 999,
@@ -196,8 +205,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: Colors.light.text,
     fontWeight: '700',
+    lineHeight: 22,
   },
   emptyText: {
     color: Colors.light.textMuted,
+    lineHeight: 20,
   },
 });

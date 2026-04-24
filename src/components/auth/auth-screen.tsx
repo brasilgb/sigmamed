@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandPalette, Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Radius, Surface } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 
@@ -22,7 +22,9 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <ThemedText style={styles.kicker}>SigmaMed</ThemedText>
+            <View style={styles.kickerWrap}>
+              <ThemedText style={styles.kicker}>SigmaMed</ThemedText>
+            </View>
             <ThemedText type="title" style={styles.title}>
               {title}
             </ThemedText>
@@ -38,7 +40,7 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#eef4f6',
+    backgroundColor: '#f3f7f9',
   },
   flex: {
     flex: 1,
@@ -47,17 +49,25 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     justifyContent: 'center',
-    gap: 20,
+    gap: 22,
   },
   hero: {
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 4,
   },
+  kickerWrap: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.pill,
+    backgroundColor: '#DFF6F1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   kicker: {
-    color: BrandPalette.primary,
+    color: BrandPalette.navySoft,
     fontSize: 12,
     lineHeight: 16,
-    letterSpacing: 1,
+    fontWeight: '800',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   title: {
@@ -66,10 +76,21 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   card: {
-    borderRadius: 28,
-    padding: 20,
+    borderRadius: 30,
+    padding: 22,
     gap: 14,
+    borderWidth: 1,
+    borderColor: Surface.cardBorder,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    elevation: 3,
   },
 });

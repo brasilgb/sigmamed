@@ -5,6 +5,7 @@ type UserRow = {
   id: number;
   name: string;
   email: string;
+  photo_uri: string | null;
   password_hash: string;
   pin_hash: string;
   use_biometric: number;
@@ -38,6 +39,7 @@ type CreateUserInput = {
 type UpdateUserInput = {
   name: string;
   email: string;
+  photoUri?: string | null;
   passwordHash?: string;
 };
 
@@ -46,6 +48,7 @@ function mapUser(row: UserRow): AuthUser {
     id: row.id,
     name: row.name,
     email: row.email,
+    photoUri: row.photo_uri,
     useBiometric: Boolean(row.use_biometric),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -179,20 +182,22 @@ export class UserRepository {
       if (input.passwordHash) {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, photo_uri = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.photoUri ?? null,
           input.passwordHash,
           userId
         );
       } else {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, photo_uri = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.photoUri ?? null,
           userId
         );
       }

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { Colors, Radius, Space, Surface } from '@/constants/theme';
+import { BrandPalette, Colors, Radius, Space, Surface } from '@/constants/theme';
 
 type CardProps = {
   children: ReactNode;
@@ -19,6 +19,14 @@ const styles = StyleSheet.create({
     padding: Space.md,
     borderWidth: 1,
     borderColor: Surface.cardBorder,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 2,
   },
   surface: {
     backgroundColor: Colors.light.surface,

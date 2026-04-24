@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type AuthInputProps = TextInputProps & {
@@ -24,22 +24,33 @@ export function AuthInput({ label, error, style, ...props }: AuthInputProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 6,
+    gap: 8,
   },
   label: {
     color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
     fontSize: 16,
+    lineHeight: 22,
     color: Colors.light.text,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: Surface.cardSubtle,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
   },
   inputError: {
     borderColor: Colors.light.danger,

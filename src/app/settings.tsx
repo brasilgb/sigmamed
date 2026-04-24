@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { RecordInput } from '@/components/forms/record-input';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Screen } from '@/components/ui/screen';
-import { Colors, ModulePalette } from '@/constants/theme';
+import { BrandPalette, Colors, ModulePalette } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function SettingsScreen() {
   const { biometricAvailable, lock, logout, updateAccount, updateBiometric, user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,57 @@ export default function SettingsScreen() {
 
     setName(user.name);
     setEmail(user.email);
+    setPhotoUri(user.photoUri);
   }, [user]);
+
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'SM';
+
+  async function handleTakePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (!permission.granted) {
+      setError('Permita o uso da camera para atualizar a foto de perfil.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0]?.uri ?? null);
+      setError(null);
+    }
+  }
+
+  async function handleChooseFromLibrary() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      setError('Permita acesso a galeria para escolher a foto de perfil.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0]?.uri ?? null);
+      setError(null);
+    }
+  }
 
   async function handleSave() {
     if (!user) {
@@ -41,6 +93,7 @@ export default function SettingsScreen() {
       await updateAccount({
         name,
         email,
+        photoUri,
         currentPassword,
         newPassword,
       });
@@ -79,6 +132,22 @@ export default function SettingsScreen() {
       <View style={styles.sectionCard}>
         <ThemedText style={styles.sectionEyebrow}>Conta</ThemedText>
         <ThemedText style={styles.sectionTitle}>Dados principais</ThemedText>
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrap}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <ThemedText style={styles.avatarInitials}>{initials}</ThemedText>
+              </View>
+            )}
+          </View>
+          <View style={styles.profileActions}>
+            <AuthButton label="Tirar foto" variant="secondary" onPress={() => void handleTakePhoto()} />
+            <AuthButton label="Escolher da galeria" variant="secondary" onPress={() => void handleChooseFromLibrary()} />
+            {photoUri ? <AuthButton label="Remover foto" onPress={() => setPhotoUri(null)} /> : null}
+          </View>
+        </View>
         <RecordInput label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
         <RecordInput
           label="E-mail"
@@ -163,7 +232,9 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     borderRadius: 999,
-    backgroundColor: Colors.light.surfaceMuted,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
@@ -176,6 +247,8 @@ const styles = StyleSheet.create({
     backgroundColor: ModulePalette.medication.soft,
     padding: 22,
     gap: 10,
+    borderWidth: 1,
+    borderColor: '#E3D8F6',
   },
   headerTop: {
     flexDirection: 'row',
@@ -203,12 +276,23 @@ const styles = StyleSheet.create({
   },
   description: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   sectionCard: {
     borderRadius: 28,
     backgroundColor: Colors.light.surface,
     padding: 20,
     gap: 14,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 2,
   },
   sectionEyebrow: {
     color: Colors.light.textSoft,
@@ -222,11 +306,46 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
   },
+  profileCard: {
+    borderRadius: 20,
+    backgroundColor: Colors.light.surfaceMuted,
+    padding: 16,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  avatarWrap: {
+    alignItems: 'center',
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  avatarFallback: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: ModulePalette.medication.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: Colors.light.surface,
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '800',
+  },
+  profileActions: {
+    gap: 10,
+  },
   biometricCard: {
     borderRadius: 20,
     backgroundColor: Colors.light.surfaceMuted,
     padding: 16,
     gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   biometricCopy: {
     gap: 4,
@@ -249,8 +368,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.light.danger,
+    lineHeight: 20,
   },
   successText: {
     color: '#0F8A6A',
+    lineHeight: 20,
+    fontWeight: '700',
   },
 });

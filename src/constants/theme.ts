@@ -8,9 +8,11 @@ import { Platform } from 'react-native';
 export const BrandPalette = {
   primary: '#00BFA5',
   navy: '#0D1B2A',
+  navySoft: '#14324A',
   pressureSoft: '#E6F7FF',
   weightSoft: '#E8F9F1',
   medicationSoft: '#F1E6FF',
+  mist: '#F4F8FA',
   white: '#FFFFFF',
 } as const;
 
@@ -35,12 +37,12 @@ export const ModulePalette = {
 
 const semanticLight = {
   text: BrandPalette.navy,
-  textMuted: '#58717A',
-  textSoft: '#6F858D',
+  textMuted: '#49626B',
+  textSoft: '#5B747D',
   background: '#F7FBFC',
   surface: BrandPalette.white,
-  surfaceMuted: '#EEF6F8',
-  border: '#D7E4E8',
+  surfaceMuted: '#F1F6F8',
+  border: '#D5E2E7',
   tint: BrandPalette.primary,
   icon: '#688089',
   tabIconDefault: '#688089',
@@ -89,8 +91,9 @@ export const Space = {
 } as const;
 
 export const Surface = {
-  cardBorder: '#E2ECEF',
-  cardSubtle: '#F8FBFC',
+  cardBorder: '#DDE8EC',
+  cardSubtle: '#FAFCFD',
+  shadow: 'rgba(13, 27, 42, 0.08)',
 } as const;
 
 export const Fonts = Platform.select({

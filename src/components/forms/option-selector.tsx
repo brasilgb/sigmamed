@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BrandPalette, Colors, Radius } from '@/constants/theme';
+import { BrandPalette, Colors, Radius, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type Option<T extends string> = {
@@ -65,16 +65,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#F1F7F8',
+    backgroundColor: Surface.cardSubtle,
     borderWidth: 1,
-    borderColor: '#DBE7EA',
+    borderColor: Colors.light.border,
   },
   optionSelected: {
     backgroundColor: BrandPalette.navy,
     borderColor: BrandPalette.navy,
   },
   textDefault: {
-    color: Colors.light.textMuted,
+    color: Colors.light.text,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',

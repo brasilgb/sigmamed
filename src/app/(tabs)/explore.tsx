@@ -20,19 +20,19 @@ import { formatDateTime } from '@/utils/date';
 const moduleCards = [
   {
     title: 'Pressao',
-    description: 'Registra sistolica, diastolica, pulso, horario e origem da leitura.',
+    description: 'Registre sistolica, diastolica, pulso e horario da medicao.',
   },
   {
     title: 'Glicose',
-    description: 'Mantem contexto da medicao para separar jejum, pos-refeicao e aleatoria.',
+    description: 'Organize leituras por contexto como jejum, pos-refeicao e aleatoria.',
   },
   {
     title: 'Peso',
-    description: 'Acompanha variacao corporal e deixa pronto o terreno para graficos.',
+    description: 'Acompanhe peso, altura informada e calculo de IMC.',
   },
   {
     title: 'Medicacao',
-    description: 'Organiza cadastro ativo e logs de adesao para futuras notificacoes.',
+    description: 'Mantenha tratamentos ativos e registre tomado ou pulado no dia.',
   },
 ];
 
@@ -261,10 +261,10 @@ export default function HistoryScreen() {
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
-          MVP estruturado para evoluir.
+          Central de acompanhamento e gestao.
         </ThemedText>
         <ThemedText style={styles.description}>
-          O app ja possui banco local, migrations, seed inicial e repositories por modulo.
+          Revise seus modulos, acompanhe tendencias e encontre registros para editar ou excluir com mais rapidez.
         </ThemedText>
       </View>
 
@@ -280,7 +280,7 @@ export default function HistoryScreen() {
       <Pressable style={styles.createMedicationCta} onPress={() => router.push('/medication-form')}>
         <ThemedText style={styles.createMedicationTitle}>Cadastrar medicacao</ThemedText>
         <ThemedText style={styles.createMedicationText}>
-          Adicione um tratamento e registre tomadas ou pulos logo abaixo.
+          Adicione um tratamento para acompanhar uso diario e adesao com menos atrito.
         </ThemedText>
       </Pressable>
 
@@ -316,9 +316,9 @@ export default function HistoryScreen() {
       ) : null}
 
       <View style={styles.roadmapCard}>
-        <ThemedText style={styles.roadmapTitle}>Proximo passo sugerido</ThemedText>
+        <ThemedText style={styles.roadmapTitle}>Resumo atual da base</ThemedText>
         <ThemedText style={styles.roadmapText}>
-          Evoluir para edicao/exclusao dos registros e agendamento de doses.
+          Use esta area para acompanhar o volume de registros e medicacoes ativas no app.
         </ThemedText>
         {summary ? (
           <ThemedText style={styles.roadmapMeta}>
@@ -329,7 +329,7 @@ export default function HistoryScreen() {
 
       {user ? (
         <View style={styles.accountCard}>
-          <ThemedText style={styles.accountTitle}>Conta local protegida</ThemedText>
+          <ThemedText style={styles.accountTitle}>Conta e acesso</ThemedText>
           <ThemedText style={styles.accountMeta}>{user.name}</ThemedText>
           <ThemedText style={styles.accountMeta}>{user.email}</ThemedText>
           <View style={styles.preferenceRow}>
@@ -362,7 +362,7 @@ export default function HistoryScreen() {
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Tendencias por periodo
             </ThemedText>
-            <ThemedText style={styles.sectionHint}>Series locais</ThemedText>
+            <ThemedText style={styles.sectionHint}>Ultimos dados</ThemedText>
           </View>
           <View style={styles.manageCard}>
             <OptionSelector
@@ -577,9 +577,9 @@ export default function HistoryScreen() {
 
       <View style={styles.sectionHeader}>
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Timeline unificada
+          Linha do tempo unificada
         </ThemedText>
-        <ThemedText style={styles.sectionHint}>Dados locais</ThemedText>
+        <ThemedText style={styles.sectionHint}>Historico recente</ThemedText>
       </View>
 
       <HistoryList items={history} />
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   sectionHint: {
-    color: Colors.light.textSoft,
+    color: Colors.light.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },

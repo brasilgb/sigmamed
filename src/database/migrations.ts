@@ -100,4 +100,17 @@ export const migrations = [
   `
     ALTER TABLE weight_readings ADD COLUMN height REAL;
   `,
+  `
+    ALTER TABLE users ADD COLUMN photo_uri TEXT;
+  `,
+  `
+    UPDATE blood_pressure_readings
+    SET source = 'manual'
+    WHERE source = 'photo';
+  `,
+  `
+    UPDATE glicose_readings
+    SET source = 'manual'
+    WHERE source = 'photo';
+  `,
 ];

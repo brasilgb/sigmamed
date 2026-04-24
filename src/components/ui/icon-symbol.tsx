@@ -25,7 +25,6 @@ const MAPPING = {
   'scalemass.fill': 'monitor-weight',
   'pills.fill': 'medication',
   'plus.circle.fill': 'add-circle',
-  'camera.fill': 'photo-camera',
   'lock.fill': 'lock',
   'rectangle.portrait.and.arrow.right.fill': 'logout',
   'gearshape.fill': 'settings',

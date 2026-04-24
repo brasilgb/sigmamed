@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Colors, ModulePalette, Radius, Space, Surface } from '@/constants/theme';
+import { BrandPalette, Colors, ModulePalette, Radius, Space, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { MetricTrend } from '@/types/health';
 
@@ -88,6 +88,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     borderWidth: 1,
     borderColor: Surface.cardBorder,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -128,6 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
     minHeight: 78,
+    paddingTop: 8,
   },
   column: {
     flex: 1,

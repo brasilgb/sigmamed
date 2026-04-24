@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -87,28 +87,34 @@ export default function PressureFormScreen() {
       title="Registrar pressao"
       description={
         editingId
-          ? 'Ajuste a leitura salva e mantenha o historico correto.'
-          : 'Salve a leitura do marcador e mantenha o historico local atualizado.'
+          ? 'Atualize os dados da leitura e mantenha seu historico organizado.'
+          : 'Registre a medicao para acompanhar sua pressao com mais clareza.'
       }>
-      <RecordInput
-        label="Sistolica"
-        keyboardType="number-pad"
-        placeholder="Ex.: 120"
-        value={systolic}
-        onChangeText={setSystolic}
-      />
-      <RecordInput
-        label="Diastolica"
-        keyboardType="number-pad"
-        placeholder="Ex.: 80"
-        value={diastolic}
-        onChangeText={setDiastolic}
-      />
+      <View style={styles.row}>
+        <View style={styles.field}>
+          <RecordInput
+            label="Sistolica"
+            keyboardType="number-pad"
+            placeholder="Ex.: 120"
+            value={systolic}
+            onChangeText={setSystolic}
+          />
+        </View>
+        <View style={styles.field}>
+          <RecordInput
+            label="Diastolica"
+            keyboardType="number-pad"
+            placeholder="Ex.: 80"
+            value={diastolic}
+            onChangeText={setDiastolic}
+          />
+        </View>
+      </View>
       <RecordInput
         label="Pulso"
         keyboardType="number-pad"
         placeholder="Ex.: 72"
-        hint="Opcional"
+        hint="Opcional. Informe em batimentos por minuto."
         value={pulse}
         onChangeText={setPulse}
       />
@@ -118,25 +124,16 @@ export default function PressureFormScreen() {
         onChange={setSource}
         options={[
           { label: 'Manual', value: 'manual' },
-          { label: 'Foto', value: 'photo' },
           { label: 'Bluetooth', value: 'bluetooth' },
         ]}
       />
-      <Pressable
-        onPress={() => router.push('/pressure-scan')}
-        style={styles.captureCard}>
-        <ThemedText style={styles.captureTitle}>Preencher por foto</ThemedText>
-        <ThemedText style={styles.captureText}>
-          Tire uma foto do visor e confirme os valores detectados.
-        </ThemedText>
-      </Pressable>
       <RecordInput
         label="Observacoes"
-        placeholder="Ex.: apos cafe da manha"
+        placeholder="Ex.: medicao realizada pela manha"
         value={notes}
         onChangeText={setNotes}
       />
-      {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
+      {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
         label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar pressao' : 'Salvar pressao'}
         disabled={isSubmitting}
@@ -147,20 +144,16 @@ export default function PressureFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  captureCard: {
-    borderRadius: 22,
-    backgroundColor: Colors.light.surfaceMuted,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 6,
+  row: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  captureTitle: {
-    color: Colors.light.text,
-    fontWeight: '700',
+  field: {
+    flex: 1,
   },
-  captureText: {
-    color: Colors.light.textMuted,
-    fontSize: 14,
+  error: {
+    color: Colors.light.danger,
     lineHeight: 20,
+    fontWeight: '600',
   },
 });

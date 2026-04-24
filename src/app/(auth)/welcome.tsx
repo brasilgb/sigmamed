@@ -11,15 +11,15 @@ export default function WelcomeScreen() {
 
   return (
     <AuthScreen
-      title="Seu historico de saude, protegido no dispositivo."
-      subtitle="Cadastro local, login com e-mail e desbloqueio rapido por PIN.">
+      title="Acompanhe seus registros de saude com mais clareza."
+      subtitle="Crie sua conta para acessar pressao, glicose, peso e medicacoes em um unico lugar.">
       <View style={styles.featureList}>
-        <ThemedText style={styles.feature}>Offline first para o MVP</ThemedText>
-        <ThemedText style={styles.feature}>Sessao local protegida com Secure Store</ThemedText>
-        <ThemedText style={styles.feature}>Biometria opcional com fallback por PIN</ThemedText>
+        <ThemedText style={styles.feature}>Registros organizados por modulo para facilitar o acompanhamento</ThemedText>
+        <ThemedText style={styles.feature}>Acesso protegido com senha, PIN e biometria opcional</ThemedText>
+        <ThemedText style={styles.feature}>Foto de perfil, historico recente e atalhos na home</ThemedText>
       </View>
 
-      <AuthButton label="Criar conta local" onPress={() => router.push('/(auth)/register')} />
+      <AuthButton label="Criar conta" onPress={() => router.push('/(auth)/register')} />
       {hasAccount ? (
         <AuthButton
           label="Entrar com e-mail e senha"
@@ -38,5 +38,6 @@ const styles = StyleSheet.create({
   },
   feature: {
     color: '#4d656d',
+    lineHeight: 20,
   },
 });

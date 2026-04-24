@@ -6,14 +6,22 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { RecordInput } from '@/components/forms/record-input';
+import { BrandPalette, Colors } from '@/constants/theme';
 import { WeightRepository } from '@/features/weight/weight.repository';
 import {
   calculateBodyMassIndex,
-  formatHeight,
   normalizeHeightInput,
 } from '@/features/weight/weight-utils';
 
 const weightRepository = new WeightRepository();
+
+function maskWeightInput(value: string) {
+  return value.replace(/\D/g, '').slice(0, 3);
+}
+
+function maskHeightInput(value: string) {
+  return value.replace(/\D/g, '').slice(0, 3);
+}
 
 export default function WeightFormScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -34,14 +42,14 @@ export default function WeightFormScreen() {
         return;
       }
 
-      setWeight(String(record.weight));
-      setHeight(record.height ? formatHeight(record.height) ?? '' : '');
+      setWeight(String(Math.round(record.weight)));
+      setHeight(record.height ? String(Math.round(record.height * 100)) : '');
       setNotes(record.notes ?? '');
     });
   }, [editingId]);
 
-  const numericWeight = Number(weight.replace(',', '.'));
-  const rawHeight = Number(height.replace(',', '.'));
+  const numericWeight = Number(weight);
+  const rawHeight = Number(height);
   const numericHeight = normalizeHeightInput(rawHeight);
   const bmi = calculateBodyMassIndex(numericWeight, numericHeight);
 
@@ -84,28 +92,30 @@ export default function WeightFormScreen() {
       title="Registrar peso"
       description={
         editingId
-          ? 'Ajuste a pesagem salva e mantenha a serie correta.'
-          : 'Registre pesagens frequentes para acompanhar variacao corporal.'
+          ? 'Atualize a pesagem salva e mantenha sua evolucao em ordem.'
+          : 'Registre peso e altura para acompanhar sua evolucao corporal.'
       }>
       <View style={styles.row}>
         <View style={styles.field}>
           <RecordInput
             label="Peso"
-            keyboardType="decimal-pad"
-            placeholder="Ex.: 78.4"
-            hint="Unidade: kg"
+            keyboardType="number-pad"
+            placeholder="Ex.: 78"
+            hint="Unidade: kg. Informe apenas numeros inteiros."
             value={weight}
-            onChangeText={setWeight}
+            maxLength={3}
+            onChangeText={(value) => setWeight(maskWeightInput(value))}
           />
         </View>
         <View style={styles.field}>
           <RecordInput
             label="Altura"
-            keyboardType="decimal-pad"
-            placeholder="Ex.: 1,72"
-            hint="Aceita m ou cm"
+            keyboardType="number-pad"
+            placeholder="Ex.: 172"
+            hint="Informe somente centimetros inteiros."
             value={height}
-            onChangeText={setHeight}
+            maxLength={3}
+            onChangeText={(value) => setHeight(maskHeightInput(value))}
           />
         </View>
       </View>
@@ -113,6 +123,7 @@ export default function WeightFormScreen() {
         <View style={styles.bmiCard}>
           <ThemedText style={styles.bmiLabel}>IMC calculado</ThemedText>
           <ThemedText style={styles.bmiValue}>{bmi.toFixed(1)}</ThemedText>
+          <ThemedText style={styles.bmiHint}>Calculado automaticamente a partir do peso e da altura informados.</ThemedText>
         </View>
       ) : null}
       <RecordInput
@@ -121,7 +132,7 @@ export default function WeightFormScreen() {
         value={notes}
         onChangeText={setNotes}
       />
-      {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
+      {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
         label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar peso' : 'Salvar peso'}
         disabled={isSubmitting}
@@ -142,8 +153,17 @@ const styles = StyleSheet.create({
   bmiCard: {
     borderRadius: 20,
     padding: 16,
-    gap: 4,
+    gap: 6,
     backgroundColor: '#F4F8F3',
+    borderWidth: 1,
+    borderColor: '#D7E9DB',
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
   },
   bmiLabel: {
     fontSize: 12,
@@ -154,7 +174,18 @@ const styles = StyleSheet.create({
   },
   bmiValue: {
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: '800',
     color: '#243422',
+  },
+  bmiHint: {
+    color: '#5A6C57',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  error: {
+    color: Colors.light.danger,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });

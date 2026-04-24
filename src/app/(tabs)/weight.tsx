@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 22,
     gap: 18,
+    borderWidth: 1,
+    borderColor: '#D5ECE2',
   },
   heroHeader: {
     gap: 8,
@@ -120,6 +122,7 @@ const styles = StyleSheet.create({
   },
   heroText: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   heroStats: {
     flexDirection: 'row',
@@ -131,10 +134,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     padding: 16,
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   statLabel: {
     color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
   statValue: {
     fontSize: 26,
@@ -143,6 +149,7 @@ const styles = StyleSheet.create({
   statMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   section: {
     gap: 14,
@@ -157,39 +164,49 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   sectionHint: {
-    color: Colors.light.textSoft,
+    color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
   recordCard: {
     borderRadius: 24,
     backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   recordTitle: {
     color: Colors.light.text,
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: '800',
   },
   recordMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   recordNotes: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   emptyCard: {
     borderRadius: 24,
     backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   emptyTitle: {
     color: Colors.light.text,
     fontWeight: '700',
+    lineHeight: 22,
   },
   emptyText: {
     color: Colors.light.textMuted,
+    lineHeight: 20,
   },
 });

@@ -45,8 +45,8 @@ export default function RegisterScreen() {
 
   return (
     <AuthScreen
-      title="Criar conta local"
-      subtitle="Seu e-mail identifica a conta. O PIN agiliza os proximos acessos.">
+      title="Criar conta"
+      subtitle="Preencha seus dados para começar a registrar e acompanhar sua rotina de saude.">
       <AuthInput label="Nome" autoCapitalize="words" value={name} onChangeText={setName} />
       <AuthInput
         label="E-mail"
@@ -71,11 +71,12 @@ export default function RegisterScreen() {
         onChangeText={setConfirmPassword}
       />
       <AuthInput
-        label="PIN de 4 ou 6 digitos"
+        label="PIN de acesso"
         keyboardType="number-pad"
         maxLength={6}
         value={pin}
         onChangeText={setPin}
+        hint="Use 4 ou 6 digitos para desbloquear o app com mais rapidez."
       />
 
       {biometricAvailable ? (
@@ -83,7 +84,7 @@ export default function RegisterScreen() {
           <View style={styles.preferenceText}>
             <ThemedText style={styles.preferenceTitle}>Ativar biometria</ThemedText>
             <ThemedText style={styles.preferenceDescription}>
-              Use impressao digital ou face ID quando disponivel.
+              Use impressao digital ou reconhecimento facial quando disponivel.
             </ThemedText>
           </View>
           <Switch value={useBiometric} onValueChange={setUseBiometric} />
@@ -93,13 +94,13 @@ export default function RegisterScreen() {
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
       <AuthButton
-        label={isSubmitting ? 'Criando conta...' : 'Finalizar cadastro'}
+        label={isSubmitting ? 'Criando conta...' : 'Criar conta'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />
 
       <Pressable onPress={() => router.replace('/(auth)/login')}>
-        <ThemedText style={styles.link}>Ja tenho conta local</ThemedText>
+        <ThemedText style={styles.link}>Ja tenho conta</ThemedText>
       </Pressable>
     </AuthScreen>
   );

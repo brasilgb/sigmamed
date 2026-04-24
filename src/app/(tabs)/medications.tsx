@@ -160,6 +160,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 22,
     gap: 18,
+    borderWidth: 1,
+    borderColor: '#E3D8F6',
   },
   heroHeader: {
     gap: 8,
@@ -176,6 +178,7 @@ const styles = StyleSheet.create({
   },
   heroText: {
     color: Colors.light.textMuted,
+    lineHeight: 22,
   },
   heroStats: {
     flexDirection: 'row',
@@ -187,10 +190,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     padding: 16,
     gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   statLabel: {
     color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
   statValue: {
     fontSize: 26,
@@ -199,6 +205,7 @@ const styles = StyleSheet.create({
   statMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   section: {
     gap: 14,
@@ -211,6 +218,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 10,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   recordHeader: {
     flexDirection: 'row',
@@ -221,15 +230,18 @@ const styles = StyleSheet.create({
   recordTitle: {
     color: Colors.light.text,
     fontSize: 19,
+    lineHeight: 25,
     fontWeight: '800',
   },
   recordSubtitle: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   recordNotes: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
   badge: {
     borderRadius: 999,
@@ -253,19 +265,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     padding: 18,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   emptyTitle: {
     color: Colors.light.text,
     fontWeight: '700',
+    lineHeight: 22,
   },
   emptyText: {
     color: Colors.light.textMuted,
+    lineHeight: 20,
   },
   inactiveCard: {
     borderRadius: 20,
     backgroundColor: Colors.light.surfaceMuted,
     padding: 16,
     gap: 4,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
   },
   inactiveTitle: {
     color: Colors.light.text,
@@ -274,11 +292,14 @@ const styles = StyleSheet.create({
   inactiveMeta: {
     color: Colors.light.textSoft,
     fontSize: 13,
+    lineHeight: 18,
   },
   preferenceCard: {
     borderRadius: 24,
     backgroundColor: Colors.light.surface,
     padding: 18,
+    borderWidth: 1,
+    borderColor: '#E2ECEF',
   },
   preferenceHeader: {
     flexDirection: 'row',
@@ -292,5 +313,6 @@ const styles = StyleSheet.create({
   preferenceText: {
     color: Colors.light.textMuted,
     fontSize: 14,
+    lineHeight: 20,
   },
 });

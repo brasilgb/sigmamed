@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
@@ -81,8 +81,8 @@ export default function GlicoseFormScreen() {
       title="Registrar glicose"
       description={
         editingId
-          ? 'Ajuste o valor salvo e o contexto da medicao.'
-          : 'Mantenha o contexto da medicao para a leitura fazer sentido depois.'
+          ? 'Atualize o valor salvo e ajuste o contexto da medicao.'
+          : 'Registre a glicose com contexto para facilitar a leitura do historico.'
       }>
       <RecordInput
         label="Glicose"
@@ -108,25 +108,16 @@ export default function GlicoseFormScreen() {
         onChange={setSource}
         options={[
           { label: 'Manual', value: 'manual' },
-          { label: 'Foto', value: 'photo' },
           { label: 'Bluetooth', value: 'bluetooth' },
         ]}
       />
-      <Pressable
-        onPress={() => router.push('/glicose-scan')}
-        style={styles.captureCard}>
-        <ThemedText style={styles.captureTitle}>Preencher por foto</ThemedText>
-        <ThemedText style={styles.captureText}>
-          Tire uma foto do visor e confirme a glicose detectada.
-        </ThemedText>
-      </Pressable>
       <RecordInput
         label="Observacoes"
-        placeholder="Ex.: 2h apos o almoco"
+        placeholder="Ex.: medicao realizada 2h apos o almoco"
         value={notes}
         onChangeText={setNotes}
       />
-      {error ? <ThemedText style={{ color: '#b14646' }}>{error}</ThemedText> : null}
+      {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
         label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar glicose' : 'Salvar glicose'}
         disabled={isSubmitting}
@@ -137,20 +128,9 @@ export default function GlicoseFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  captureCard: {
-    borderRadius: 22,
-    backgroundColor: Colors.light.surfaceMuted,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 6,
-  },
-  captureTitle: {
-    color: Colors.light.text,
-    fontWeight: '700',
-  },
-  captureText: {
-    color: Colors.light.textMuted,
-    fontSize: 14,
+  error: {
+    color: Colors.light.danger,
     lineHeight: 20,
+    fontWeight: '600',
   },
 });

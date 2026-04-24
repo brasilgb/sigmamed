@@ -1,4 +1,4 @@
-export type EntrySource = 'manual' | 'photo' | 'bluetooth';
+export type EntrySource = 'manual' | 'bluetooth';
 
 export type GlicoseContext = 'fasting' | 'post_meal' | 'random';
 

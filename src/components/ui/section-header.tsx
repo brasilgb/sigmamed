@@ -30,7 +30,8 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   hint: {
-    color: Colors.light.textSoft,
+    color: Colors.light.textMuted,
     fontSize: 13,
+    lineHeight: 18,
   },
 });
