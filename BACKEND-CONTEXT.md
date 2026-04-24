@@ -246,7 +246,7 @@ Campos:
 * `diastolic`
 * `pulse`
 * `measured_at`
-* `source` (`manual`, `bluetooth`)
+* `source` (`manual`)
 * `notes`
 * `synced_at`
 * `created_at`
@@ -343,8 +343,16 @@ Campos atuais do app que precisam existir na API:
 * glicose: `glicose_value`, `unit`, `context`, `measured_at`, `source`, `notes`
 * peso: `weight`, `height`, `unit`, `measured_at`, `notes`
 * medicação: `name`, `dosage`, `instructions`, `active`, `scheduled_time`, `reminder_enabled`, `repeat_reminder_every_five_minutes`, `reminder_minutes_before`
-* usuário: `name`, `email`, `photo`
+* usuário: `name`, `email`, `photo_path`
 * perfil: `height`, `target_weight`, `has_diabetes`, `has_hypertension`
+
+### Observação sobre origem da leitura
+
+No estado atual do app:
+
+* `source` está restrito a `manual`
+
+O backend deve refletir isso no MVP e não precisa expor `bluetooth` agora.
 
 ## Autenticação e Sessão
 
@@ -478,6 +486,8 @@ O app já trabalha com:
 * resumo
 * tendências
 * alertas
+* relatório por período
+* exportação em PDF
 
 O backend pode replicar isso para:
 
@@ -490,6 +500,44 @@ O backend pode replicar isso para:
 * `GET /api/v1/dashboard/summary?period=7d`
 * `GET /api/v1/dashboard/trends?period=7d`
 * `GET /api/v1/dashboard/alerts`
+* `GET /api/v1/reports/summary?period=7d`
+* `GET /api/v1/reports/summary?period=30d`
+* `GET /api/v1/reports/summary?period=90d`
+* `GET /api/v1/reports/pdf?period=30d`
+
+## Relatórios
+
+O app já possui um fluxo de relatório com:
+
+* períodos de `7`, `30` e `90` dias
+* resumo consolidado
+* tendências textuais
+* alertas
+* detalhamento recente
+* exportação em PDF
+
+O backend pode futuramente assumir esse processamento para:
+
+* padronizar o relatório entre dispositivos
+* permitir geração server-side de PDF
+* facilitar compartilhamento externo
+* preparar envio para profissionais de saúde
+
+### Estrutura sugerida para relatório
+
+Incluir:
+
+* identificação do paciente
+* totais por módulo
+* adesão à medicação
+* últimas leituras
+* alertas resumidos
+* tabelas por módulo
+
+### Formatos recomendados
+
+* JSON para leitura no app
+* PDF para compartilhamento/download
 
 ## Upload de Avatar
 
@@ -504,6 +552,19 @@ O backend pode replicar isso para:
 * redimensionar no backend ou pipeline
 * armazenar em storage externo
 * persistir caminho em `photo_path`
+
+### Alinhamento com o app atual
+
+Hoje, no app local:
+
+* o banco salva apenas a referência da foto
+* a imagem fica persistida no armazenamento do app
+
+No backend:
+
+* manter a mesma filosofia
+* nunca salvar o binário da imagem diretamente no banco relacional
+* salvar apenas `photo_path` ou `photo_url`
 
 ## Segurança
 
@@ -616,6 +677,8 @@ Isso acelera integração com o app e testes E2E.
 
 * avatar upload
 * dashboard calculado no backend
+* relatório JSON por período
+* geração de PDF server-side
 * notificações e agendamentos
 * soft delete sincronizado
 
@@ -653,6 +716,9 @@ Se este documento for usado como contexto para gerar o backend, assumir:
 * cada conta pode nascer com um tenant próprio
 * sync deve usar identificador estável por registro
 * backend deve refletir o schema funcional já existente no app
+* `source` das leituras permanece `manual` no MVP atual
+* avatar no backend deve salvar caminho/URL, não arquivo binário em coluna SQL
+* relatórios devem considerar períodos de `7`, `30` e `90` dias
 
 ## Próxima Task Recomendada
 

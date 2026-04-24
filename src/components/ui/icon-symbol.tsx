@@ -19,6 +19,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'heart.text.square.fill': 'monitor-heart',
+  'document.text.fill': 'description',
   'list.bullet.rectangle.fill': 'view-list',
   'waveform.path.ecg': 'monitor-heart',
   'drop.fill': 'water-drop',

@@ -9,6 +9,11 @@ import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, ModulePalette } from '@/constants/theme';
+import {
+  isManagedProfilePhotoUri,
+  persistProfilePhoto,
+  removeManagedProfilePhoto,
+} from '@/features/auth/services/profile-photo.service';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function SettingsScreen() {
@@ -43,6 +48,10 @@ export default function SettingsScreen() {
     .join('') || 'SM';
 
   async function handleTakePhoto() {
+    if (!user) {
+      return;
+    }
+
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permission.granted) {
@@ -58,12 +67,28 @@ export default function SettingsScreen() {
     });
 
     if (!result.canceled) {
-      setPhotoUri(result.assets[0]?.uri ?? null);
+      const nextUri = result.assets[0]?.uri;
+
+      if (!nextUri) {
+        return;
+      }
+
+      const persistedUri = await persistProfilePhoto(nextUri, user.id);
+
+      if (isManagedProfilePhotoUri(photoUri)) {
+        await removeManagedProfilePhoto(photoUri);
+      }
+
+      setPhotoUri(persistedUri);
       setError(null);
     }
   }
 
   async function handleChooseFromLibrary() {
+    if (!user) {
+      return;
+    }
+
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
@@ -79,7 +104,19 @@ export default function SettingsScreen() {
     });
 
     if (!result.canceled) {
-      setPhotoUri(result.assets[0]?.uri ?? null);
+      const nextUri = result.assets[0]?.uri;
+
+      if (!nextUri) {
+        return;
+      }
+
+      const persistedUri = await persistProfilePhoto(nextUri, user.id);
+
+      if (isManagedProfilePhotoUri(photoUri)) {
+        await removeManagedProfilePhoto(photoUri);
+      }
+
+      setPhotoUri(persistedUri);
       setError(null);
     }
   }
@@ -148,7 +185,15 @@ export default function SettingsScreen() {
           <View style={styles.profileActions}>
             <AuthButton label="Tirar foto" variant="secondary" onPress={() => void handleTakePhoto()} />
             <AuthButton label="Escolher da galeria" variant="secondary" onPress={() => void handleChooseFromLibrary()} />
-            {photoUri ? <AuthButton label="Remover foto" onPress={() => setPhotoUri(null)} /> : null}
+            {photoUri ? (
+              <AuthButton
+                label="Remover foto"
+                onPress={() => {
+                  void removeManagedProfilePhoto(photoUri);
+                  setPhotoUri(null);
+                }}
+              />
+            ) : null}
           </View>
         </View>
         <RecordInput

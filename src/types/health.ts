@@ -149,6 +149,17 @@ export type ReportMedicationSummary = {
 export type ReportData = {
   periodDays: ReportPeriodDays;
   generatedAt: string;
+  patient: {
+    name: string;
+    email: string;
+    birthDate: string | null;
+    sex: string | null;
+    height: number | null;
+    targetWeight: number | null;
+    hasDiabetes: boolean;
+    hasHypertension: boolean;
+    notes: string | null;
+  } | null;
   summary: DashboardSummary;
   trends: DashboardTrends;
   alerts: DashboardAlert[];

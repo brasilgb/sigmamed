@@ -1,19 +1,24 @@
 import * as Print from 'expo-print';
 
 import { getDatabase } from '@/database/client';
+import { MedicationRepository } from '@/features/medications/medication.repository';
+import { UserRepository } from '@/features/auth/repositories/user.repository';
+import { getSessionUserId } from '@/features/auth/services/session-storage.service';
 import { getDashboardSummary, getDashboardTrends, getRecentHistory } from '@/services/dashboard.service';
 import { getDashboardAlerts } from '@/services/dashboard-alerts.service';
-import { formatDateTime } from '@/utils/date';
+import { formatDate, formatDateTime } from '@/utils/date';
 import type {
   BloodPressureReading,
   DashboardSummary,
   GlicoseReading,
-  Medication,
   ReportData,
   ReportMetricSummary,
   ReportPeriodDays,
   WeightReading,
 } from '@/types/health';
+
+const userRepository = new UserRepository();
+const medicationRepository = new MedicationRepository();
 
 type CountRow = { count: number };
 
@@ -75,6 +80,7 @@ function buildMetricSummary(
 export async function getReportData(periodDays: ReportPeriodDays): Promise<ReportData> {
   const database = await getDatabase();
   const periodModifier = `-${periodDays} day`;
+  const sessionUserId = await getSessionUserId().catch(() => null);
 
   const [
     summary,
@@ -140,39 +146,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
        LIMIT 8`,
       periodModifier
     ),
-    database.getAllAsync<Medication>(
-      `SELECT
-          medications.id,
-          medications.name,
-          medications.dosage,
-          medications.instructions,
-          medications.active,
-          medications.scheduled_time as scheduledTime,
-          medications.reminder_enabled as reminderEnabled,
-          medications.repeat_reminder_every_five_minutes as repeatReminderEveryFiveMinutes,
-          medications.reminder_minutes_before as reminderMinutesBefore,
-          (
-            SELECT medication_logs.status
-            FROM medication_logs
-            WHERE medication_logs.medication_id = medications.id
-              AND datetime(medication_logs.scheduled_at) >= datetime('now', ?)
-            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
-            LIMIT 1
-          ) as todayStatus,
-          (
-            SELECT COALESCE(medication_logs.taken_at, medication_logs.scheduled_at)
-            FROM medication_logs
-            WHERE medication_logs.medication_id = medications.id
-              AND datetime(medication_logs.scheduled_at) >= datetime('now', ?)
-            ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
-            LIMIT 1
-          ) as todayLoggedAt,
-          medications.created_at as createdAt
-        FROM medications
-       ORDER BY medications.active DESC, medications.name ASC`,
-      periodModifier,
-      periodModifier
-    ),
+    medicationRepository.listAll(),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM blood_pressure_readings
@@ -211,6 +185,33 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
     ),
   ]);
 
+  let patient: ReportData['patient'] = null;
+
+  if (sessionUserId) {
+    try {
+      const [currentUser, profile] = await Promise.all([
+        userRepository.getById(sessionUserId),
+        userRepository.getProfileByUserId(sessionUserId),
+      ]);
+
+      if (currentUser) {
+        patient = {
+          name: profile?.fullName ?? currentUser.name,
+          email: currentUser.email,
+          birthDate: profile?.birthDate ?? null,
+          sex: profile?.sex ?? null,
+          height: profile?.height ?? null,
+          targetWeight: profile?.targetWeight ?? null,
+          hasDiabetes: profile?.hasDiabetes ?? false,
+          hasHypertension: profile?.hasHypertension ?? false,
+          notes: profile?.notes ?? null,
+        };
+      }
+    } catch {
+      patient = null;
+    }
+  }
+
   const reportSummary: DashboardSummary = {
     ...summary,
     totalReadings: (pressureCount?.count ?? 0) + (glicoseCount?.count ?? 0) + (weightCount?.count ?? 0),
@@ -229,6 +230,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
   return {
     periodDays,
     generatedAt: new Date().toISOString(),
+    patient,
     summary: reportSummary,
     trends,
     alerts,
@@ -279,8 +281,8 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
   };
 }
 
-function renderListSection(title: string, items: string[]) {
-  if (items.length === 0) {
+function renderTableSection(title: string, headers: string[], rows: string[][]) {
+  if (rows.length === 0) {
     return `
       <section class="section">
         <h2>${escapeHtml(title)}</h2>
@@ -292,49 +294,70 @@ function renderListSection(title: string, items: string[]) {
   return `
     <section class="section">
       <h2>${escapeHtml(title)}</h2>
-      <ul class="list">
-        ${items.map((item) => `<li>${item}</li>`).join('')}
-      </ul>
+      <table>
+        <thead>
+          <tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${rows
+            .map(
+              (row) =>
+                `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>
     </section>
   `;
 }
 
 export function buildReportHtml(report: ReportData) {
-  const pressureItems = report.pressure.readings.map(
-    (item) =>
-      `<strong>${item.systolic}/${item.diastolic} mmHg</strong> em ${escapeHtml(formatDateTime(item.measuredAt))}${
-        item.pulse ? `, pulso ${item.pulse} bpm` : ''
-      }${item.notes ? `, obs.: ${escapeHtml(item.notes)}` : ''}`
-  );
-  const glicoseItems = report.glicose.readings.map(
-    (item) =>
-      `<strong>${item.glicoseValue} ${item.unit}</strong> (${escapeHtml(item.context)}) em ${escapeHtml(
-        formatDateTime(item.measuredAt)
-      )}${item.notes ? `, obs.: ${escapeHtml(item.notes)}` : ''}`
-  );
-  const weightItems = report.weight.readings.map(
-    (item) =>
-      `<strong>${item.weight.toFixed(1)} ${item.unit}</strong> em ${escapeHtml(formatDateTime(item.measuredAt))}${
-        item.height ? `, altura ${Math.round(item.height * 100)} cm` : ''
-      }${item.notes ? `, obs.: ${escapeHtml(item.notes)}` : ''}`
-  );
-  const medicationItems = report.medications.items.map(
-    (item) =>
-      `<strong>${escapeHtml(item.name)}</strong> - ${escapeHtml(item.dosage)}${
-        item.scheduledTime ? `, horario ${escapeHtml(item.scheduledTime)}` : ''
-      }${item.active ? '' : ', inativa'}`
-  );
+  const pressureRows = report.pressure.readings.map((item) => [
+    escapeHtml(formatDateTime(item.measuredAt)),
+    `${item.systolic}/${item.diastolic} mmHg`,
+    item.pulse ? `${item.pulse} bpm` : '-',
+    item.notes ? escapeHtml(item.notes) : '-',
+  ]);
+  const glicoseRows = report.glicose.readings.map((item) => [
+    escapeHtml(formatDateTime(item.measuredAt)),
+    `${item.glicoseValue} ${item.unit}`,
+    escapeHtml(item.context),
+    item.notes ? escapeHtml(item.notes) : '-',
+  ]);
+  const weightRows = report.weight.readings.map((item) => [
+    escapeHtml(formatDateTime(item.measuredAt)),
+    `${item.weight.toFixed(1)} ${item.unit}`,
+    item.height ? `${Math.round(item.height * 100)} cm` : '-',
+    item.notes ? escapeHtml(item.notes) : '-',
+  ]);
+  const medicationRows = report.medications.items.map((item) => [
+    escapeHtml(item.name),
+    escapeHtml(item.dosage),
+    item.scheduledTime ? escapeHtml(item.scheduledTime) : '-',
+    item.active ? 'Ativa' : 'Inativa',
+  ]);
+  const patientBadges = report.patient
+    ? [
+        report.patient.hasHypertension ? 'Hipertensao' : null,
+        report.patient.hasDiabetes ? 'Diabetes' : null,
+      ].filter(Boolean) as string[]
+    : [];
 
   return `
     <html>
       <head>
         <meta charset="utf-8" />
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 28px; color: #102532; }
-          h1 { margin: 0 0 8px; font-size: 28px; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 24px; color: #102532; }
+          h1 { margin: 0 0 6px; font-size: 30px; }
           h2 { margin: 0 0 12px; font-size: 18px; color: #0E9F8C; }
           p { margin: 0 0 8px; line-height: 1.5; }
           .meta { color: #4E6671; margin-bottom: 20px; }
+          .header { border: 1px solid #CBDADF; border-radius: 18px; padding: 18px; background: #F7FBFC; }
+          .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+          .brand { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #102532; color: #fff; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+          .subtle { color: #4E6671; font-size: 13px; }
+          .patient { margin-top: 16px; border-top: 1px solid #DCE7EA; padding-top: 16px; }
           .grid { display: table; width: 100%; border-spacing: 12px; margin: 18px 0; }
           .cell { display: table-cell; width: 33.33%; border: 1px solid #CBDADF; border-radius: 16px; padding: 14px; vertical-align: top; }
           .kicker { font-size: 12px; text-transform: uppercase; color: #4E6671; font-weight: 700; margin-bottom: 6px; }
@@ -344,13 +367,42 @@ export function buildReportHtml(report: ReportData) {
           .list li { margin-bottom: 8px; line-height: 1.5; }
           .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #D8F1EC; color: #102532; font-size: 12px; font-weight: 700; margin: 0 8px 8px 0; }
           .empty { color: #4E6671; font-style: italic; }
+          table { width: 100%; border-collapse: collapse; border: 1px solid #D7E2E6; border-radius: 12px; overflow: hidden; }
+          th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #E3ECEF; font-size: 13px; vertical-align: top; }
+          th { background: #F2F7F8; color: #29404C; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+          tr:last-child td { border-bottom: none; }
         </style>
       </head>
       <body>
-        <h1>Relatorio SigmaMed</h1>
-        <p class="meta">Periodo: ultimos ${report.periodDays} dias | Gerado em ${escapeHtml(
-          formatDateTime(report.generatedAt)
-        )}</p>
+        <section class="header">
+          <div class="header-top">
+            <div>
+              <div class="brand">SigmaMed</div>
+              <h1>Relatorio de acompanhamento</h1>
+              <p class="meta">Periodo: ultimos ${report.periodDays} dias | Gerado em ${escapeHtml(
+                formatDateTime(report.generatedAt)
+              )}</p>
+            </div>
+            <div class="subtle">Uso pessoal e compartilhamento clinico</div>
+          </div>
+          ${
+            report.patient
+              ? `
+              <div class="patient">
+                <h2>Identificacao do paciente</h2>
+                <p><strong>Nome:</strong> ${escapeHtml(report.patient.name)}</p>
+                <p><strong>E-mail:</strong> ${escapeHtml(report.patient.email)}</p>
+                <p><strong>Nascimento:</strong> ${report.patient.birthDate ? escapeHtml(formatDate(report.patient.birthDate)) : '-'}</p>
+                <p><strong>Sexo:</strong> ${report.patient.sex ? escapeHtml(report.patient.sex) : '-'}</p>
+                <p><strong>Altura:</strong> ${report.patient.height ? `${Math.round(report.patient.height * 100)} cm` : '-'}</p>
+                <p><strong>Peso-alvo:</strong> ${report.patient.targetWeight ? `${report.patient.targetWeight.toFixed(1)} kg` : '-'}</p>
+                <p>${patientBadges.length > 0 ? patientBadges.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join('') : '<span class="subtle">Sem marcadores clinicos adicionais</span>'}</p>
+                ${report.patient.notes ? `<p><strong>Observacoes:</strong> ${escapeHtml(report.patient.notes)}</p>` : ''}
+              </div>
+            `
+              : ''
+          }
+        </section>
         <div class="grid">
           <div class="cell">
             <div class="kicker">Registros</div>
@@ -389,10 +441,10 @@ export function buildReportHtml(report: ReportData) {
           }
         </section>
 
-        ${renderListSection('Pressao', pressureItems)}
-        ${renderListSection('Glicose', glicoseItems)}
-        ${renderListSection('Peso', weightItems)}
-        ${renderListSection('Medicacoes', medicationItems)}
+        ${renderTableSection('Pressao arterial', ['Data e hora', 'Leitura', 'Pulso', 'Observacoes'], pressureRows)}
+        ${renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto', 'Observacoes'], glicoseRows)}
+        ${renderTableSection('Peso', ['Data e hora', 'Peso', 'Altura', 'Observacoes'], weightRows)}
+        ${renderTableSection('Medicacoes', ['Medicacao', 'Dosagem', 'Horario', 'Status'], medicationRows)}
 
         <section class="section">
           <h2>Atividade recente</h2>
@@ -404,7 +456,7 @@ export function buildReportHtml(report: ReportData) {
                     (item) =>
                       `<li><strong>${escapeHtml(item.title)}</strong> - ${escapeHtml(
                         item.subtitle
-                      )} em ${escapeHtml(formatDateTime(item.timestamp))}</li>`
+                      )} em ${escapeHtml(item.timestamp)}</li>`
                   )
                   .join('')}</ul>`
               : '<p class="empty">Sem atividade recente.</p>'

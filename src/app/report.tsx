@@ -5,7 +5,6 @@ import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 
 import { AuthButton } from '@/components/auth/auth-button';
-import { TrendCard } from '@/components/dashboard/trend-card';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
@@ -154,9 +153,33 @@ export default function ReportScreen() {
 
           <View style={styles.section}>
             <SectionHeader title="Tendencias" hint={`Ultimos ${periodDays} dias`} />
-            <TrendCard metric={data.trends.pressure} />
-            <TrendCard metric={data.trends.glicose} />
-            <TrendCard metric={data.trends.weight} />
+            <Card>
+              <ThemedText style={styles.trendTitle}>{data.trends.pressure.label}</ThemedText>
+              <ThemedText style={styles.trendValue}>
+                {data.trends.pressure.latestValue !== null
+                  ? `${data.trends.pressure.latestValue.toFixed(0)} ${data.trends.pressure.unit}`
+                  : 'Sem dado'}
+              </ThemedText>
+              <ThemedText style={styles.trendDetail}>{data.trends.pressure.detail}</ThemedText>
+            </Card>
+            <Card>
+              <ThemedText style={styles.trendTitle}>{data.trends.glicose.label}</ThemedText>
+              <ThemedText style={styles.trendValue}>
+                {data.trends.glicose.latestValue !== null
+                  ? `${data.trends.glicose.latestValue.toFixed(0)} ${data.trends.glicose.unit}`
+                  : 'Sem dado'}
+              </ThemedText>
+              <ThemedText style={styles.trendDetail}>{data.trends.glicose.detail}</ThemedText>
+            </Card>
+            <Card>
+              <ThemedText style={styles.trendTitle}>{data.trends.weight.label}</ThemedText>
+              <ThemedText style={styles.trendValue}>
+                {data.trends.weight.latestValue !== null
+                  ? `${data.trends.weight.latestValue.toFixed(1)} ${data.trends.weight.unit}`
+                  : 'Sem dado'}
+              </ThemedText>
+              <ThemedText style={styles.trendDetail}>{data.trends.weight.detail}</ThemedText>
+            </Card>
           </View>
 
           <View style={styles.section}>
@@ -290,6 +313,8 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     gap: 6,
+    minHeight: 132,
+    justifyContent: 'center',
   },
   summaryCardSingle: {
     gap: 6,
@@ -304,7 +329,9 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: Colors.light.text,
     fontSize: 28,
+    lineHeight: 34,
     fontWeight: '800',
+    paddingTop: 2,
   },
   summaryHint: {
     color: Colors.light.textSoft,
@@ -351,6 +378,25 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Colors.light.textMuted,
     lineHeight: 20,
+  },
+  trendTitle: {
+    color: Colors.light.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  trendValue: {
+    color: Colors.light.text,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  trendDetail: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+    marginTop: 6,
   },
   errorCard: {
     backgroundColor: '#FFF6F6',

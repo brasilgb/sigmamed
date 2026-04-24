@@ -10,6 +10,19 @@ type TrendCardProps = {
   actionLabel?: string;
 };
 
+function shouldRenderAxisLabel(index: number, total: number) {
+  if (total <= 7) {
+    return true;
+  }
+
+  if (index === 0 || index === total - 1) {
+    return true;
+  }
+
+  const step = total <= 30 ? 5 : 15;
+  return index % step === 0;
+}
+
 const palette = {
   pressure: {
     background: Colors.light.surface,
@@ -53,8 +66,9 @@ export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: T
       </View>
 
       <View style={styles.chart}>
-        {metric.points.map((point) => {
+        {metric.points.map((point, index) => {
           const height = point.value === null ? 8 : 18 + ((point.value - min) / range) * 44;
+          const showLabel = shouldRenderAxisLabel(index, metric.points.length);
 
           return (
             <View key={`${metric.key}-${point.date}`} style={styles.column}>
@@ -68,7 +82,7 @@ export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: T
                   },
                 ]}
               />
-              <ThemedText style={styles.axisLabel}>{point.label}</ThemedText>
+              <ThemedText style={styles.axisLabel}>{showLabel ? point.label : ' '}</ThemedText>
             </View>
           );
         })}
@@ -152,6 +166,7 @@ const styles = StyleSheet.create({
     color: Colors.light.textSoft,
     fontSize: 10,
     lineHeight: 14,
+    minHeight: 14,
   },
   detail: {
     color: Colors.light.textMuted,

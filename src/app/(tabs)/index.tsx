@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
-import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { TrendCard } from '@/components/dashboard/trend-card';
@@ -46,6 +45,45 @@ const modules = [
     description: 'Tratamentos ativos, registro diario e ajustes no mesmo lugar.',
     route: '/(tabs)/medications' as const,
     color: ModulePalette.medication.base,
+    icon: 'pills.fill' as const,
+  },
+];
+
+const quickActions = [
+  {
+    key: 'new-pressure',
+    title: 'Nova pressao',
+    description: 'Registrar leitura manual',
+    route: '/pressure-form' as const,
+    color: ModulePalette.pressure.base,
+    soft: ModulePalette.pressure.soft,
+    icon: 'waveform.path.ecg' as const,
+  },
+  {
+    key: 'new-glicose',
+    title: 'Nova glicose',
+    description: 'Salvar valor com contexto',
+    route: '/glicose-form' as const,
+    color: ModulePalette.glicose.base,
+    soft: ModulePalette.glicose.soft,
+    icon: 'drop.fill' as const,
+  },
+  {
+    key: 'new-weight',
+    title: 'Novo peso',
+    description: 'Atualizar pesagem',
+    route: '/weight-form' as const,
+    color: ModulePalette.weight.base,
+    soft: ModulePalette.weight.soft,
+    icon: 'scalemass.fill' as const,
+  },
+  {
+    key: 'new-medication',
+    title: 'Nova medicacao',
+    description: 'Cadastrar tratamento',
+    route: '/medication-form' as const,
+    color: ModulePalette.medication.base,
+    soft: ModulePalette.medication.soft,
     icon: 'pills.fill' as const,
   },
 ];
@@ -105,6 +143,25 @@ export default function HomeTabScreen() {
         ) : null}
       </View>
 
+      <Card style={styles.reportCard}>
+        <Pressable style={styles.reportPressable} onPress={() => router.push('/report')}>
+          <View style={styles.reportCopy}>
+            <View style={styles.reportIconWrap}>
+              <IconSymbol name="list.bullet.rectangle.fill" size={20} color={BrandPalette.navy} />
+            </View>
+            <View style={styles.reportTextWrap}>
+              <ThemedText style={styles.reportTitle}>Relatorio do periodo</ThemedText>
+              <ThemedText style={styles.reportText}>
+                Organize leituras, alertas e medicacoes em um resumo pronto para compartilhar.
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.reportAction}>
+            <ThemedText style={styles.reportActionText}>Abrir relatorio</ThemedText>
+          </View>
+        </Pressable>
+      </Card>
+
       {summary ? (
         <>
           <View style={styles.summaryGrid}>
@@ -135,21 +192,18 @@ export default function HomeTabScreen() {
         ))}
       </View>
 
-      <View style={styles.quickRow}>
-        <AuthButton label="Nova pressao" onPress={() => router.push('/pressure-form')} style={styles.quickButton} />
-        <AuthButton
-          label="Nova glicose"
-          variant="secondary"
-          onPress={() => router.push('/glicose-form')}
-          style={styles.quickButton}
-        />
-      </View>
-      <View style={styles.quickRow}>
-        <AuthButton label="Novo peso" variant="secondary" onPress={() => router.push('/weight-form')} style={styles.quickButton} />
-        <AuthButton label="Nova medicacao" onPress={() => router.push('/medication-form')} style={styles.quickButton} />
-      </View>
-      <View style={styles.quickRow}>
-        <AuthButton label="Relatorio" variant="secondary" onPress={() => router.push('/report')} style={styles.quickButton} />
+      <View style={styles.quickGrid}>
+        {quickActions.map((action) => (
+          <Card key={action.key} style={styles.quickCard}>
+            <Pressable style={styles.quickCardPressable} onPress={() => router.push(action.route)}>
+              <View style={[styles.quickCardIcon, { backgroundColor: action.soft }]}>
+                <IconSymbol name={action.icon} size={18} color={action.color} />
+              </View>
+              <ThemedText style={styles.quickCardTitle}>{action.title}</ThemedText>
+              <ThemedText style={styles.quickCardText}>{action.description}</ThemedText>
+            </Pressable>
+          </Card>
+        ))}
       </View>
 
       {trends ? (
@@ -292,12 +346,85 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  quickRow: {
+  reportCard: {
+    padding: 0,
+    backgroundColor: '#EEF7F4',
+    borderColor: '#CFE5DF',
+  },
+  reportPressable: {
+    padding: Space.lg,
+    gap: 16,
+  },
+  reportCopy: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  reportIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: Radius.md,
+    backgroundColor: '#D7ECE6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  reportTitle: {
+    color: Colors.light.text,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  reportText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
+  reportAction: {
+    minHeight: 52,
+    borderRadius: 18,
+    backgroundColor: BrandPalette.navy,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  reportActionText: {
+    color: BrandPalette.white,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  quickButton: {
-    flex: 1,
+  quickCard: {
+    width: '48%',
+    padding: 0,
+  },
+  quickCardPressable: {
+    minHeight: 136,
+    padding: Space.md,
+    gap: 10,
+  },
+  quickCardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickCardTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  quickCardText: {
+    color: Colors.light.textMuted,
+    lineHeight: 19,
   },
   section: {
     gap: 14,
