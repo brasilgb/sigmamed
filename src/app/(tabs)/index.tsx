@@ -1,401 +1,277 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
-import { AlertsCard } from '@/components/dashboard/alerts-card';
-import { ThemedText } from '@/components/themed-text';
-import { BrandPalette, Colors, ModulePalette } from '@/constants/theme';
-import { useMedications } from '@/hooks/use-medications';
+import { AuthButton } from '@/components/auth/auth-button';
 import { HistoryList } from '@/components/dashboard/history-list';
-import { MetricPreview } from '@/components/dashboard/metric-preview';
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { TrendCard } from '@/components/dashboard/trend-card';
+import { ThemedText } from '@/components/themed-text';
+import { Card } from '@/components/ui/card';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SectionHeader } from '@/components/ui/section-header';
 import { Screen } from '@/components/ui/screen';
+import { BrandPalette, Colors, ModulePalette, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { getDashboardAlerts } from '@/services/dashboard-alerts.service';
-import type { DashboardAlert, MetricTrend } from '@/types/health';
-import { formatDateTime } from '@/utils/date';
 
-export default function DashboardScreen() {
-  const { user } = useAuth();
-  const { error, history, isLoading, refresh, summary, trends } = useDashboardData(7);
-  const { items: medications } = useMedications();
-  const alerts = getDashboardAlerts(summary, trends);
+const modules = [
+  {
+    key: 'pressure',
+    title: 'Pressao',
+    description: 'Leituras, foto do visor e ultimo registro em um fluxo unico.',
+    route: '/(tabs)/pressure' as const,
+    color: ModulePalette.pressure.base,
+    icon: 'waveform.path.ecg' as const,
+  },
+  {
+    key: 'glicose',
+    title: 'Glicose',
+    description: 'Contexto da medicao e captura por foto sem sair do modulo.',
+    route: '/(tabs)/glicose' as const,
+    color: ModulePalette.glicose.base,
+    icon: 'drop.fill' as const,
+  },
+  {
+    key: 'weight',
+    title: 'Peso',
+    description: 'Pesagens recentes e historico mais limpo para acompanhar rotina.',
+    route: '/(tabs)/weight' as const,
+    color: ModulePalette.weight.base,
+    icon: 'scalemass.fill' as const,
+  },
+  {
+    key: 'medications',
+    title: 'Medicacao',
+    description: 'Tratamentos ativos, adesao diaria e cadastro no mesmo lugar.',
+    route: '/(tabs)/medications' as const,
+    color: ModulePalette.medication.base,
+    icon: 'pills.fill' as const,
+  },
+];
 
-  function handleAlertPress(alert: DashboardAlert) {
-    if (alert.metric === 'medication') {
-      router.push({
-        pathname: '/explore',
-        params: {
-          recordFilter: 'medication',
-          medicationStatusFilter: 'active',
-          timeFilter: 'all',
-        },
-      });
-      return;
-    }
-
-    if (alert.metric === 'pressure' || alert.metric === 'glicose' || alert.metric === 'weight') {
-      router.push({
-        pathname: '/explore',
-        params: {
-          recordFilter: alert.metric,
-          timeFilter: '7d',
-          recordSort: 'newest',
-        },
-      });
-    }
-  }
-
-  function handleTrendPress(metric: MetricTrend) {
-    router.push({
-      pathname: '/explore',
-      params: {
-        recordFilter: metric.key,
-        timeFilter: '7d',
-        recordSort: 'newest',
-      },
-    });
-  }
-
-  function openExploreWithParams(params: {
-    recordFilter?: 'all' | 'pressure' | 'glicose' | 'weight' | 'medication';
-    timeFilter?: 'all' | '7d' | '30d';
-    recordSort?: 'newest' | 'oldest' | 'highest';
-    medicationStatusFilter?: 'all' | 'active' | 'inactive';
-  }) {
-    router.push({
-      pathname: '/explore',
-      params,
-    });
-  }
-
-  function handleLatestPressurePress() {
-    if (summary?.latestPressure) {
-      router.push({ pathname: '/pressure-form', params: { id: String(summary.latestPressure.id) } });
-      return;
-    }
-
-    router.push('/pressure-form');
-  }
-
-  function handleLatestGlicosePress() {
-    if (summary?.latestGlicose) {
-      router.push({ pathname: '/glicose-form', params: { id: String(summary.latestGlicose.id) } });
-      return;
-    }
-
-    router.push('/glicose-form');
-  }
-
-  function handleLatestWeightPress() {
-    if (summary?.latestWeight) {
-      router.push({ pathname: '/weight-form', params: { id: String(summary.latestWeight.id) } });
-      return;
-    }
-
-    router.push('/weight-form');
-  }
+export default function HomeTabScreen() {
+  const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
+  const { history, isLoading, refresh, summary, trends } = useDashboardData(7);
+  const firstName = user?.name.split(' ')[0] ?? 'Paciente';
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
       <View style={styles.hero}>
-        <ThemedText style={styles.kicker}>SigmaMed</ThemedText>
-        <ThemedText type="title" style={styles.title}>
-          Monitoramento simples para casa, mesmo offline.
-        </ThemedText>
-        <ThemedText style={styles.description}>
-          {user ? `${user.name.split(' ')[0]}, ` : ''}
-          registre pressao, glicose, peso e medicacoes com historico local primeiro.
-        </ThemedText>
-      </View>
+        <View style={styles.heroTop}>
+          <View style={styles.brandBadge}>
+            <ThemedText style={styles.brandBadgeText}>SigmaMed</ThemedText>
+          </View>
+          <View style={styles.heroActions}>
+            <Pressable style={styles.iconButton} onPress={() => router.push('/settings')}>
+              <IconSymbol name="gearshape.fill" size={18} color={BrandPalette.navy} />
+            </Pressable>
+            <Pressable style={styles.iconButton} onPress={lock}>
+              <IconSymbol name="lock.fill" size={18} color={BrandPalette.navy} />
+            </Pressable>
+            <Pressable style={styles.iconButton} onPress={() => void logout()}>
+              <IconSymbol name="rectangle.portrait.and.arrow.right.fill" size={18} color={BrandPalette.navy} />
+            </Pressable>
+          </View>
+        </View>
 
-      <View style={styles.quickActions}>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/pressure-form')}>
-          <ThemedText style={styles.actionTitle}>Nova pressao</ThemedText>
-          <ThemedText style={styles.actionText}>Registrar sistolica, diastolica e pulso.</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/glicose-form')}>
-          <ThemedText style={styles.actionTitle}>Nova glicose</ThemedText>
-          <ThemedText style={styles.actionText}>Salvar com contexto da medicao.</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/pressure-scan')}>
-          <ThemedText style={styles.actionTitle}>Foto pressao</ThemedText>
-          <ThemedText style={styles.actionText}>Capturar o visor e sugerir valores.</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/glicose-scan')}>
-          <ThemedText style={styles.actionTitle}>Foto glicose</ThemedText>
-          <ThemedText style={styles.actionText}>Ler o medidor e preencher o formulario.</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/weight-form')}>
-          <ThemedText style={styles.actionTitle}>Novo peso</ThemedText>
-          <ThemedText style={styles.actionText}>Atualizar pesagem em poucos toques.</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionCard} onPress={() => router.push('/medication-form')}>
-          <ThemedText style={styles.actionTitle}>Nova medicacao</ThemedText>
-          <ThemedText style={styles.actionText}>Cadastrar tratamento ativo.</ThemedText>
-        </Pressable>
+        <View style={styles.heroCopy}>
+          <ThemedText type="title" style={styles.heroTitle}>
+            {firstName}, cada cuidado agora tem seu proprio lugar.
+          </ThemedText>
+          <ThemedText style={styles.heroDescription}>
+            Home para resumo rapido e abas dedicadas para pressao, glicose, peso e medicacao, tudo na paleta do app.
+          </ThemedText>
+        </View>
+
+        {user ? (
+          <View style={styles.accountCard}>
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.accountTitle}>{user.name}</ThemedText>
+              <ThemedText style={styles.accountMeta}>{user.email}</ThemedText>
+            </View>
+            <View style={styles.biometricWrap}>
+              <ThemedText style={styles.biometricLabel}>Biometria</ThemedText>
+              <Switch
+                disabled={!biometricAvailable}
+                value={user.useBiometric}
+                onValueChange={(value) => {
+                  void updateBiometric(value);
+                }}
+              />
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {summary ? (
         <>
           <View style={styles.summaryGrid}>
-            <SummaryCard
-              label="Registros totais"
-              value={String(summary.totalReadings)}
-              tone="default"
-              onPress={() => openExploreWithParams({ recordFilter: 'all', timeFilter: 'all', recordSort: 'newest' })}
-              actionLabel="Abrir historico"
-            />
-            <SummaryCard
-              label="Aderencia hoje"
-              value={`${summary.adherenceToday}%`}
-              tone="accent"
-              onPress={() =>
-                openExploreWithParams({
-                  recordFilter: 'medication',
-                  medicationStatusFilter: 'active',
-                  timeFilter: 'all',
-                })}
-              actionLabel="Ver medicacoes"
-            />
+            <SummaryCard label="Registros totais" value={String(summary.totalReadings)} tone="default" />
+            <SummaryCard label="Aderencia hoje" value={`${summary.adherenceToday}%`} tone="accent" />
           </View>
 
           <View style={styles.summaryGrid}>
-            <SummaryCard
-              label="Pressao em 7 dias"
-              value={String(summary.pressureLastSevenDays)}
-              tone="success"
-              onPress={() => openExploreWithParams({ recordFilter: 'pressure', timeFilter: '7d', recordSort: 'newest' })}
-              actionLabel="Ver pressao"
-            />
-            <SummaryCard
-              label="Medicacoes ativas"
-              value={String(summary.activeMedications)}
-              onPress={() =>
-                openExploreWithParams({
-                  recordFilter: 'medication',
-                  medicationStatusFilter: 'active',
-                  timeFilter: 'all',
-                })}
-              actionLabel="Abrir lista"
-            />
+            <SummaryCard label="Pressao em 7 dias" value={String(summary.pressureLastSevenDays)} tone="success" />
+            <SummaryCard label="Medicacoes ativas" value={String(summary.activeMedications)} tone="default" />
           </View>
-
-          <MetricPreview
-            label="Ultima pressao"
-            value={
-              summary.latestPressure
-                ? `${summary.latestPressure.systolic}/${summary.latestPressure.diastolic} mmHg`
-                : 'Sem leitura'
-            }
-            detail={
-              summary.latestPressure
-                ? `Atualizado em ${formatDateTime(summary.latestPressure.measuredAt)}`
-                : 'Crie o primeiro registro para iniciar o acompanhamento.'
-            }
-            onPress={handleLatestPressurePress}
-            actionLabel={summary.latestPressure ? 'Editar ultima leitura' : 'Criar leitura'}
-          />
-
-          <View style={styles.metricRow}>
-            <Pressable style={styles.metricTile} onPress={handleLatestGlicosePress}>
-              <ThemedText style={styles.metricLabel}>Glicose recente</ThemedText>
-              <ThemedText style={styles.metricValue}>
-                {summary.latestGlicose
-                  ? `${summary.latestGlicose.glicoseValue} ${summary.latestGlicose.unit}`
-                  : 'Sem dado'}
-              </ThemedText>
-              <ThemedText style={styles.metricAction}>
-                {summary.latestGlicose ? 'Editar ultima leitura' : 'Criar leitura'}
-              </ThemedText>
-            </Pressable>
-            <Pressable style={styles.metricTile} onPress={handleLatestWeightPress}>
-              <ThemedText style={styles.metricLabel}>Peso recente</ThemedText>
-              <ThemedText style={styles.metricValue}>
-                {summary.latestWeight
-                  ? `${summary.latestWeight.weight} ${summary.latestWeight.unit}`
-                  : 'Sem dado'}
-              </ThemedText>
-              <ThemedText style={styles.metricAction}>
-                {summary.latestWeight ? 'Editar ultima pesagem' : 'Criar pesagem'}
-              </ThemedText>
-            </Pressable>
-          </View>
-
-          <View style={styles.trendsSection}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="subtitle" style={styles.sectionTitle}>
-                Alertas rapidos
-              </ThemedText>
-              <ThemedText style={styles.sectionHint}>Heuristicas locais</ThemedText>
-            </View>
-            <AlertsCard alerts={alerts} onPressAlert={handleAlertPress} />
-          </View>
-
-          {trends ? (
-            <View style={styles.trendsSection}>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>
-                  Tendencias em 7 dias
-                </ThemedText>
-                <ThemedText style={styles.sectionHint}>Medias diarias</ThemedText>
-              </View>
-              <TrendCard metric={trends.pressure} onPress={handleTrendPress} actionLabel="Abrir leituras de pressao" />
-              <TrendCard metric={trends.glicose} onPress={handleTrendPress} actionLabel="Abrir leituras de glicose" />
-              <TrendCard metric={trends.weight} onPress={handleTrendPress} actionLabel="Abrir leituras de peso" />
-            </View>
-          ) : null}
         </>
       ) : null}
 
-      {medications.length > 0 ? (
-        <View style={styles.medicationCard}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Medicacoes ativas
-          </ThemedText>
-          {medications.slice(0, 3).map((medication) => (
-            <View key={medication.id} style={styles.medicationRow}>
-              <View style={{ flex: 1 }}>
-                <ThemedText style={styles.medicationName}>
-                  {medication.name} {medication.dosage}
-                </ThemedText>
-                <ThemedText style={styles.medicationInstructions}>
-                  {medication.instructions || 'Sem instrucoes cadastradas'}
-                </ThemedText>
+      <View style={styles.moduleGrid}>
+        {modules.map((module) => (
+          <Card key={module.key} style={styles.moduleCard}>
+            <Pressable onPress={() => router.push(module.route)}>
+              <View style={[styles.moduleIcon, { backgroundColor: `${module.color}18` }]}>
+                <IconSymbol name={module.icon} size={20} color={module.color} />
               </View>
-            </View>
-          ))}
+              <ThemedText style={styles.moduleTitle}>{module.title}</ThemedText>
+              <ThemedText style={styles.moduleText}>{module.description}</ThemedText>
+            </Pressable>
+          </Card>
+        ))}
+      </View>
+
+      <View style={styles.quickRow}>
+        <AuthButton label="Nova pressao" onPress={() => router.push('/pressure-form')} style={styles.quickButton} />
+        <AuthButton
+          label="Nova glicose"
+          variant="secondary"
+          onPress={() => router.push('/glicose-form')}
+          style={styles.quickButton}
+        />
+      </View>
+      <View style={styles.quickRow}>
+        <AuthButton label="Novo peso" variant="secondary" onPress={() => router.push('/weight-form')} style={styles.quickButton} />
+        <AuthButton label="Nova medicacao" onPress={() => router.push('/medication-form')} style={styles.quickButton} />
+      </View>
+
+      {trends ? (
+        <View style={styles.section}>
+          <SectionHeader title="Tendencias" hint="Ultimos 7 dias" />
+          <TrendCard metric={trends.pressure} onPress={() => router.push('/(tabs)/pressure')} actionLabel="Abrir modulo" />
+          <TrendCard metric={trends.glicose} onPress={() => router.push('/(tabs)/glicose')} actionLabel="Abrir modulo" />
+          <TrendCard metric={trends.weight} onPress={() => router.push('/(tabs)/weight')} actionLabel="Abrir modulo" />
         </View>
       ) : null}
 
-      <View style={styles.sectionHeader}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Historico recente
-        </ThemedText>
-        <ThemedText style={styles.sectionHint}>Puxe para atualizar</ThemedText>
-      </View>
-
-      {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : <HistoryList items={history} />}
+      {history.length > 0 ? (
+        <View style={styles.section}>
+          <SectionHeader title="Atividade recente" hint="Linha do tempo local" />
+          <HistoryList items={history.slice(0, 6)} />
+        </View>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   hero: {
-    gap: 8,
-    borderRadius: 32,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.light.surfaceMuted,
+    padding: Space.xl,
+    gap: 18,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  brandBadge: {
+    borderRadius: Radius.pill,
     backgroundColor: BrandPalette.navy,
-    padding: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  kicker: {
-    color: '#9DDDE2',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  title: {
+  brandBadgeText: {
     color: BrandPalette.white,
-    lineHeight: 38,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
-  description: {
-    color: '#C7E3E6',
-    fontSize: 16,
-    lineHeight: 24,
+  heroActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCopy: {
+    gap: 10,
+  },
+  heroTitle: {
+    color: Colors.light.text,
+    lineHeight: 36,
+  },
+  heroDescription: {
+    color: Colors.light.textMuted,
+  },
+  accountCard: {
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.light.surface,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  accountTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    fontSize: 18,
+  },
+  accountMeta: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+  },
+  biometricWrap: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  biometricLabel: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '700',
   },
   summaryGrid: {
     flexDirection: 'row',
     gap: 12,
   },
-  quickActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  moduleGrid: {
     gap: 12,
   },
-  actionCard: {
-    width: '47%',
-    borderRadius: 22,
-    backgroundColor: Colors.light.surface,
-    padding: 16,
-    gap: 6,
+  moduleCard: {
+    padding: 0,
   },
-  actionTitle: {
-    color: Colors.light.text,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '700',
-  },
-  actionText: {
-    color: Colors.light.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  trendsSection: {
-    gap: 12,
-  },
-  metricTile: {
-    flex: 1,
-    borderRadius: 24,
-    backgroundColor: Colors.light.surface,
-    padding: 18,
-    gap: 6,
-  },
-  metricLabel: {
-    color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  metricValue: {
-    color: Colors.light.text,
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: '700',
-  },
-  metricAction: {
-    color: ModulePalette.glicose.base,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+  moduleIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.sm,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'center',
   },
-  medicationCard: {
-    borderRadius: 24,
-    backgroundColor: Colors.light.surface,
-    padding: 18,
-    gap: 12,
+  moduleTitle: {
+    color: Colors.light.text,
+    fontSize: 18,
+    fontWeight: '800',
   },
-  medicationRow: {
+  moduleText: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+  },
+  quickRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  medicationName: {
-    color: Colors.light.text,
-    fontWeight: '700',
+  quickButton: {
+    flex: 1,
   },
-  medicationInstructions: {
-    color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    color: Colors.light.text,
-  },
-  sectionHint: {
-    color: Colors.light.textSoft,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  errorText: {
-    color: Colors.light.danger,
+  section: {
+    gap: 14,
   },
 });

@@ -31,6 +31,13 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors[colorScheme ?? 'light'].surface,
           borderTopColor: Colors[colorScheme ?? 'light'].border,
+          height: 78,
+          paddingTop: 8,
+          paddingBottom: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '700',
         },
         headerShown: false,
         tabBarButton: HapticTab,
@@ -38,19 +45,42 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Painel',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="heart.text.square.fill" color={color} />
-          ),
+          title: 'Home',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="pressure"
+        options={{
+          title: 'Pressao',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="waveform.path.ecg" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="glicose"
+        options={{
+          title: 'Glicose',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="drop.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="weight"
+        options={{
+          title: 'Peso',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="scalemass.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="medications"
+        options={{
+          title: 'Medicacao',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="pills.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Historico',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="list.bullet.rectangle.fill" color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>

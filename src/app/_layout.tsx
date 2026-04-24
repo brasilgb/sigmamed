@@ -54,6 +54,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="unlock" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="settings" />
         </Stack>
       </AuthProvider>
       <StatusBar style="auto" />

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BrandPalette, ModulePalette, Colors } from '@/constants/theme';
+import { BrandPalette, ModulePalette, Colors, Radius, Space, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type SummaryCardProps = {
@@ -43,27 +43,32 @@ export function SummaryCard({ label, value, tone = 'default', onPress, actionLab
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minHeight: 112,
-    borderRadius: 24,
-    padding: 18,
+    minHeight: 124,
+    borderRadius: Radius.xl,
+    padding: Space.lg,
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: Surface.cardBorder,
   },
   content: {
     gap: 8,
   },
   label: {
     color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   value: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: '700',
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '800',
   },
   action: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

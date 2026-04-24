@@ -5,7 +5,7 @@ import {
   setSessionUserId,
 } from '@/features/auth/services/session-storage.service';
 import { hashSecret, matchesSecret } from '@/features/auth/services/security.service';
-import type { AuthUser, LoginInput, RegisterInput } from '@/features/auth/types/auth';
+import type { AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 const userRepository = new UserRepository();
 
@@ -111,4 +111,49 @@ export async function logoutUser() {
 
 export async function setBiometricPreference(userId: number, enabled: boolean) {
   await userRepository.updateBiometricPreference(userId, enabled);
+}
+
+export async function updateAccount(userId: number, input: UpdateAccountInput): Promise<AuthUser> {
+  const name = input.name.trim();
+  const email = normalizeEmail(input.email);
+  const currentPassword = input.currentPassword?.trim() ?? '';
+  const newPassword = input.newPassword?.trim() ?? '';
+
+  if (!name) {
+    throw new Error('Informe seu nome.');
+  }
+
+  if (!email) {
+    throw new Error('Informe seu e-mail.');
+  }
+
+  const record = await userRepository.getCredentialRecordById(userId);
+
+  if (!record) {
+    throw new Error('Conta nao encontrada.');
+  }
+
+  const isChangingSensitiveData = email !== normalizeEmail(record.email) || newPassword.length > 0;
+
+  if (newPassword && newPassword.length < 6) {
+    throw new Error('A nova senha precisa ter ao menos 6 caracteres.');
+  }
+
+  if (isChangingSensitiveData) {
+    if (!currentPassword) {
+      throw new Error('Informe a senha atual para alterar e-mail ou senha.');
+    }
+
+    const isCurrentPasswordValid = await matchesSecret(currentPassword, record.password_hash);
+
+    if (!isCurrentPasswordValid) {
+      throw new Error('Senha atual incorreta.');
+    }
+  }
+
+  return userRepository.updateUserAccount(userId, {
+    name,
+    email,
+    passwordHash: newPassword ? await hashSecret(newPassword) : undefined,
+  });
 }

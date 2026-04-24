@@ -1,0 +1,256 @@
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+
+import { AuthButton } from '@/components/auth/auth-button';
+import { RecordInput } from '@/components/forms/record-input';
+import { ThemedText } from '@/components/themed-text';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Screen } from '@/components/ui/screen';
+import { Colors, ModulePalette } from '@/constants/theme';
+import { useAuth } from '@/features/auth/hooks/use-auth';
+
+export default function SettingsScreen() {
+  const { biometricAvailable, lock, logout, updateAccount, updateBiometric, user } = useAuth();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    setName(user.name);
+    setEmail(user.email);
+  }, [user]);
+
+  async function handleSave() {
+    if (!user) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      setSuccessMessage(null);
+      await updateAccount({
+        name,
+        email,
+        currentPassword,
+        newPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setSuccessMessage('Configuracoes atualizadas com sucesso.');
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Falha ao atualizar configuracoes.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Screen keyboardShouldPersistTaps="handled">
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText style={styles.backText}>Voltar</ThemedText>
+        </Pressable>
+        <View style={styles.headerCard}>
+          <View style={styles.headerTop}>
+            <View style={styles.headerBadge}>
+              <IconSymbol name="gearshape.fill" size={18} color={ModulePalette.medication.base} />
+            </View>
+            <ThemedText style={styles.headerEyebrow}>Configuracoes</ThemedText>
+          </View>
+          <ThemedText type="title" style={styles.title}>
+            Conta, seguranca e sessao no mesmo lugar.
+          </ThemedText>
+          <ThemedText style={styles.description}>
+            Atualize seus dados, ajuste a biometria e controle a sessao do app com menos atrito.
+          </ThemedText>
+        </View>
+      </View>
+
+      <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Conta</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Dados principais</ThemedText>
+        <RecordInput label="Nome" value={name} onChangeText={setName} placeholder="Seu nome" />
+        <RecordInput
+          label="E-mail"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="voce@email.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Seguranca</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Senha e biometria</ThemedText>
+        <RecordInput
+          label="Senha atual"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          placeholder="Obrigatoria para trocar e-mail ou senha"
+          secureTextEntry
+        />
+        <RecordInput
+          label="Nova senha"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          placeholder="Minimo de 6 caracteres"
+          secureTextEntry
+          hint="Deixe em branco se quiser manter a senha atual."
+        />
+
+        <View style={styles.biometricCard}>
+          <View style={styles.biometricCopy}>
+            <ThemedText style={styles.biometricTitle}>Biometria</ThemedText>
+            <ThemedText style={styles.biometricText}>
+              {biometricAvailable
+                ? user?.useBiometric
+                  ? 'Ativa para desbloqueio rapido.'
+                  : 'Desativada no momento.'
+                : 'Biometria indisponivel neste dispositivo.'}
+            </ThemedText>
+          </View>
+          <AuthButton
+            label={user?.useBiometric ? 'Desativar' : 'Ativar'}
+            variant="secondary"
+            disabled={!biometricAvailable || !user}
+            onPress={() => {
+              if (!user) {
+                return;
+              }
+
+              void updateBiometric(!user.useBiometric);
+            }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Sessao</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Acoes rapidas</ThemedText>
+        <View style={styles.sessionRow}>
+          <AuthButton label="Bloquear app" variant="secondary" onPress={lock} style={styles.sessionButton} />
+          <AuthButton label="Sair da conta" onPress={() => void logout()} style={styles.sessionButton} />
+        </View>
+      </View>
+
+      {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+      {successMessage ? <ThemedText style={styles.successText}>{successMessage}</ThemedText> : null}
+
+      <AuthButton
+        label={isSubmitting ? 'Salvando...' : 'Salvar configuracoes'}
+        disabled={isSubmitting}
+        onPress={handleSave}
+      />
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    gap: 10,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: Colors.light.surfaceMuted,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  backText: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  headerCard: {
+    borderRadius: 30,
+    backgroundColor: ModulePalette.medication.soft,
+    padding: 22,
+    gap: 10,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    color: ModulePalette.medication.base,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  title: {
+    color: Colors.light.text,
+    lineHeight: 36,
+  },
+  description: {
+    color: Colors.light.textMuted,
+  },
+  sectionCard: {
+    borderRadius: 28,
+    backgroundColor: Colors.light.surface,
+    padding: 20,
+    gap: 14,
+  },
+  sectionEyebrow: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionTitle: {
+    color: Colors.light.text,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  biometricCard: {
+    borderRadius: 20,
+    backgroundColor: Colors.light.surfaceMuted,
+    padding: 16,
+    gap: 12,
+  },
+  biometricCopy: {
+    gap: 4,
+  },
+  biometricTitle: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  biometricText: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  sessionButton: {
+    flex: 1,
+  },
+  errorText: {
+    color: Colors.light.danger,
+  },
+  successText: {
+    color: '#0F8A6A',
+  },
+});

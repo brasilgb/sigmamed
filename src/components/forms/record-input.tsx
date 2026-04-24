@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Radius, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type RecordInputProps = TextInputProps & {
@@ -13,11 +13,13 @@ export function RecordInput({ label, hint, error, style, ...props }: RecordInput
   return (
     <View style={styles.wrapper}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      <TextInput
-        placeholderTextColor={Colors.light.textSoft}
-        style={[styles.input, error ? styles.inputError : null, style]}
-        {...props}
-      />
+      <View style={[styles.inputShell, error ? styles.inputShellError : null]}>
+        <TextInput
+          placeholderTextColor={Colors.light.textSoft}
+          style={[styles.input, style]}
+          {...props}
+        />
+      </View>
       {hint ? <ThemedText style={styles.hint}>{hint}</ThemedText> : null}
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
     </View>
@@ -26,25 +28,41 @@ export function RecordInput({ label, hint, error, style, ...props }: RecordInput
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 6,
+    gap: 8,
   },
   label: {
     color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  input: {
+  inputShell: {
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderRadius: 16,
+    borderRadius: Radius.md,
+    backgroundColor: Surface.cardSubtle,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    shadowColor: BrandPalette.navy,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+  },
+  input: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     fontSize: 16,
     color: Colors.light.text,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: 'transparent',
   },
-  inputError: {
+  inputShellError: {
     borderColor: Colors.light.danger,
+    backgroundColor: '#FFF7F7',
   },
   hint: {
     color: Colors.light.textSoft,
@@ -55,5 +73,6 @@ const styles = StyleSheet.create({
     color: Colors.light.danger,
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '600',
   },
 });

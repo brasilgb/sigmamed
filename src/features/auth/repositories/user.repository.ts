@@ -35,6 +35,12 @@ type CreateUserInput = {
   useBiometric: boolean;
 };
 
+type UpdateUserInput = {
+  name: string;
+  email: string;
+  passwordHash?: string;
+};
+
 function mapUser(row: UserRow): AuthUser {
   return {
     id: row.id,
@@ -153,6 +159,66 @@ export class UserRepository {
       enabled ? 1 : 0,
       userId
     );
+  }
+
+  async updateUserAccount(userId: number, input: UpdateUserInput): Promise<AuthUser> {
+    const database = await getDatabase();
+    let updatedUser: AuthUser | null = null;
+
+    await database.withTransactionAsync(async () => {
+      const existingUser = await database.getFirstAsync<UserRow>(
+        'SELECT * FROM users WHERE lower(email) = lower(?) AND id != ?',
+        input.email,
+        userId
+      );
+
+      if (existingUser) {
+        throw new Error('Ja existe uma conta com este e-mail.');
+      }
+
+      if (input.passwordHash) {
+        await database.runAsync(
+          `UPDATE users
+           SET name = ?, email = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          input.name,
+          input.email,
+          input.passwordHash,
+          userId
+        );
+      } else {
+        await database.runAsync(
+          `UPDATE users
+           SET name = ?, email = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          input.name,
+          input.email,
+          userId
+        );
+      }
+
+      await database.runAsync(
+        `UPDATE profiles
+         SET full_name = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?`,
+        input.name,
+        userId
+      );
+
+      const row = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE id = ?', userId);
+
+      if (!row) {
+        throw new Error('Falha ao atualizar conta.');
+      }
+
+      updatedUser = mapUser(row);
+    });
+
+    if (!updatedUser) {
+      throw new Error('Falha ao atualizar conta.');
+    }
+
+    return updatedUser;
   }
 
   async getProfileByUserId(userId: number): Promise<AuthProfile | null> {

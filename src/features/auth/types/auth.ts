@@ -35,4 +35,11 @@ export type LoginInput = {
   password: string;
 };
 
+export type UpdateAccountInput = {
+  name: string;
+  email: string;
+  currentPassword?: string;
+  newPassword?: string;
+};
+
 export type UnlockMethod = 'pin' | 'biometric';

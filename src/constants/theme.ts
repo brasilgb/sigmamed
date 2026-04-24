@@ -72,6 +72,27 @@ export const Colors = {
   dark: semanticDark,
 };
 
+export const Radius = {
+  sm: 12,
+  md: 18,
+  lg: 24,
+  xl: 28,
+  pill: 999,
+} as const;
+
+export const Space = {
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 22,
+} as const;
+
+export const Surface = {
+  cardBorder: '#E2ECEF',
+  cardSubtle: '#F8FBFC',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

@@ -20,6 +20,15 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'heart.text.square.fill': 'monitor-heart',
   'list.bullet.rectangle.fill': 'view-list',
+  'waveform.path.ecg': 'monitor-heart',
+  'drop.fill': 'water-drop',
+  'scalemass.fill': 'monitor-weight',
+  'pills.fill': 'medication',
+  'plus.circle.fill': 'add-circle',
+  'camera.fill': 'photo-camera',
+  'lock.fill': 'lock',
+  'rectangle.portrait.and.arrow.right.fill': 'logout',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**

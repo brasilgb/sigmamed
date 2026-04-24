@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { BrandPalette, Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 type Option<T extends string> = {
@@ -46,12 +46,15 @@ export function OptionSelector<T extends string>({
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 8,
+    gap: 10,
   },
   label: {
     color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
@@ -59,23 +62,27 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   option: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: Colors.light.surfaceMuted,
+    borderRadius: Radius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F1F7F8',
+    borderWidth: 1,
+    borderColor: '#DBE7EA',
   },
   optionSelected: {
     backgroundColor: BrandPalette.navy,
+    borderColor: BrandPalette.navy,
   },
   textDefault: {
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+    fontWeight: '600',
   },
   textSelected: {
     color: BrandPalette.white,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

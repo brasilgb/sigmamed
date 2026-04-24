@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { ModulePalette, Colors } from '@/constants/theme';
+import { ModulePalette, Colors, Radius, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { HistoryItem } from '@/types/health';
 
@@ -46,9 +46,11 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     gap: 14,
-    borderRadius: 22,
+    borderRadius: Radius.lg,
     backgroundColor: Colors.light.surface,
-    padding: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Surface.cardBorder,
   },
   dot: {
     width: 12,
@@ -74,9 +76,11 @@ const styles = StyleSheet.create({
   },
   badge: {
     fontSize: 12,
-    lineHeight: 18,
-    color: Colors.light.textMuted,
+    lineHeight: 16,
+    color: Colors.light.textSoft,
     textTransform: 'uppercase',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 14,

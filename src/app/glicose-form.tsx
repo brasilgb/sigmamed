@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { OptionSelector } from '@/components/forms/option-selector';
 import { RecordInput } from '@/components/forms/record-input';
+import { Colors } from '@/constants/theme';
 import { GlicoseRepository } from '@/features/glicose/glicose.repository';
 import type { EntrySource, GlicoseContext } from '@/types/health';
 
@@ -67,7 +68,7 @@ export default function GlicoseFormScreen() {
       } else {
         await glicoseRepository.create(payload);
       }
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/glicose');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar glicose.');
     } finally {
@@ -113,14 +114,9 @@ export default function GlicoseFormScreen() {
       />
       <Pressable
         onPress={() => router.push('/glicose-scan')}
-        style={{
-          borderRadius: 18,
-          backgroundColor: '#ecf4f6',
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        }}>
-        <ThemedText style={{ color: '#17303a', fontWeight: '700' }}>Preencher por foto</ThemedText>
-        <ThemedText style={{ color: '#5f747c', fontSize: 14, lineHeight: 20 }}>
+        style={styles.captureCard}>
+        <ThemedText style={styles.captureTitle}>Preencher por foto</ThemedText>
+        <ThemedText style={styles.captureText}>
           Tire uma foto do visor e confirme a glicose detectada.
         </ThemedText>
       </Pressable>
@@ -139,3 +135,22 @@ export default function GlicoseFormScreen() {
     </FormShell>
   );
 }
+
+const styles = StyleSheet.create({
+  captureCard: {
+    borderRadius: 22,
+    backgroundColor: Colors.light.surfaceMuted,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 6,
+  },
+  captureTitle: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  captureText: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});

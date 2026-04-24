@@ -16,9 +16,10 @@ import {
   registerUser,
   restoreSessionUser,
   setBiometricPreference,
+  updateAccount,
   unlockWithPin,
 } from '@/features/auth/services/auth.service';
-import type { AuthUser, LoginInput, RegisterInput } from '@/features/auth/types/auth';
+import type { AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 type AuthContextValue = {
   isLoading: boolean;
@@ -33,6 +34,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   lock: () => void;
   updateBiometric: (enabled: boolean) => Promise<void>;
+  updateAccount: (input: UpdateAccountInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -151,6 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...user,
           useBiometric: enabled,
         });
+      },
+      updateAccount: async (input) => {
+        if (!user) {
+          return;
+        }
+
+        const updatedUser = await updateAccount(user.id, input);
+        setUser(updatedUser);
       },
     }),
     [biometricAvailable, hasAccount, isLoading, isUnlocked, user]

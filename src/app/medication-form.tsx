@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { RecordInput } from '@/components/forms/record-input';
+import { Colors } from '@/constants/theme';
 import { MedicationRepository } from '@/features/medications/medication.repository';
 import { MedicationService } from '@/features/medications/services/medication.service';
 
@@ -85,7 +86,7 @@ export default function MedicationFormScreen() {
       } else {
         await medicationService.createMedication(payload);
       }
-      router.replace('/(tabs)/explore');
+      router.replace('/(tabs)/medications');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar medicacao.');
     } finally {
@@ -127,37 +128,19 @@ export default function MedicationFormScreen() {
         value={scheduledTime}
         onChangeText={(value) => setScheduledTime(normalizeTimeInput(value))}
       />
-      <View
-        style={{
-          borderRadius: 18,
-          backgroundColor: '#f4f8f9',
-          padding: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <ThemedText style={{ color: '#17303a', fontWeight: '700' }}>Medicação ativa</ThemedText>
-          <ThemedText style={{ color: '#57717a', fontSize: 14, lineHeight: 20 }}>
+      <View style={styles.preferenceCard}>
+        <View style={styles.preferenceCopy}>
+          <ThemedText style={styles.preferenceTitle}>Medicação ativa</ThemedText>
+          <ThemedText style={styles.preferenceText}>
             Deixe ativa para aparecer no uso diario.
           </ThemedText>
         </View>
         <Switch value={active} onValueChange={setActive} />
       </View>
-      <View
-        style={{
-          borderRadius: 18,
-          backgroundColor: '#f4f8f9',
-          padding: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <ThemedText style={{ color: '#17303a', fontWeight: '700' }}>Alarme 5 min antes</ThemedText>
-          <ThemedText style={{ color: '#57717a', fontSize: 14, lineHeight: 20 }}>
+      <View style={styles.preferenceCard}>
+        <View style={styles.preferenceCopy}>
+          <ThemedText style={styles.preferenceTitle}>Alarme 5 min antes</ThemedText>
+          <ThemedText style={styles.preferenceText}>
             Agenda uma notificacao local diaria antes do horario informado.
           </ThemedText>
         </View>
@@ -172,3 +155,28 @@ export default function MedicationFormScreen() {
     </FormShell>
   );
 }
+
+const styles = StyleSheet.create({
+  preferenceCard: {
+    borderRadius: 22,
+    backgroundColor: Colors.light.surfaceMuted,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  preferenceCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  preferenceTitle: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  preferenceText: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});

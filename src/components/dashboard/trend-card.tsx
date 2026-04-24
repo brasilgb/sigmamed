@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Colors, ModulePalette } from '@/constants/theme';
+import { Colors, ModulePalette, Radius, Space, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { MetricTrend } from '@/types/health';
 
@@ -82,9 +82,12 @@ export function TrendCard({ metric, onPress, actionLabel = 'Abrir detalhes' }: T
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: Radius.xl,
+    padding: Space.lg,
     gap: 14,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Surface.cardBorder,
   },
   header: {
     flexDirection: 'row',
@@ -98,23 +101,26 @@ const styles = StyleSheet.create({
   },
   label: {
     color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   value: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '800',
   },
   badge: {
-    borderRadius: 999,
+    borderRadius: Radius.md,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   badgeText: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   chart: {
     flexDirection: 'row',
@@ -146,6 +152,6 @@ const styles = StyleSheet.create({
   action: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

@@ -54,7 +54,7 @@ export default function WeightFormScreen() {
       } else {
         await weightRepository.create(payload);
       }
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/weight');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar peso.');
     } finally {

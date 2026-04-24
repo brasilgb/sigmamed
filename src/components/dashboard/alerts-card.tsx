@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ModulePalette, Colors } from '@/constants/theme';
+import { ModulePalette, Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { DashboardAlert } from '@/types/health';
 
@@ -68,15 +68,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    borderRadius: 22,
-    padding: 16,
-    gap: 6,
+    borderRadius: Radius.lg,
+    padding: 18,
+    gap: 8,
     borderWidth: 1,
   },
   title: {
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   description: {
     fontSize: 14,
@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
   action: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
