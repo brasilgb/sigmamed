@@ -5,10 +5,10 @@ import { ThemedText } from '@/components/themed-text';
 import type { HistoryItem } from '@/types/health';
 
 const categoryStyles: Record<HistoryItem['category'], { dot: string; label: string }> = {
-  pressure: { dot: ModulePalette.pressure.base, label: 'Pressao' },
+  pressure: { dot: ModulePalette.pressure.base, label: 'Pressão' },
   glicose: { dot: ModulePalette.glicose.base, label: 'Glicose' },
   weight: { dot: ModulePalette.weight.base, label: 'Peso' },
-  medication: { dot: ModulePalette.medication.base, label: 'Medicacao' },
+  medication: { dot: ModulePalette.medication.base, label: 'Medicação' },
 };
 
 type HistoryListProps = {

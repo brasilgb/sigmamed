@@ -1,4 +1,5 @@
 import { getDatabase } from '@/database/client';
+import { createSyncUuid } from '@/services/sync-metadata.service';
 import { daysAgoIso, startOfTodayIso } from '@/utils/date';
 
 export async function seedDatabaseIfEmpty() {
@@ -14,8 +15,9 @@ export async function seedDatabaseIfEmpty() {
   await database.withTransactionAsync(async () => {
     await database.runAsync(
       `INSERT INTO blood_pressure_readings
-        (systolic, diastolic, pulse, measured_at, source, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        (uuid, systolic, diastolic, pulse, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       128,
       82,
       71,
@@ -25,8 +27,9 @@ export async function seedDatabaseIfEmpty() {
     );
     await database.runAsync(
       `INSERT INTO blood_pressure_readings
-        (systolic, diastolic, pulse, measured_at, source, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        (uuid, systolic, diastolic, pulse, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       124,
       80,
       69,
@@ -37,8 +40,9 @@ export async function seedDatabaseIfEmpty() {
 
     await database.runAsync(
       `INSERT INTO glicose_readings
-        (glicose_value, unit, context, measured_at, source, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        (uuid, glicose_value, unit, context, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       102,
       'mg/dL',
       'fasting',
@@ -48,8 +52,9 @@ export async function seedDatabaseIfEmpty() {
     );
     await database.runAsync(
       `INSERT INTO glicose_readings
-        (glicose_value, unit, context, measured_at, source, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        (uuid, glicose_value, unit, context, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       138,
       'mg/dL',
       'post_meal',
@@ -60,8 +65,9 @@ export async function seedDatabaseIfEmpty() {
 
     await database.runAsync(
       `INSERT INTO weight_readings
-        (weight, height, unit, measured_at, notes)
-       VALUES (?, ?, ?, ?, ?)`,
+        (uuid, weight, height, unit, measured_at, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       78.4,
       1.72,
       'kg',
@@ -71,8 +77,9 @@ export async function seedDatabaseIfEmpty() {
 
     const medication = await database.runAsync(
       `INSERT INTO medications
-        (name, dosage, instructions, active, scheduled_time, reminder_enabled, reminder_minutes_before)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (uuid, name, dosage, instructions, active, scheduled_time, reminder_enabled, reminder_minutes_before, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       'Losartana',
       '50 mg',
       'Tomar após o café',
@@ -84,8 +91,9 @@ export async function seedDatabaseIfEmpty() {
 
     await database.runAsync(
       `INSERT INTO medication_logs
-        (medication_id, scheduled_at, taken_at, status)
-       VALUES (?, ?, ?, ?)`,
+        (uuid, medication_id, scheduled_at, taken_at, status, updated_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      createSyncUuid(),
       medication.lastInsertRowId,
       startOfTodayIso(),
       new Date().toISOString(),

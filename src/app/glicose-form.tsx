@@ -79,8 +79,8 @@ export default function GlicoseFormScreen() {
       title="Registrar glicose"
       description={
         editingId
-          ? 'Atualize o valor salvo e ajuste o contexto da medicao.'
-          : 'Registre a glicose com contexto para facilitar a leitura do historico.'
+          ? 'Atualize o valor salvo e ajuste o contexto da medição.'
+          : 'Registre a glicose com contexto para facilitar a leitura do histórico.'
       }>
       <RecordInput
         label="Glicose"
@@ -96,13 +96,13 @@ export default function GlicoseFormScreen() {
         onChange={setContext}
         options={[
           { label: 'Jejum', value: 'fasting' },
-          { label: 'Pos-refeicao', value: 'post_meal' },
-          { label: 'Aleatoria', value: 'random' },
+          { label: 'Pós-refeição', value: 'post_meal' },
+          { label: 'Aleatória', value: 'random' },
         ]}
       />
       <RecordInput
-        label="Observacoes"
-        placeholder="Ex.: medicao realizada 2h apos o almoco"
+        label="Observações"
+        placeholder="Ex.: medição realizada 2h após o almoço"
         value={notes}
         onChangeText={setNotes}
       />

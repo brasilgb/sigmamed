@@ -2,12 +2,15 @@ export type EntrySource = 'manual';
 
 export type ReportPeriodDays = 7 | 30 | 90;
 
+export type ReportKind = 'complete' | 'pressure' | 'glicose' | 'weight' | 'medications';
+
 export type GlicoseContext = 'fasting' | 'post_meal' | 'random';
 
 export type MedicationLogStatus = 'pending' | 'taken' | 'skipped';
 
 export type BloodPressureReading = {
   id: number;
+  uuid: string;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -15,12 +18,16 @@ export type BloodPressureReading = {
   source: EntrySource;
   notes: string | null;
   createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  deletedAt: string | null;
 };
 
-export type NewBloodPressureReading = Omit<BloodPressureReading, 'id' | 'createdAt'>;
+export type NewBloodPressureReading = Omit<BloodPressureReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type GlicoseReading = {
   id: number;
+  uuid: string;
   glicoseValue: number;
   unit: 'mg/dL';
   context: GlicoseContext;
@@ -28,24 +35,32 @@ export type GlicoseReading = {
   source: EntrySource;
   notes: string | null;
   createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  deletedAt: string | null;
 };
 
-export type NewGlicoseReading = Omit<GlicoseReading, 'id' | 'createdAt'>;
+export type NewGlicoseReading = Omit<GlicoseReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type WeightReading = {
   id: number;
+  uuid: string;
   weight: number;
   height: number | null;
   unit: 'kg';
   measuredAt: string;
   notes: string | null;
   createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  deletedAt: string | null;
 };
 
-export type NewWeightReading = Omit<WeightReading, 'id' | 'createdAt'>;
+export type NewWeightReading = Omit<WeightReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type Medication = {
   id: number;
+  uuid: string;
   name: string;
   dosage: string;
   instructions: string | null;
@@ -57,20 +72,27 @@ export type Medication = {
   todayStatus?: MedicationLogStatus | null;
   todayLoggedAt?: string | null;
   createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  deletedAt: string | null;
 };
 
-export type NewMedication = Omit<Medication, 'id' | 'createdAt' | 'todayStatus' | 'todayLoggedAt'>;
+export type NewMedication = Omit<Medication, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt' | 'todayStatus' | 'todayLoggedAt'>;
 
 export type MedicationLog = {
   id: number;
+  uuid: string;
   medicationId: number;
   scheduledAt: string;
   takenAt: string | null;
   status: MedicationLogStatus;
   createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  deletedAt: string | null;
 };
 
-export type NewMedicationLog = Omit<MedicationLog, 'id' | 'createdAt'>;
+export type NewMedicationLog = Omit<MedicationLog, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type HistoryItem = {
   id: string;
@@ -119,17 +141,6 @@ export type DashboardTrends = {
   weight: MetricTrend;
 };
 
-export type DashboardAlertTone = 'warning' | 'danger' | 'info';
-
-export type DashboardAlert = {
-  id: string;
-  title: string;
-  description: string;
-  tone: DashboardAlertTone;
-  metric: 'pressure' | 'glicose' | 'weight' | 'medication';
-  actionLabel: string;
-};
-
 export type ReportMetricSummary = {
   label: string;
   count: number;
@@ -152,6 +163,7 @@ export type ReportData = {
   patient: {
     name: string;
     email: string;
+    age: number | null;
     birthDate: string | null;
     sex: string | null;
     height: number | null;
@@ -162,7 +174,6 @@ export type ReportData = {
   } | null;
   summary: DashboardSummary;
   trends: DashboardTrends;
-  alerts: DashboardAlert[];
   history: HistoryItem[];
   pressure: {
     summary: ReportMetricSummary;

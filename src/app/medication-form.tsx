@@ -70,7 +70,7 @@ export default function MedicationFormScreen() {
     }
 
     if (reminderEnabled && !isValidTime(scheduledTime)) {
-      setError('Informe o horario no formato 08:00 para agendar o lembrete.');
+      setError('Informe o horário no formato 08:00 para agendar o lembrete.');
       return;
     }
 
@@ -94,7 +94,7 @@ export default function MedicationFormScreen() {
       }
       router.replace('/(tabs)/medications');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar medicacao.');
+      setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar medicação.');
     } finally {
       setIsSubmitting(false);
     }
@@ -102,11 +102,11 @@ export default function MedicationFormScreen() {
 
   return (
     <FormShell
-      title="Cadastrar medicacao"
+      title="Cadastrar medicação"
       description={
         editingId
           ? 'Atualize o tratamento salvo e ajuste seus dados de uso.'
-          : 'Cadastre a medicacao para acompanhar uso diario, horario e adesao.'
+          : 'Cadastre a medicação para acompanhar uso diário, horário e adesão.'
       }>
       <RecordInput
         label="Nome"
@@ -127,8 +127,8 @@ export default function MedicationFormScreen() {
       />
       <RecordInput
         ref={instructionsRef}
-        label="Instrucoes"
-        placeholder="Ex.: tomar apos o cafe da manha"
+        label="Instruções"
+        placeholder="Ex.: tomar após o café da manhã"
         returnKeyType="next"
         value={instructions}
         onChangeText={setInstructions}
@@ -136,7 +136,7 @@ export default function MedicationFormScreen() {
       />
       <RecordInput
         ref={scheduledTimeRef}
-        label="Horario da dose"
+        label="Horário da dose"
         placeholder="Ex.: 08:00"
         hint="Use HH:mm para o lembrete tocar 5 minutos antes."
         keyboardType="number-pad"
@@ -149,7 +149,7 @@ export default function MedicationFormScreen() {
         <View style={styles.preferenceCopy}>
           <ThemedText style={styles.preferenceTitle}>Medicação ativa</ThemedText>
           <ThemedText style={styles.preferenceText}>
-            Deixe ativa para aparecer no uso diario.
+            Deixe ativa para aparecer no uso diário.
           </ThemedText>
         </View>
         <Switch value={active} onValueChange={setActive} />
@@ -158,7 +158,7 @@ export default function MedicationFormScreen() {
         <View style={styles.preferenceCopy}>
           <ThemedText style={styles.preferenceTitle}>Alarme 5 min antes</ThemedText>
           <ThemedText style={styles.preferenceText}>
-            Agenda uma notificacao local diaria antes do horario informado.
+            Agenda uma notificação local diária antes do horário informado.
           </ThemedText>
         </View>
         <Switch value={reminderEnabled} onValueChange={setReminderEnabled} />
@@ -167,7 +167,7 @@ export default function MedicationFormScreen() {
         <View style={styles.preferenceCopy}>
           <ThemedText style={styles.preferenceTitle}>Repetir a cada 5 min</ThemedText>
           <ThemedText style={styles.preferenceText}>
-            Continua lembrando enquanto a medicacao nao estiver marcada como tomada no dia.
+            Continua lembrando enquanto a medicação não estiver marcada como tomada no dia.
           </ThemedText>
         </View>
         <Switch
@@ -177,7 +177,7 @@ export default function MedicationFormScreen() {
       </View>
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar medicacao' : 'Salvar medicacao'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar medicação' : 'Salvar medicação'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />

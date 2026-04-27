@@ -127,7 +127,10 @@ async function scheduleMedicationReminder(medication: Medication) {
           medicationId: medication.id,
         },
       },
-      trigger: reminderTime,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: reminderTime,
+      },
     });
   }
 
@@ -150,7 +153,10 @@ async function scheduleMedicationReminder(medication: Medication) {
             repeating: true,
           },
         },
-        trigger: date,
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date,
+        },
       })
     )
   );

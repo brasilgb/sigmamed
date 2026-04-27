@@ -6,6 +6,63 @@ Definir o contexto técnico para construir o backend do SigmaMed em Laravel com 
 
 Esse backend deve servir como camada de autenticação online, sincronização de dados, backup, notificações futuras e suporte a múltiplos dispositivos por usuário, sem quebrar o modelo atual offline first do app mobile.
 
+## Decisão Arquitetural Obrigatória
+
+O backend do SigmaMed será implementado em **Laravel**, expondo uma **camada de API HTTP versionada** para o app mobile.
+
+Essa API será responsável por:
+
+* autenticação online
+* emissão e revogação de tokens
+* identificação do usuário autenticado
+* resolução do tenant ativo
+* sincronização dos dados locais do app
+* backup e restauração entre dispositivos
+* endpoints futuros para IA, relatórios e integrações
+
+Além da API mobile, o projeto poderá ter uma **camada frontend web** associada ao backend.
+
+Essa camada frontend não substitui o app Expo/React Native. Ela deve servir para:
+
+* painel administrativo
+* suporte operacional
+* gestão de usuários e tenants
+* acompanhamento de métricas não clínicas
+* revisão de logs, auditoria e eventos de sincronização
+* configuração de planos, limites e integrações futuras
+* eventual portal web do usuário, se fizer sentido comercialmente
+
+Para o MVP, a prioridade continua sendo a API para o app mobile. O frontend web deve ser considerado uma camada incremental, construída depois da autenticação, tenancy e sincronização mínima.
+
+Decisão preferencial para essa camada:
+
+* Inertia.js com React
+* Vite como bundler
+* componentes React organizados por domínio
+* rotas web protegidas por autenticação Laravel
+* painel renderizado pelo Laravel, consumindo dados via controllers/actions do próprio backend
+
+Alternativas aceitáveis apenas se houver motivo técnico forte:
+
+* Laravel Blade com Vite para painel muito simples
+* frontend separado em Next.js consumindo a API Laravel
+
+Recomendação inicial:
+
+* começar com API Laravel bem estruturada
+* quando o painel web for necessário, implementar com Inertia.js + React
+* adicionar painel web apenas quando houver necessidade real de operação, suporte ou administração
+
+Para autenticação, a base inicial será:
+
+* Laravel Sanctum
+* tokens pessoais para o app mobile
+* rotas protegidas por `auth:sanctum`
+* rate limit nas rotas públicas de autenticação
+* separação clara entre autenticação local do app e autenticação online da API
+
+Portanto, o backend não será apenas um banco remoto. Ele será uma **API Laravel com camada própria de auth, tenancy, sincronização e segurança**.
+
 ## Papel do Backend
 
 O app atual funciona com:

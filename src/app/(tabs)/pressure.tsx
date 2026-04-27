@@ -25,12 +25,12 @@ export default function PressureTabScreen() {
     <Screen isRefreshing={dashboardLoading || recordsLoading} onRefresh={handleRefresh}>
       <View style={[styles.hero, { backgroundColor: ModulePalette.pressure.soft }]}>
         <View style={styles.heroHeader}>
-          <ThemedText style={[styles.eyebrow, { color: ModulePalette.pressure.base }]}>Modulo de pressao</ThemedText>
+          <ThemedText style={[styles.eyebrow, { color: ModulePalette.pressure.base }]}>Módulo de pressão</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
-            Leituras organizadas, com acesso rapido ao cadastro.
+            Leituras organizadas, com acesso rápido ao cadastro.
           </ThemedText>
           <ThemedText style={styles.heroText}>
-            Centralize medidores, revise a ultima leitura e mantenha o historico num lugar fixo.
+            Centralize medidores, revise a última leitura e mantenha o histórico num lugar fixo.
           </ThemedText>
         </View>
 
@@ -45,7 +45,7 @@ export default function PressureTabScreen() {
             </ThemedText>
           </Card>
           <Card style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Nos ultimos 7 dias</ThemedText>
+            <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
             <ThemedText style={[styles.statValue, { color: ModulePalette.pressure.base }]}>
               {summary ? String(summary.pressureLastSevenDays) : '--'}
             </ThemedText>
@@ -59,7 +59,7 @@ export default function PressureTabScreen() {
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Recentes" hint="Ultimas 5 medicoes" />
+        <SectionHeader title="Recentes" hint="Últimas 5 medições" />
 
         {pressureReadings.length > 0 ? (
           pressureReadings.map((item) => (
@@ -71,7 +71,7 @@ export default function PressureTabScreen() {
                   <View>
                     <ThemedText style={styles.recordTitle}>{item.systolic}/{item.diastolic} mmHg</ThemedText>
                     <ThemedText style={styles.recordSubtitle}>
-                      {item.pulse ? `Pulso ${item.pulse} bpm` : 'Pulso nao informado'}
+                      {item.pulse ? `Pulso ${item.pulse} bpm` : 'Pulso não informado'}
                     </ThemedText>
                   </View>
                   <View style={[styles.badge, { backgroundColor: ModulePalette.pressure.soft }]}>
@@ -85,9 +85,9 @@ export default function PressureTabScreen() {
           ))
         ) : (
           <Card style={styles.emptyCard}>
-            <ThemedText style={styles.emptyTitle}>Nenhuma leitura de pressao ainda.</ThemedText>
+            <ThemedText style={styles.emptyTitle}>Nenhuma leitura de pressão ainda.</ThemedText>
             <ThemedText style={styles.emptyText}>
-              Comece por uma medicao manual para montar seu historico.
+              Comece por uma medição manual para montar seu histórico.
             </ThemedText>
           </Card>
         )}

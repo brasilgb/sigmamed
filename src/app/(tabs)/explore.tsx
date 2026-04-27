@@ -19,8 +19,8 @@ import { formatDateTime } from '@/utils/date';
 
 const moduleCards = [
   {
-    title: 'Pressao',
-    description: 'Registre sistolica, diastolica, pulso e horario da medicao.',
+    title: 'Pressão',
+    description: 'Registre sistólica, diastólica, pulso e horário da medição.',
   },
   {
     title: 'Glicose',
@@ -31,7 +31,7 @@ const moduleCards = [
     description: 'Acompanhe peso, altura informada e calculo de IMC.',
   },
   {
-    title: 'Medicacao',
+    title: 'Medicação',
     description: 'Mantenha tratamentos ativos e registre tomado ou esquecido no dia.',
   },
 ];
@@ -261,10 +261,10 @@ export default function HistoryScreen() {
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
-          Central de acompanhamento e gestao.
+          Central de acompanhamento e gestão.
         </ThemedText>
         <ThemedText style={styles.description}>
-          Revise seus modulos, acompanhe tendencias e encontre registros para editar ou excluir com mais rapidez.
+          Revise seus módulos, acompanhe tendências e encontre registros para editar ou excluir com mais rapidez.
         </ThemedText>
       </View>
 
@@ -278,67 +278,71 @@ export default function HistoryScreen() {
       </View>
 
       <Pressable style={styles.createMedicationCta} onPress={() => router.push('/medication-form')}>
-        <ThemedText style={styles.createMedicationTitle}>Cadastrar medicacao</ThemedText>
+        <ThemedText style={styles.createMedicationTitle}>Cadastrar medicação</ThemedText>
         <ThemedText style={styles.createMedicationText}>
-          Adicione um tratamento para acompanhar uso diario e adesao com menos atrito.
+          Adicione um tratamento para acompanhar uso diário e adesão com menos atrito.
         </ThemedText>
       </Pressable>
 
       {medications.length > 0 ? (
         <View style={styles.medicationsSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Uso diario de medicacoes
+            Uso diário de medicações
           </ThemedText>
-          {medications.map((medication) => (
-            <View key={medication.id} style={styles.medicationCard}>
+          {medications.map((medication) => {
+            const isTakenToday = medication.todayStatus === 'taken';
+
+            return (
+              <View key={medication.id} style={styles.medicationCard}>
               <ThemedText style={styles.medicationName}>
                 {medication.name} {medication.dosage}
               </ThemedText>
               <View style={styles.medicationStatusRow}>
                 <View style={[styles.medicationBadge, { backgroundColor: ModulePalette.medication.soft }]}>
                   <ThemedText style={[styles.medicationBadgeText, { color: ModulePalette.medication.base }]}>
-                    {medication.todayStatus === 'taken' ? 'Tomado hoje' : 'Nao tomado'}
+                    {isTakenToday ? 'Tomado hoje' : 'Não tomado'}
                   </ThemedText>
                 </View>
                 {medication.todayLoggedAt ? (
                   <ThemedText style={styles.medicationStatusText}>
-                    {medication.todayStatus === 'taken' ? `às ${medication.todayLoggedAt.slice(11, 16)}` : ''}
+                    {isTakenToday ? `às ${medication.todayLoggedAt.slice(11, 16)}` : ''}
                   </ThemedText>
                 ) : null}
               </View>
               <ThemedText style={styles.medicationInstructions}>
-                {medication.instructions || 'Sem instrucoes cadastradas'}
+                {medication.instructions || 'Sem instruções cadastradas'}
               </ThemedText>
               <View style={styles.actionRow}>
                 <AuthButton
                   label="Tomado"
                   variant="secondary"
-                  selected={medication.todayStatus === 'taken'}
+                  selected={isTakenToday}
                   selectedBackgroundColor={ModulePalette.medication.base}
                   selectedBorderColor={ModulePalette.medication.base}
                   onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
                   style={styles.actionButton}
                 />
                 <AuthButton
-                  label="Horario"
+                  label="Editar"
                   variant="secondary"
                   onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
                   style={styles.actionButton}
                 />
               </View>
-            </View>
-          ))}
+              </View>
+            );
+          })}
         </View>
       ) : null}
 
       <View style={styles.roadmapCard}>
         <ThemedText style={styles.roadmapTitle}>Resumo atual da base</ThemedText>
         <ThemedText style={styles.roadmapText}>
-          Use esta area para acompanhar o volume de registros e medicacoes ativas no app.
+          Use esta área para acompanhar o volume de registros e medicações ativas no app.
         </ThemedText>
         {summary ? (
           <ThemedText style={styles.roadmapMeta}>
-            Base atual: {summary.totalReadings} registros e {summary.activeMedications} medicacoes ativas.
+            Base atual: {summary.totalReadings} registros e {summary.activeMedications} medicações ativas.
           </ThemedText>
         ) : null}
       </View>
@@ -353,8 +357,8 @@ export default function HistoryScreen() {
               <ThemedText style={styles.preferenceTitle}>Biometria</ThemedText>
               <ThemedText style={styles.preferenceDescription}>
                 {biometricAvailable
-                  ? 'Ative para desbloqueio rapido no dia a dia.'
-                  : 'Biometria nao disponivel neste dispositivo.'}
+                  ? 'Ative para desbloqueio rápido no dia a dia.'
+                  : 'Biometria não disponível neste dispositivo.'}
               </ThemedText>
             </View>
             <Switch
@@ -376,13 +380,13 @@ export default function HistoryScreen() {
         <View style={styles.managementSection}>
           <View style={styles.sectionHeader}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Tendencias por periodo
+              Tendências por período
             </ThemedText>
-            <ThemedText style={styles.sectionHint}>Ultimos dados</ThemedText>
+            <ThemedText style={styles.sectionHint}>Últimos dados</ThemedText>
           </View>
           <View style={styles.manageCard}>
             <OptionSelector
-              label="Janela de analise"
+              label="Janela de análise"
               value={trendRange}
               onChange={setTrendRange}
               options={[
@@ -390,7 +394,7 @@ export default function HistoryScreen() {
                 { label: '30 dias', value: '30d' },
               ]}
             />
-            <TrendCard metric={trends.pressure} onPress={handleTrendPress} actionLabel="Filtrar pressao abaixo" />
+            <TrendCard metric={trends.pressure} onPress={handleTrendPress} actionLabel="Filtrar pressão abaixo" />
             <TrendCard metric={trends.glicose} onPress={handleTrendPress} actionLabel="Filtrar glicose abaixo" />
             <TrendCard metric={trends.weight} onPress={handleTrendPress} actionLabel="Filtrar peso abaixo" />
           </View>
@@ -410,19 +414,19 @@ export default function HistoryScreen() {
             onChangeText={setQuery}
           />
           <OptionSelector
-            label="Filtrar modulo"
+            label="Filtrar módulo"
             value={recordFilter}
             onChange={setRecordFilter}
             options={[
               { label: 'Todos', value: 'all' },
-              { label: 'Pressao', value: 'pressure' },
+              { label: 'Pressão', value: 'pressure' },
               { label: 'Glicose', value: 'glicose' },
               { label: 'Peso', value: 'weight' },
-              { label: 'Medicacao', value: 'medication' },
+              { label: 'Medicação', value: 'medication' },
             ]}
           />
           <OptionSelector
-            label="Periodo"
+            label="Período"
             value={timeFilter}
             onChange={setTimeFilter}
             options={[
@@ -443,7 +447,7 @@ export default function HistoryScreen() {
           />
           {(recordFilter === 'all' || recordFilter === 'medication') ? (
             <OptionSelector
-              label="Status da medicacao"
+              label="Status da medicação"
               value={medicationStatusFilter}
               onChange={setMedicationStatusFilter}
               options={[
@@ -457,7 +461,7 @@ export default function HistoryScreen() {
 
         {recordFilter === 'all' || recordFilter === 'pressure' ? (
           <View style={styles.manageCard}>
-          <ThemedText style={styles.manageTitle}>Pressao</ThemedText>
+          <ThemedText style={styles.manageTitle}>Pressão</ThemedText>
           {sortedPressure.slice(0, visibleCounts.pressure).map((item) => (
             <View key={item.id} style={styles.manageRow}>
               <View style={styles.manageInfo}>
@@ -475,7 +479,7 @@ export default function HistoryScreen() {
                 />
                 <AuthButton
                   label="Excluir"
-                  onPress={() => confirmDelete('esta leitura de pressao', () => deletePressure(item.id))}
+                  onPress={() => confirmDelete('esta leitura de pressão', () => deletePressure(item.id))}
                   style={styles.manageButton}
                 />
               </View>
@@ -558,7 +562,7 @@ export default function HistoryScreen() {
 
         {recordFilter === 'all' || recordFilter === 'medication' ? (
           <View style={styles.manageCard}>
-          <ThemedText style={styles.manageTitle}>Medicacoes</ThemedText>
+          <ThemedText style={styles.manageTitle}>Medicações</ThemedText>
           {sortedMedications.slice(0, visibleCounts.medication).map((item) => (
             <View key={item.id} style={styles.manageRow}>
               <View style={styles.manageInfo}>
@@ -566,7 +570,7 @@ export default function HistoryScreen() {
                   {item.name} {item.dosage}
                 </ThemedText>
                 <ThemedText style={styles.manageMeta}>
-                  {item.active ? 'Ativa' : 'Inativa'} · {item.instructions || 'Sem instrucoes'}
+                  {item.active ? 'Ativa' : 'Inativa'} · {item.instructions || 'Sem instruções'}
                 </ThemedText>
               </View>
               <View style={styles.manageActions}>
@@ -578,7 +582,7 @@ export default function HistoryScreen() {
                 />
                 <AuthButton
                   label="Excluir"
-                  onPress={() => confirmDelete('esta medicacao', () => deleteMedication(item.id))}
+                  onPress={() => confirmDelete('esta medicação', () => deleteMedication(item.id))}
                   style={styles.manageButton}
                 />
               </View>
@@ -595,7 +599,7 @@ export default function HistoryScreen() {
         <ThemedText type="subtitle" style={styles.sectionTitle}>
           Linha do tempo unificada
         </ThemedText>
-        <ThemedText style={styles.sectionHint}>Historico recente</ThemedText>
+        <ThemedText style={styles.sectionHint}>Histórico recente</ThemedText>
       </View>
 
       <HistoryList items={history} />

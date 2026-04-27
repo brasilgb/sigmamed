@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
@@ -16,15 +16,44 @@ export default function UnlockScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState(false);
+  const [isPinBusy, setIsPinBusy] = useState(false);
+  const [isBiometricBusy, setIsBiometricBusy] = useState(false);
+  const autoBiometricAttemptedRef = useRef(false);
+  const biometricInFlightRef = useRef(false);
+  const isBusy = isPinBusy || isBiometricBusy;
+
+  const handleBiometricUnlock = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (biometricInFlightRef.current) {
+        return;
+      }
+
+      biometricInFlightRef.current = true;
+      setIsBiometricBusy(true);
+      setError(null);
+
+      try {
+        const success = await unlockByBiometric().catch(() => false);
+
+        if (!success && !options.silent) {
+          setError('Biometria indisponível ou não validada. Use seu PIN.');
+        }
+      } finally {
+        biometricInFlightRef.current = false;
+        setIsBiometricBusy(false);
+      }
+    },
+    [unlockByBiometric]
+  );
 
   useEffect(() => {
-    if (!user?.useBiometric || !biometricAvailable) {
+    if (!user?.useBiometric || !biometricAvailable || autoBiometricAttemptedRef.current) {
       return;
     }
 
-    unlockByBiometric().catch(() => null);
-  }, [biometricAvailable, unlockByBiometric, user?.useBiometric]);
+    autoBiometricAttemptedRef.current = true;
+    void handleBiometricUnlock({ silent: true });
+  }, [biometricAvailable, handleBiometricUnlock, user?.useBiometric]);
 
   if (!user) {
     return <Redirect href="/(auth)/welcome" />;
@@ -35,33 +64,51 @@ export default function UnlockScreen() {
   }
 
   async function handlePinUnlock() {
+    if (isBiometricBusy) {
+      return;
+    }
+
+    if (!pin.trim()) {
+      setError('Informe seu PIN.');
+      return;
+    }
+
     try {
-      setIsBusy(true);
+      setIsPinBusy(true);
       setError(null);
       await unlockByPin(pin);
     } catch (unlockError) {
-      setError(unlockError instanceof Error ? unlockError.message : 'Nao foi possivel desbloquear.');
+      setError(unlockError instanceof Error ? unlockError.message : 'Não foi possível desbloquear.');
     } finally {
-      setIsBusy(false);
+      setIsPinBusy(false);
     }
   }
 
-  async function handleBiometricUnlock() {
-    setIsBusy(true);
-    setError(null);
-    const success = await unlockByBiometric().catch(() => false);
-
-    if (!success) {
-      setError('Biometria indisponivel ou nao validada. Use seu PIN.');
+  function getPinButtonLabel() {
+    if (isPinBusy) {
+      return 'Validando PIN...';
     }
 
-    setIsBusy(false);
+    if (isBiometricBusy) {
+      return 'Aguardando biometria...';
+    }
+
+    return 'Desbloquear com PIN';
   }
+
+  function getBiometricButtonLabel() {
+    return isBiometricBusy ? 'Validando biometria...' : 'Tentar biometria';
+  }
+
+  const biometricUnavailableMessage =
+    user.useBiometric && !biometricAvailable
+      ? 'Biometria não disponível ou não cadastrada neste aparelho.'
+      : null;
 
   return (
     <AuthScreen
       title={`Olá, ${user.name.split(' ')[0]}`}
-      subtitle="Use seu PIN para continuar. Se a biometria estiver ativa, voce tambem pode entrar por ela.">
+      subtitle="Use seu PIN para continuar. Se a biometria estiver ativa, você também pode entrar por ela.">
       <View
         style={[
           styles.accountCard,
@@ -88,25 +135,30 @@ export default function UnlockScreen() {
         label="PIN"
         keyboardType="number-pad"
         maxLength={6}
+        placeholder="4 ou 6 dígitos"
         secureTextEntry
         value={pin}
         onChangeText={setPin}
+        onSubmitEditing={() => void handlePinUnlock()}
       />
 
+      {biometricUnavailableMessage ? (
+        <ThemedText style={styles.error}>{biometricUnavailableMessage}</ThemedText>
+      ) : null}
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
       <AuthButton
-        label={isBusy ? 'Validando...' : 'Desbloquear com PIN'}
+        label={getPinButtonLabel()}
         disabled={isBusy}
         onPress={handlePinUnlock}
       />
 
       {user.useBiometric && biometricAvailable ? (
         <AuthButton
-          label="Tentar biometria"
+          label={getBiometricButtonLabel()}
           variant="secondary"
           disabled={isBusy}
-          onPress={handleBiometricUnlock}
+          onPress={() => void handleBiometricUnlock()}
         />
       ) : null}
     </AuthScreen>

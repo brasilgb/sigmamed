@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
-import * as Sharing from 'expo-sharing';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import * as Print from 'expo-print';
 
 import { AuthButton } from '@/components/auth/auth-button';
@@ -10,14 +9,24 @@ import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
-import { buildReportHtml, exportReportPdf, getReportData } from '@/services/report.service';
+import { buildScopedReportHtml, getReportData } from '@/services/report.service';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { formatDateTime } from '@/utils/date';
-import type { ReportData, ReportPeriodDays } from '@/types/health';
+import type { ReportData, ReportKind, ReportPeriodDays } from '@/types/health';
 
 const periods: ReportPeriodDays[] = [7, 30, 90];
+const reportKinds: { label: string; value: ReportKind }[] = [
+  { label: 'Completo', value: 'complete' },
+  { label: 'Pressão', value: 'pressure' },
+  { label: 'Glicose', value: 'glicose' },
+  { label: 'Peso', value: 'weight' },
+  { label: 'Medicação', value: 'medications' },
+];
 
 export default function ReportScreen() {
+  const { resumeAutoLock, suspendAutoLock } = useAuth();
   const [periodDays, setPeriodDays] = useState<ReportPeriodDays>(30);
+  const [reportKind, setReportKind] = useState<ReportKind>('complete');
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -30,7 +39,7 @@ export default function ReportScreen() {
       const report = await getReportData(periodDays);
       setData(report);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Falha ao montar o relatorio.');
+      setError(loadError instanceof Error ? loadError.message : 'Falha ao montar o relatório.');
     } finally {
       setIsLoading(false);
     }
@@ -47,34 +56,24 @@ export default function ReportScreen() {
 
     try {
       setIsExporting(true);
-      const html = buildReportHtml(data);
-
-      if (Platform.OS === 'web') {
-        await Print.printAsync({ html });
-        return;
-      }
-
-      const file = await exportReportPdf(data);
-      const available = await Sharing.isAvailableAsync();
-
-      if (!available) {
-        Alert.alert('Relatorio gerado', `PDF salvo em: ${file.uri}`);
-        return;
-      }
-
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Compartilhar relatorio SigmaMed',
-      });
+      const html = buildScopedReportHtml(data, reportKind);
+      suspendAutoLock();
+      await Print.printAsync({ html });
     } catch (exportError) {
       Alert.alert(
         'Falha ao exportar',
-        exportError instanceof Error ? exportError.message : 'Nao foi possivel gerar o PDF.'
+        exportError instanceof Error ? exportError.message : 'Não foi possível gerar o PDF.'
       );
     } finally {
+      resumeAutoLock();
       setIsExporting(false);
     }
   }
+
+  const showPressure = reportKind === 'complete' || reportKind === 'pressure';
+  const showGlicose = reportKind === 'complete' || reportKind === 'glicose';
+  const showWeight = reportKind === 'complete' || reportKind === 'weight';
+  const showMedications = reportKind === 'complete' || reportKind === 'medications';
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={load}>
@@ -84,19 +83,19 @@ export default function ReportScreen() {
         </Pressable>
         <View style={styles.hero}>
           <View style={styles.kickerWrap}>
-            <ThemedText style={styles.kicker}>Relatorio</ThemedText>
+            <ThemedText style={styles.kicker}>Relatório</ThemedText>
           </View>
           <ThemedText type="title" style={styles.title}>
-            Resumo por periodo, pronto para compartilhar.
+            Resumo por período, pronto para compartilhar.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Consolide leituras, adesao e alertas do SigmaMed em uma visao unica e exporte em PDF.
+            Consolide leituras, adesão e tendências do SigmaMed em uma visão única e exporte em PDF.
           </ThemedText>
         </View>
       </View>
 
       <Card muted style={styles.periodCard}>
-        <SectionHeader title="Periodo" hint={data ? `Gerado em ${formatDateTime(data.generatedAt)}` : undefined} />
+        <SectionHeader title="Período" hint={data ? `Gerado em ${formatDateTime(data.generatedAt)}` : undefined} />
         <View style={styles.periodRow}>
           {periods.map((period) => (
             <AuthButton
@@ -111,8 +110,23 @@ export default function ReportScreen() {
             />
           ))}
         </View>
+        <SectionHeader title="Tipo de relatório" hint="Escolha o conteúdo do PDF" />
+        <View style={styles.kindRow}>
+          {reportKinds.map((kind) => (
+            <AuthButton
+              key={kind.value}
+              label={kind.label}
+              variant="secondary"
+              selected={reportKind === kind.value}
+              selectedBackgroundColor={BrandPalette.navy}
+              selectedTextColor={BrandPalette.white}
+              style={styles.kindButton}
+              onPress={() => setReportKind(kind.value)}
+            />
+          ))}
+        </View>
         <AuthButton
-          label={isExporting ? 'Gerando PDF...' : 'Exportar PDF'}
+          label={isExporting ? 'Abrindo relatório...' : 'Abrir PDF'}
           onPress={handleExport}
           disabled={!data || isExporting}
         />
@@ -120,40 +134,50 @@ export default function ReportScreen() {
 
       {error ? (
         <Card style={styles.errorCard}>
-          <ThemedText style={styles.errorTitle}>Nao foi possivel carregar o relatorio.</ThemedText>
+          <ThemedText style={styles.errorTitle}>Não foi possível carregar o relatório.</ThemedText>
           <ThemedText style={styles.errorText}>{error}</ThemedText>
         </Card>
       ) : null}
 
       {data ? (
         <>
-          <View style={styles.summaryGrid}>
-            <Card style={styles.summaryCard}>
-              <ThemedText style={styles.summaryLabel}>Registros no periodo</ThemedText>
-              <ThemedText style={styles.summaryValue}>{data.summary.totalReadings}</ThemedText>
-              <ThemedText style={styles.summaryHint}>
-                Pressao {data.pressure.summary.count} | Glicose {data.glicose.summary.count} | Peso {data.weight.summary.count}
-              </ThemedText>
-            </Card>
-            <Card style={styles.summaryCard}>
-              <ThemedText style={styles.summaryLabel}>Medicacao</ThemedText>
-              <ThemedText style={styles.summaryValue}>{data.medications.summary.activeCount}</ThemedText>
-              <ThemedText style={styles.summaryHint}>
-                ativas | adesao {data.medications.summary.adherenceRate}% no periodo
-              </ThemedText>
-            </Card>
-          </View>
+          {reportKind === 'complete' ? (
+            <View style={styles.summaryGrid}>
+              <Card style={styles.summaryCard}>
+                <ThemedText style={styles.summaryLabel}>Registros no período</ThemedText>
+                <ThemedText style={styles.summaryValue}>{data.summary.totalReadings}</ThemedText>
+                <ThemedText style={styles.summaryHint}>
+                  Pressão {data.pressure.summary.count} | Glicose {data.glicose.summary.count} | Peso {data.weight.summary.count}
+                </ThemedText>
+              </Card>
+              <Card style={styles.summaryCard}>
+                <ThemedText style={styles.summaryLabel}>Medicação</ThemedText>
+                <ThemedText style={styles.summaryValue}>{data.medications.summary.activeCount}</ThemedText>
+                <ThemedText style={styles.summaryHint}>
+                  ativas | adesão {data.medications.summary.adherenceRate}% no período
+                </ThemedText>
+              </Card>
+            </View>
+          ) : null}
 
-          <Card style={styles.summaryCardSingle}>
-            <ThemedText style={styles.summaryLabel}>Ultimas leituras</ThemedText>
-            <ThemedText style={styles.latestRow}>Pressao: {data.pressure.summary.latestLabel}</ThemedText>
-            <ThemedText style={styles.latestRow}>Glicose: {data.glicose.summary.latestLabel}</ThemedText>
-            <ThemedText style={styles.latestRow}>Peso: {data.weight.summary.latestLabel}</ThemedText>
-          </Card>
+          {reportKind !== 'medications' ? (
+            <Card style={styles.summaryCardSingle}>
+              <ThemedText style={styles.summaryLabel}>Últimas leituras</ThemedText>
+              {showPressure ? <ThemedText style={styles.latestRow}>Pressão: {data.pressure.summary.latestLabel}</ThemedText> : null}
+              {showGlicose ? <ThemedText style={styles.latestRow}>Glicose: {data.glicose.summary.latestLabel}</ThemedText> : null}
+              {showWeight ? <ThemedText style={styles.latestRow}>Peso: {data.weight.summary.latestLabel}</ThemedText> : null}
+            </Card>
+          ) : (
+            <Card style={styles.summaryCardSingle}>
+              <ThemedText style={styles.summaryLabel}>Medicação</ThemedText>
+              <ThemedText style={styles.latestRow}>Ativas: {data.medications.summary.activeCount}</ThemedText>
+              <ThemedText style={styles.latestRow}>Adesão no período: {data.medications.summary.adherenceRate}%</ThemedText>
+            </Card>
+          )}
 
-          <View style={styles.section}>
-            <SectionHeader title="Tendencias" hint={`Ultimos ${periodDays} dias`} />
-            <Card>
+          {reportKind !== 'medications' ? <View style={styles.section}>
+            <SectionHeader title="Tendências" hint={`Últimos ${periodDays} dias`} />
+            {showPressure ? <Card>
               <ThemedText style={styles.trendTitle}>{data.trends.pressure.label}</ThemedText>
               <ThemedText style={styles.trendValue}>
                 {data.trends.pressure.latestValue !== null
@@ -161,8 +185,8 @@ export default function ReportScreen() {
                   : 'Sem dado'}
               </ThemedText>
               <ThemedText style={styles.trendDetail}>{data.trends.pressure.detail}</ThemedText>
-            </Card>
-            <Card>
+            </Card> : null}
+            {showGlicose ? <Card>
               <ThemedText style={styles.trendTitle}>{data.trends.glicose.label}</ThemedText>
               <ThemedText style={styles.trendValue}>
                 {data.trends.glicose.latestValue !== null
@@ -170,8 +194,8 @@ export default function ReportScreen() {
                   : 'Sem dado'}
               </ThemedText>
               <ThemedText style={styles.trendDetail}>{data.trends.glicose.detail}</ThemedText>
-            </Card>
-            <Card>
+            </Card> : null}
+            {showWeight ? <Card>
               <ThemedText style={styles.trendTitle}>{data.trends.weight.label}</ThemedText>
               <ThemedText style={styles.trendValue}>
                 {data.trends.weight.latestValue !== null
@@ -179,29 +203,13 @@ export default function ReportScreen() {
                   : 'Sem dado'}
               </ThemedText>
               <ThemedText style={styles.trendDetail}>{data.trends.weight.detail}</ThemedText>
-            </Card>
-          </View>
+            </Card> : null}
+          </View> : null}
 
           <View style={styles.section}>
-            <SectionHeader title="Alertas" hint={`${data.alerts.length} item(ns)`} />
-            {data.alerts.length > 0 ? (
-              data.alerts.map((alert) => (
-                <Card key={alert.id} muted>
-                  <ThemedText style={styles.alertTitle}>{alert.title}</ThemedText>
-                  <ThemedText style={styles.alertText}>{alert.description}</ThemedText>
-                </Card>
-              ))
-            ) : (
-              <Card muted>
-                <ThemedText style={styles.emptyText}>Sem alertas para este periodo.</ThemedText>
-              </Card>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <SectionHeader title="Detalhamento" hint="Leituras recentes do periodo" />
-            <Card>
-              <ThemedText style={styles.blockTitle}>Pressao</ThemedText>
+            <SectionHeader title="Detalhamento" hint="Leituras recentes do período" />
+            {showPressure ? <Card>
+              <ThemedText style={styles.blockTitle}>Pressão</ThemedText>
               {data.pressure.readings.length > 0 ? (
                 data.pressure.readings.map((item) => (
                   <View key={`pressure-${item.id}`} style={styles.listRow}>
@@ -210,11 +218,11 @@ export default function ReportScreen() {
                   </View>
                 ))
               ) : (
-                <ThemedText style={styles.emptyText}>Sem leituras de pressao.</ThemedText>
+                <ThemedText style={styles.emptyText}>Sem leituras de pressão.</ThemedText>
               )}
-            </Card>
+            </Card> : null}
 
-            <Card>
+            {showGlicose ? <Card>
               <ThemedText style={styles.blockTitle}>Glicose</ThemedText>
               {data.glicose.readings.length > 0 ? (
                 data.glicose.readings.map((item) => (
@@ -226,9 +234,9 @@ export default function ReportScreen() {
               ) : (
                 <ThemedText style={styles.emptyText}>Sem leituras de glicose.</ThemedText>
               )}
-            </Card>
+            </Card> : null}
 
-            <Card>
+            {showWeight ? <Card>
               <ThemedText style={styles.blockTitle}>Peso</ThemedText>
               {data.weight.readings.length > 0 ? (
                 data.weight.readings.map((item) => (
@@ -240,7 +248,23 @@ export default function ReportScreen() {
               ) : (
                 <ThemedText style={styles.emptyText}>Sem leituras de peso.</ThemedText>
               )}
-            </Card>
+            </Card> : null}
+
+            {showMedications ? <Card>
+              <ThemedText style={styles.blockTitle}>Medicações</ThemedText>
+              {data.medications.items.length > 0 ? (
+                data.medications.items.map((item) => (
+                  <View key={`medication-${item.id}`} style={styles.listRow}>
+                    <ThemedText style={styles.listTitle}>{item.name} {item.dosage}</ThemedText>
+                    <ThemedText style={styles.listMeta}>
+                      {item.scheduledTime ? `Horário: ${item.scheduledTime}` : 'Sem horário'} | {item.active ? 'Ativa' : 'Inativa'}
+                    </ThemedText>
+                  </View>
+                ))
+              ) : (
+                <ThemedText style={styles.emptyText}>Sem medicações cadastradas.</ThemedText>
+              )}
+            </Card> : null}
           </View>
         </>
       ) : null}
@@ -302,9 +326,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  kindRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   periodButton: {
     flex: 1,
     minHeight: 48,
+  },
+  kindButton: {
+    minHeight: 46,
+    minWidth: '30%',
+    flexGrow: 1,
   },
   summaryGrid: {
     flexDirection: 'row',
@@ -344,16 +378,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 14,
-  },
-  alertTitle: {
-    color: Colors.light.text,
-    fontWeight: '800',
-    lineHeight: 22,
-  },
-  alertText: {
-    color: Colors.light.textMuted,
-    lineHeight: 20,
-    marginTop: 4,
   },
   blockTitle: {
     color: Colors.light.text,

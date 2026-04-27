@@ -2,6 +2,7 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
+  age: number | null;
   photoUri: string | null;
   useBiometric: boolean;
   createdAt: string;
@@ -26,6 +27,7 @@ export type AuthProfile = {
 export type RegisterInput = {
   name: string;
   email: string;
+  age: number | null;
   password: string;
   pin: string;
   useBiometric: boolean;
@@ -34,6 +36,7 @@ export type RegisterInput = {
 export type LoginInput = {
   email: string;
   password: string;
+  pin?: string;
 };
 
 export type UpdateAccountInput = {

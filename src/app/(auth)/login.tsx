@@ -12,8 +12,10 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 export default function LoginScreen() {
   const { login } = useAuth();
   const passwordRef = useRef<TextInput>(null);
+  const pinRef = useRef<TextInput>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -21,7 +23,7 @@ export default function LoginScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await login({ email, password });
+      await login({ email, password, pin });
       router.replace('/(tabs)');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao entrar.');
@@ -56,7 +58,20 @@ export default function LoginScreen() {
         autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
+        onSubmitEditing={() => pinRef.current?.focus()}
+      />
+      <AuthInput
+        ref={pinRef}
+        label="PIN deste aparelho"
+        keyboardType="number-pad"
+        maxLength={6}
+        returnKeyType="done"
+        textContentType="oneTimeCode"
+        autoComplete="one-time-code"
+        value={pin}
+        onChangeText={setPin}
         onSubmitEditing={() => void handleSubmit()}
+        hint="Obrigatório no primeiro acesso neste celular. Depois ele desbloqueia o app offline."
       />
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton

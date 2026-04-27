@@ -1,8 +1,11 @@
 import { getDatabase } from '@/database/client';
+import { getActiveProfileId, createSyncUuid } from '@/services/sync-metadata.service';
+import { pushSyncItems } from '@/services/sync-api.service';
 import type { BloodPressureReading, NewBloodPressureReading } from '@/types/health';
 
 type BloodPressureRow = {
   id: number;
+  uuid: string;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -10,11 +13,15 @@ type BloodPressureRow = {
   source: string;
   notes: string | null;
   created_at: string;
+  updated_at: string;
+  synced_at: string | null;
+  deleted_at: string | null;
 };
 
 function mapRow(row: BloodPressureRow): BloodPressureReading {
   return {
     id: row.id,
+    uuid: row.uuid,
     systolic: row.systolic,
     diastolic: row.diastolic,
     pulse: row.pulse,
@@ -22,6 +29,9 @@ function mapRow(row: BloodPressureRow): BloodPressureReading {
     source: 'manual',
     notes: row.notes,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    syncedAt: row.synced_at,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -29,7 +39,7 @@ export class PressureRepository {
   async getById(id: number) {
     const database = await getDatabase();
     const row = await database.getFirstAsync<BloodPressureRow>(
-      'SELECT * FROM blood_pressure_readings WHERE id = ?',
+      'SELECT * FROM blood_pressure_readings WHERE id = ? AND deleted_at IS NULL',
       id
     );
 
@@ -40,6 +50,7 @@ export class PressureRepository {
     const database = await getDatabase();
     const rows = await database.getAllAsync<BloodPressureRow>(
       `SELECT * FROM blood_pressure_readings
+       WHERE deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
        LIMIT ?`,
       limit
@@ -50,10 +61,12 @@ export class PressureRepository {
 
   async create(input: NewBloodPressureReading) {
     const database = await getDatabase();
+    const uuid = createSyncUuid();
     const result = await database.runAsync(
       `INSERT INTO blood_pressure_readings
-        (systolic, diastolic, pulse, measured_at, source, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+        (uuid, systolic, diastolic, pulse, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      uuid,
       input.systolic,
       input.diastolic,
       input.pulse,
@@ -71,14 +84,16 @@ export class PressureRepository {
       throw new Error('Failed to create blood pressure reading');
     }
 
-    return mapRow(row);
+    const reading = mapRow(row);
+    void this.syncReading(reading);
+    return reading;
   }
 
   async update(id: number, input: NewBloodPressureReading) {
     const database = await getDatabase();
     await database.runAsync(
       `UPDATE blood_pressure_readings
-       SET systolic = ?, diastolic = ?, pulse = ?, measured_at = ?, source = ?, notes = ?
+       SET systolic = ?, diastolic = ?, pulse = ?, measured_at = ?, source = ?, notes = ?, updated_at = CURRENT_TIMESTAMP, synced_at = NULL
        WHERE id = ?`,
       input.systolic,
       input.diastolic,
@@ -95,11 +110,84 @@ export class PressureRepository {
       throw new Error('Failed to update blood pressure reading');
     }
 
+    void this.syncReading(row);
     return row;
   }
 
   async delete(id: number) {
     const database = await getDatabase();
-    await database.runAsync('DELETE FROM blood_pressure_readings WHERE id = ?', id);
+    const row = await database.getFirstAsync<BloodPressureRow>(
+      'SELECT * FROM blood_pressure_readings WHERE id = ?',
+      id
+    );
+
+    if (!row) {
+      return;
+    }
+
+    await database.runAsync(
+      `UPDATE blood_pressure_readings
+       SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, synced_at = NULL
+       WHERE id = ?`,
+      id
+    );
+
+    const deletedRow = await database.getFirstAsync<BloodPressureRow>(
+      'SELECT * FROM blood_pressure_readings WHERE id = ?',
+      id
+    );
+
+    if (deletedRow) {
+      void this.syncReading(mapRow(deletedRow));
+    }
+  }
+
+  async syncPending(limit = 50) {
+    const database = await getDatabase();
+    const rows = await database.getAllAsync<BloodPressureRow>(
+      `SELECT * FROM blood_pressure_readings
+       WHERE synced_at IS NULL
+       ORDER BY datetime(updated_at) ASC
+       LIMIT ?`,
+      limit
+    );
+
+    await Promise.all(rows.map((row) => this.syncReading(mapRow(row))));
+  }
+
+  private async syncReading(reading: BloodPressureReading) {
+    try {
+      const profileId = await getActiveProfileId();
+
+      if (!profileId) {
+        return;
+      }
+
+      await pushSyncItems({
+        resource: 'blood-pressure',
+        items: [
+          {
+            uuid: reading.uuid,
+            profile_id: profileId,
+            systolic: reading.systolic,
+            diastolic: reading.diastolic,
+            pulse: reading.pulse,
+            measured_at: reading.measuredAt,
+            source: reading.source,
+            notes: reading.notes,
+            updated_at: reading.updatedAt,
+            deleted_at: reading.deletedAt,
+          },
+        ],
+      });
+
+      const database = await getDatabase();
+      await database.runAsync(
+        'UPDATE blood_pressure_readings SET synced_at = CURRENT_TIMESTAMP WHERE id = ?',
+        reading.id
+      );
+    } catch (error) {
+      console.warn('Pressure sync failed', error);
+    }
   }
 }

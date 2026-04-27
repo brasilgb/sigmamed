@@ -20,7 +20,7 @@ export function useMedications() {
       const rows = await medicationRepository.listActive();
       setItems(rows);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Falha ao carregar medicacoes');
+      setError(loadError instanceof Error ? loadError.message : 'Falha ao carregar medicações');
     } finally {
       setIsLoading(false);
     }

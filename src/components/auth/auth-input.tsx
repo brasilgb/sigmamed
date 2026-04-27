@@ -3,26 +3,41 @@ import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { BrandPalette, Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type AuthInputProps = TextInputProps & {
   label: string;
   error?: string | null;
+  hint?: string;
 };
 
 export const AuthInput = forwardRef<TextInput, AuthInputProps>(function AuthInput(
-  { label, error, style, ...props },
+  { label, error, hint, style, ...props },
   ref
 ) {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+
   return (
     <View style={styles.wrapper}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
+      <ThemedText style={[styles.label, { color: palette.text }]}>{label}</ThemedText>
       <TextInput
         ref={ref}
-        placeholderTextColor={Colors.light.textSoft}
-        style={[styles.input, error ? styles.inputError : null, style]}
+        placeholderTextColor={palette.textSoft}
+        style={[
+          styles.input,
+          {
+            backgroundColor: palette.surfaceMuted,
+            borderColor: palette.border,
+            color: palette.text,
+          },
+          error ? styles.inputError : null,
+          style,
+        ]}
         {...props}
       />
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
+      {hint ? <ThemedText style={[styles.hint, { color: palette.textSoft }]}>{hint}</ThemedText> : null}
     </View>
   );
 });
@@ -32,23 +47,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: Colors.light.text,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.light.border,
     borderRadius: 18,
     paddingHorizontal: 18,
     paddingVertical: 15,
     fontSize: 16,
     lineHeight: 22,
-    color: Colors.light.text,
-    backgroundColor: Colors.light.surface,
     shadowColor: BrandPalette.navy,
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -62,6 +71,11 @@ const styles = StyleSheet.create({
   },
   error: {
     color: Colors.light.danger,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  hint: {
+    color: Colors.light.textSoft,
     fontSize: 13,
     lineHeight: 18,
   },

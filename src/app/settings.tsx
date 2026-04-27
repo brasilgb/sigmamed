@@ -60,7 +60,7 @@ export default function SettingsScreen() {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -97,7 +97,7 @@ export default function SettingsScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -139,9 +139,9 @@ export default function SettingsScreen() {
       });
       setCurrentPassword('');
       setNewPassword('');
-      setSuccessMessage('Configuracoes atualizadas com sucesso.');
+      setSuccessMessage('Configurações atualizadas com sucesso.');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Falha ao atualizar configuracoes.');
+      setError(submitError instanceof Error ? submitError.message : 'Falha ao atualizar configurações.');
     } finally {
       setIsSubmitting(false);
     }
@@ -158,13 +158,13 @@ export default function SettingsScreen() {
             <View style={styles.headerBadge}>
               <IconSymbol name="gearshape.fill" size={18} color={ModulePalette.medication.base} />
             </View>
-            <ThemedText style={styles.headerEyebrow}>Configuracoes</ThemedText>
+            <ThemedText style={styles.headerEyebrow}>Configurações</ThemedText>
           </View>
           <ThemedText type="title" style={styles.title}>
-            Conta, seguranca e sessao no mesmo lugar.
+            Conta, segurança e sessão no mesmo lugar.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Atualize seus dados, ajuste a biometria e controle a sessao do app com menos atrito.
+            Atualize seus dados, ajuste a biometria e controle a sessão do app com menos atrito.
           </ThemedText>
         </View>
       </View>
@@ -257,9 +257,9 @@ export default function SettingsScreen() {
             <ThemedText style={styles.biometricText}>
               {biometricAvailable
                 ? user?.useBiometric
-                  ? 'Ativa para desbloqueio rapido.'
+                  ? 'Ativa para desbloqueio rápido.'
                   : 'Desativada no momento.'
-                : 'Biometria indisponivel neste dispositivo.'}
+                : 'Biometria indisponível neste dispositivo.'}
             </ThemedText>
           </View>
           <AuthButton
@@ -278,19 +278,29 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.sectionCard}>
-        <ThemedText style={styles.sectionEyebrow}>Sessao</ThemedText>
-        <ThemedText style={styles.sectionTitle}>Acoes rapidas</ThemedText>
+        <ThemedText style={styles.sectionEyebrow}>Sessão</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Ações rápidas</ThemedText>
         <View style={styles.sessionRow}>
           <AuthButton label="Bloquear app" variant="secondary" onPress={lock} style={styles.sessionButton} />
           <AuthButton label="Sair da conta" onPress={() => void logout()} style={styles.sessionButton} />
         </View>
       </View>
 
+      <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Privacidade</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Uso pessoal dos dados</ThemedText>
+        <ThemedText style={styles.privacyText}>
+          O SigmaMed guarda registros para acompanhamento pessoal e não realiza diagnóstico,
+          prescrição ou orientação clínica automatizada.
+        </ThemedText>
+        <AuthButton label="Ver política de privacidade" variant="secondary" onPress={() => router.push('/privacy')} />
+      </View>
+
       {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
       {successMessage ? <ThemedText style={styles.successText}>{successMessage}</ThemedText> : null}
 
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : 'Salvar configuracoes'}
+        label={isSubmitting ? 'Salvando...' : 'Salvar configurações'}
         disabled={isSubmitting}
         onPress={handleSave}
       />
@@ -447,5 +457,9 @@ const styles = StyleSheet.create({
     color: '#0F8A6A',
     lineHeight: 20,
     fontWeight: '700',
+  },
+  privacyText: {
+    color: Colors.light.textMuted,
+    lineHeight: 21,
   },
 });

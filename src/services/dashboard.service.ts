@@ -146,11 +146,11 @@ function getTrendDirection(delta: number | null): TrendDirection {
 
 function buildTrendDetail(label: string, unit: string, latestValue: number | null, delta: number | null) {
   if (latestValue === null) {
-    return `Sem leituras de ${label.toLowerCase()} no periodo.`;
+    return `Sem leituras de ${label.toLowerCase()} no período.`;
   }
 
   if (delta === null || Math.abs(delta) < 0.01) {
-    return `Estavel no periodo em ${latestValue.toFixed(0)} ${unit}.`;
+    return `Estável no período em ${latestValue.toFixed(0)} ${unit}.`;
   }
 
   const signal = delta > 0 ? 'Alta' : 'Queda';
@@ -235,9 +235,9 @@ export async function getDashboardTrends(periodDays: ReportPeriodDays = 7): Prom
 
   return {
     periodDays,
-    pressure: buildMetricTrend('pressure', 'Sistolica media', 'mmHg', periodDays, pressureRows),
-    glicose: buildMetricTrend('glicose', 'Glicose media', 'mg/dL', periodDays, glicoseRows),
-    weight: buildMetricTrend('weight', 'Peso medio', 'kg', periodDays, weightRows),
+    pressure: buildMetricTrend('pressure', 'Sistólica média', 'mmHg', periodDays, pressureRows),
+    glicose: buildMetricTrend('glicose', 'Glicose média', 'mg/dL', periodDays, glicoseRows),
+    weight: buildMetricTrend('weight', 'Peso médio', 'kg', periodDays, weightRows),
   };
 }
 

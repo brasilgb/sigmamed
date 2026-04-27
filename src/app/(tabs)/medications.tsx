@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
 import { Screen } from '@/components/ui/screen';
 import { Colors, ModulePalette } from '@/constants/theme';
-import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useMedications } from '@/hooks/use-medications';
 import { useRecordManagement } from '@/hooks/use-record-management';
@@ -13,7 +12,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function MedicationsTabScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { biometricAvailable, updateBiometric, user } = useAuth();
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
   const { items: activeMedications, toggleTakenStatus, refresh: refreshActive } = useMedications();
   const { medications, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
@@ -31,12 +29,12 @@ export default function MedicationsTabScreen() {
     <Screen isRefreshing={dashboardLoading || recordsLoading} onRefresh={handleRefresh}>
       <View style={[styles.hero, { backgroundColor: ModulePalette.medication.soft }]}>
         <View style={styles.heroHeader}>
-          <ThemedText style={[styles.eyebrow, { color: ModulePalette.medication.base }]}>Modulo de medicacao</ThemedText>
+          <ThemedText style={[styles.eyebrow, { color: ModulePalette.medication.base }]}>Módulo de medicação</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
             Tratamentos ativos, rotina diaria e lembretes no mesmo lugar.
           </ThemedText>
           <ThemedText style={styles.heroText}>
-            Cadastre, edite e acompanhe a adesao com uma visualizacao mais direta do uso diario.
+            Cadastre, edite e acompanhe a adesão com uma visualização mais direta do uso diário.
           </ThemedText>
         </View>
 
@@ -46,10 +44,10 @@ export default function MedicationsTabScreen() {
             <ThemedText style={[styles.statValue, { color: ModulePalette.medication.base }]}>
               {summary ? String(summary.activeMedications) : '--'}
             </ThemedText>
-            <ThemedText style={styles.statMeta}>medicacoes em andamento</ThemedText>
+            <ThemedText style={styles.statMeta}>medicações em andamento</ThemedText>
           </View>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Aderencia hoje</ThemedText>
+            <ThemedText style={styles.statLabel}>Aderência hoje</ThemedText>
             <ThemedText style={[styles.statValue, { color: ModulePalette.medication.base }]}>
               {summary ? `${summary.adherenceToday}%` : '--'}
             </ThemedText>
@@ -57,17 +55,20 @@ export default function MedicationsTabScreen() {
           </View>
         </View>
 
-        <AuthButton label="Nova medicacao" onPress={() => router.push('/medication-form')} />
+        <AuthButton label="Nova medicação" onPress={() => router.push('/medication-form')} />
       </View>
 
       {activeMedications.length > 0 ? (
         <View style={styles.section}>
           <ThemedText type="subtitle" style={[styles.sectionTitle, { color: Colors[colorScheme].text }]}>
-            Uso diario
+            Uso diário
           </ThemedText>
 
-          {activeMedications.map((medication) => (
-            <View key={medication.id} style={styles.medicationCard}>
+          {activeMedications.map((medication) => {
+            const isTakenToday = medication.todayStatus === 'taken';
+
+            return (
+              <View key={medication.id} style={styles.medicationCard}>
               <View style={styles.recordHeader}>
                 <View style={{ flex: 1 }}>
                   <ThemedText style={styles.recordTitle}>
@@ -79,7 +80,7 @@ export default function MedicationsTabScreen() {
                 </View>
                 <View style={[styles.badge, { backgroundColor: ModulePalette.medication.soft }]}>
                   <ThemedText style={[styles.badgeText, { color: ModulePalette.medication.base }]}>
-                    {medication.todayStatus === 'taken' ? 'Tomado hoje' : 'Nao tomado'}
+                    {isTakenToday ? 'Tomado hoje' : 'Não tomado'}
                   </ThemedText>
                 </View>
               </View>
@@ -88,7 +89,7 @@ export default function MedicationsTabScreen() {
 
               {medication.todayLoggedAt ? (
                 <ThemedText style={styles.recordStatus}>
-                  {medication.todayStatus === 'taken'
+                  {isTakenToday
                     ? `Registrado como tomado hoje às ${medication.todayLoggedAt.slice(11, 16)}`
                       : null}
                 </ThemedText>
@@ -98,27 +99,28 @@ export default function MedicationsTabScreen() {
                 <AuthButton
                   label="Tomado"
                   variant="secondary"
-                  selected={medication.todayStatus === 'taken'}
+                  selected={isTakenToday}
                   selectedBackgroundColor={ModulePalette.medication.base}
                   selectedBorderColor={ModulePalette.medication.base}
                   onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
                   style={styles.actionButton}
                 />
                 <AuthButton
-                  label="Horario"
+                  label="Editar"
                   variant="secondary"
                   onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
                   style={styles.actionButton}
                 />
               </View>
-            </View>
-          ))}
+              </View>
+            );
+          })}
         </View>
       ) : (
         <View style={styles.emptyCard}>
-          <ThemedText style={styles.emptyTitle}>Nenhuma medicacao ativa no momento.</ThemedText>
+          <ThemedText style={styles.emptyTitle}>Nenhuma medicação ativa no momento.</ThemedText>
           <ThemedText style={styles.emptyText}>
-            Cadastre um tratamento para acompanhar horario, lembrete e adesao.
+            Cadastre um tratamento para acompanhar horário, lembrete e adesão.
           </ThemedText>
         </View>
       )}
@@ -145,27 +147,6 @@ export default function MedicationsTabScreen() {
         </View>
       ) : null}
 
-      {user ? (
-        <View style={styles.preferenceCard}>
-          <View style={styles.preferenceHeader}>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.preferenceTitle}>Biometria da conta</ThemedText>
-              <ThemedText style={styles.preferenceText}>
-                {biometricAvailable
-                  ? 'Deixe o desbloqueio rapido ligado para abrir o app com menos atrito.'
-                  : 'Biometria indisponivel neste dispositivo.'}
-              </ThemedText>
-            </View>
-            <Switch
-              disabled={!biometricAvailable}
-              value={user.useBiometric}
-              onValueChange={(value) => {
-                void updateBiometric(value);
-              }}
-            />
-          </View>
-        </View>
-      ) : null}
     </Screen>
   );
 }
@@ -314,26 +295,5 @@ const styles = StyleSheet.create({
     color: Colors.light.textSoft,
     fontSize: 13,
     lineHeight: 18,
-  },
-  preferenceCard: {
-    borderRadius: 24,
-    backgroundColor: Colors.light.surface,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E2ECEF',
-  },
-  preferenceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  preferenceTitle: {
-    color: Colors.light.text,
-    fontWeight: '700',
-  },
-  preferenceText: {
-    color: Colors.light.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
   },
 });

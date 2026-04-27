@@ -8,18 +8,21 @@ export class MedicationService {
   async createMedication(input: NewMedication) {
     const medication = await medicationRepository.createMedication(input);
     await this.syncReminders();
+    await medicationRepository.syncPending();
     return medication;
   }
 
   async updateMedication(id: number, input: NewMedication) {
     const medication = await medicationRepository.updateMedication(id, input);
     await this.syncReminders();
+    await medicationRepository.syncPending();
     return medication;
   }
 
   async deleteMedication(id: number) {
     await medicationRepository.deleteMedication(id);
     await this.syncReminders();
+    await medicationRepository.syncPending();
   }
 
   async syncReminders() {

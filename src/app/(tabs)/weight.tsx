@@ -28,10 +28,10 @@ export default function WeightTabScreen() {
         <View style={styles.heroHeader}>
           <ThemedText style={[styles.eyebrow, { color: ModulePalette.weight.base }]}>Modulo de peso</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
-            Acompanhamento simples da evolucao corporal.
+            Acompanhamento simples da evolução corporal.
           </ThemedText>
           <ThemedText style={styles.heroText}>
-            Veja a ultima pesagem, atualize rapidamente e mantenha a serie historica consolidada.
+            Veja a última pesagem, atualize rapidamente e mantenha a série histórica consolidada.
           </ThemedText>
         </View>
 
@@ -53,7 +53,7 @@ export default function WeightTabScreen() {
             </ThemedText>
           </View>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Nos ultimos 7 dias</ThemedText>
+            <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
             <ThemedText style={[styles.statValue, { color: ModulePalette.weight.base }]}>
               {summary ? String(summary.weightLastSevenDays) : '--'}
             </ThemedText>
@@ -94,7 +94,7 @@ export default function WeightTabScreen() {
           <View style={styles.emptyCard}>
             <ThemedText style={styles.emptyTitle}>Nenhuma pesagem registrada.</ThemedText>
             <ThemedText style={styles.emptyText}>
-              Adicione sua primeira pesagem para acompanhar variacoes com mais clareza.
+              Adicione sua primeira pesagem para acompanhar variações com mais clareza.
             </ThemedText>
           </View>
         )}

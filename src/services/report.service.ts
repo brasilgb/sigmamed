@@ -5,13 +5,13 @@ import { MedicationRepository } from '@/features/medications/medication.reposito
 import { UserRepository } from '@/features/auth/repositories/user.repository';
 import { getSessionUserId } from '@/features/auth/services/session-storage.service';
 import { getDashboardSummary, getDashboardTrends, getRecentHistory } from '@/services/dashboard.service';
-import { getDashboardAlerts } from '@/services/dashboard-alerts.service';
 import { formatDate, formatDateTime } from '@/utils/date';
 import type {
   BloodPressureReading,
   DashboardSummary,
   GlicoseReading,
   ReportData,
+  ReportKind,
   ReportMetricSummary,
   ReportPeriodDays,
   WeightReading,
@@ -41,7 +41,7 @@ function escapeHtml(value: string) {
 
 function describePressure(reading: BloodPressureReading | null) {
   if (!reading) {
-    return 'Sem leituras no periodo';
+    return 'Sem leituras no período';
   }
 
   return `${reading.systolic}/${reading.diastolic} mmHg`;
@@ -49,7 +49,7 @@ function describePressure(reading: BloodPressureReading | null) {
 
 function describeGlicose(reading: GlicoseReading | null) {
   if (!reading) {
-    return 'Sem leituras no periodo';
+    return 'Sem leituras no período';
   }
 
   return `${reading.glicoseValue} ${reading.unit}`;
@@ -57,7 +57,7 @@ function describeGlicose(reading: GlicoseReading | null) {
 
 function describeWeight(reading: WeightReading | null) {
   if (!reading) {
-    return 'Sem leituras no periodo';
+    return 'Sem leituras no período';
   }
 
   return `${reading.weight.toFixed(1)} ${reading.unit}`;
@@ -198,6 +198,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         patient = {
           name: profile?.fullName ?? currentUser.name,
           email: currentUser.email,
+          age: currentUser.age,
           birthDate: profile?.birthDate ?? null,
           sex: profile?.sex ?? null,
           height: profile?.height ?? null,
@@ -225,19 +226,16 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
     latestWeight: weightReadings[0] ?? null,
   };
 
-  const alerts = getDashboardAlerts(reportSummary, trends);
-
   return {
     periodDays,
     generatedAt: new Date().toISOString(),
     patient,
     summary: reportSummary,
     trends,
-    alerts,
     history,
     pressure: {
       summary: buildMetricSummary(
-        'Pressao',
+        'Pressão',
         pressureCount?.count ?? 0,
         describePressure(pressureReadings[0] ?? null),
         pressureReadings[0]?.measuredAt ?? null
@@ -286,7 +284,7 @@ function renderTableSection(title: string, headers: string[], rows: string[][]) 
     return `
       <section class="section">
         <h2>${escapeHtml(title)}</h2>
-        <p class="empty">Sem registros no periodo.</p>
+        <p class="empty">Sem registros no período.</p>
       </section>
     `;
   }
@@ -312,6 +310,29 @@ function renderTableSection(title: string, headers: string[], rows: string[][]) 
 }
 
 export function buildReportHtml(report: ReportData) {
+  return buildScopedReportHtml(report, 'complete');
+}
+
+function getReportTitle(kind: ReportKind) {
+  switch (kind) {
+    case 'pressure':
+      return 'Relatório de pressão arterial';
+    case 'glicose':
+      return 'Relatório de glicose';
+    case 'weight':
+      return 'Relatório de peso';
+    case 'medications':
+      return 'Relatório de medicação';
+    default:
+      return 'Relatório de acompanhamento';
+  }
+}
+
+function includesReportKind(current: ReportKind, target: Exclude<ReportKind, 'complete'>) {
+  return current === 'complete' || current === target;
+}
+
+export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'complete') {
   const pressureRows = report.pressure.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.systolic}/${item.diastolic} mmHg`,
@@ -338,10 +359,77 @@ export function buildReportHtml(report: ReportData) {
   ]);
   const patientBadges = report.patient
     ? [
-        report.patient.hasHypertension ? 'Hipertensao' : null,
+        report.patient.hasHypertension ? 'Hipertensão' : null,
         report.patient.hasDiabetes ? 'Diabetes' : null,
       ].filter(Boolean) as string[]
     : [];
+  const showPressure = includesReportKind(kind, 'pressure');
+  const showGlicose = includesReportKind(kind, 'glicose');
+  const showWeight = includesReportKind(kind, 'weight');
+  const showMedications = includesReportKind(kind, 'medications');
+  const reportTitle = getReportTitle(kind);
+  const totalScopedReadings =
+    (showPressure ? report.pressure.summary.count : 0) +
+    (showGlicose ? report.glicose.summary.count : 0) +
+    (showWeight ? report.weight.summary.count : 0);
+  const scopedSummary =
+    kind === 'complete'
+      ? `
+        <div class="grid">
+          <div class="cell">
+            <div class="kicker">Registros</div>
+            <div class="value">${report.summary.totalReadings}</div>
+            <p>Pressão: ${report.pressure.summary.count}</p>
+            <p>Glicose: ${report.glicose.summary.count}</p>
+            <p>Peso: ${report.weight.summary.count}</p>
+          </div>
+          <div class="cell">
+            <div class="kicker">Medicação</div>
+            <div class="value">${report.medications.summary.activeCount}</div>
+            <p>ativas no momento</p>
+            <p>Aderência no período: ${report.medications.summary.adherenceRate}%</p>
+          </div>
+          <div class="cell">
+            <div class="kicker">Últimas leituras</div>
+            <p>Pressão: ${escapeHtml(report.pressure.summary.latestLabel)}</p>
+            <p>Glicose: ${escapeHtml(report.glicose.summary.latestLabel)}</p>
+            <p>Peso: ${escapeHtml(report.weight.summary.latestLabel)}</p>
+          </div>
+        </div>
+      `
+      : `
+        <div class="grid">
+          <div class="cell">
+            <div class="kicker">${kind === 'medications' ? 'Medicações ativas' : 'Registros'}</div>
+            <div class="value">${kind === 'medications' ? report.medications.summary.activeCount : totalScopedReadings}</div>
+            <p>${kind === 'medications' ? 'tratamentos ativos no momento' : 'leituras no período selecionado'}</p>
+          </div>
+          <div class="cell">
+            <div class="kicker">${kind === 'medications' ? 'Aderência' : 'Última leitura'}</div>
+            <div class="value">${kind === 'medications' ? `${report.medications.summary.adherenceRate}%` : ''}</div>
+            ${showPressure ? `<p>${escapeHtml(report.pressure.summary.latestLabel)}</p>` : ''}
+            ${showGlicose ? `<p>${escapeHtml(report.glicose.summary.latestLabel)}</p>` : ''}
+            ${showWeight ? `<p>${escapeHtml(report.weight.summary.latestLabel)}</p>` : ''}
+            ${showMedications ? `<p>Registros no período: ${report.medications.summary.logsCount}</p>` : ''}
+          </div>
+          <div class="cell">
+            <div class="kicker">Período</div>
+            <div class="value">${report.periodDays}</div>
+            <p>últimos dias</p>
+          </div>
+        </div>
+      `;
+  const trendsSection =
+    showPressure || showGlicose || showWeight
+      ? `
+        <section class="section">
+          <h2>Tendências</h2>
+          ${showPressure ? `<p><span class="badge">${escapeHtml(report.trends.pressure.label)}</span>${escapeHtml(report.trends.pressure.detail)}</p>` : ''}
+          ${showGlicose ? `<p><span class="badge">${escapeHtml(report.trends.glicose.label)}</span>${escapeHtml(report.trends.glicose.detail)}</p>` : ''}
+          ${showWeight ? `<p><span class="badge">${escapeHtml(report.trends.weight.label)}</span>${escapeHtml(report.trends.weight.detail)}</p>` : ''}
+        </section>
+      `
+      : '';
 
   return `
     <html>
@@ -378,75 +466,42 @@ export function buildReportHtml(report: ReportData) {
           <div class="header-top">
             <div>
               <div class="brand">SigmaMed</div>
-              <h1>Relatorio de acompanhamento</h1>
-              <p class="meta">Periodo: ultimos ${report.periodDays} dias | Gerado em ${escapeHtml(
+              <h1>${escapeHtml(reportTitle)}</h1>
+              <p class="meta">Período: últimos ${report.periodDays} dias | Gerado em ${escapeHtml(
                 formatDateTime(report.generatedAt)
               )}</p>
             </div>
-            <div class="subtle">Uso pessoal e compartilhamento clinico</div>
+            <div class="subtle">Uso pessoal e compartilhamento clínico</div>
           </div>
           ${
             report.patient
               ? `
               <div class="patient">
-                <h2>Identificacao do paciente</h2>
+                <h2>Identificação do paciente</h2>
                 <p><strong>Nome:</strong> ${escapeHtml(report.patient.name)}</p>
                 <p><strong>E-mail:</strong> ${escapeHtml(report.patient.email)}</p>
+                <p><strong>Idade:</strong> ${report.patient.age ? `${report.patient.age} anos` : '-'}</p>
                 <p><strong>Nascimento:</strong> ${report.patient.birthDate ? escapeHtml(formatDate(report.patient.birthDate)) : '-'}</p>
                 <p><strong>Sexo:</strong> ${report.patient.sex ? escapeHtml(report.patient.sex) : '-'}</p>
                 <p><strong>Altura:</strong> ${report.patient.height ? `${Math.round(report.patient.height * 100)} cm` : '-'}</p>
                 <p><strong>Peso-alvo:</strong> ${report.patient.targetWeight ? `${report.patient.targetWeight.toFixed(1)} kg` : '-'}</p>
-                <p>${patientBadges.length > 0 ? patientBadges.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join('') : '<span class="subtle">Sem marcadores clinicos adicionais</span>'}</p>
-                ${report.patient.notes ? `<p><strong>Observacoes:</strong> ${escapeHtml(report.patient.notes)}</p>` : ''}
+                <p>${patientBadges.length > 0 ? patientBadges.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join('') : '<span class="subtle">Sem marcadores clínicos adicionais</span>'}</p>
+                ${report.patient.notes ? `<p><strong>Observações:</strong> ${escapeHtml(report.patient.notes)}</p>` : ''}
               </div>
             `
               : ''
           }
         </section>
-        <div class="grid">
-          <div class="cell">
-            <div class="kicker">Registros</div>
-            <div class="value">${report.summary.totalReadings}</div>
-            <p>Pressao: ${report.pressure.summary.count}</p>
-            <p>Glicose: ${report.glicose.summary.count}</p>
-            <p>Peso: ${report.weight.summary.count}</p>
-          </div>
-          <div class="cell">
-            <div class="kicker">Medicacao</div>
-            <div class="value">${report.medications.summary.activeCount}</div>
-            <p>ativas no momento</p>
-            <p>Aderencia no periodo: ${report.medications.summary.adherenceRate}%</p>
-          </div>
-          <div class="cell">
-            <div class="kicker">Ultimas leituras</div>
-            <p>Pressao: ${escapeHtml(report.pressure.summary.latestLabel)}</p>
-            <p>Glicose: ${escapeHtml(report.glicose.summary.latestLabel)}</p>
-            <p>Peso: ${escapeHtml(report.weight.summary.latestLabel)}</p>
-          </div>
-        </div>
 
-        <section class="section">
-          <h2>Tendencias</h2>
-          <p><span class="badge">${escapeHtml(report.trends.pressure.label)}</span>${escapeHtml(report.trends.pressure.detail)}</p>
-          <p><span class="badge">${escapeHtml(report.trends.glicose.label)}</span>${escapeHtml(report.trends.glicose.detail)}</p>
-          <p><span class="badge">${escapeHtml(report.trends.weight.label)}</span>${escapeHtml(report.trends.weight.detail)}</p>
-        </section>
+        ${scopedSummary}
+        ${trendsSection}
 
-        <section class="section">
-          <h2>Alertas</h2>
-          ${
-            report.alerts.length > 0
-              ? report.alerts.map((alert) => `<p><strong>${escapeHtml(alert.title)}:</strong> ${escapeHtml(alert.description)}</p>`).join('')
-              : '<p class="empty">Sem alertas no periodo.</p>'
-          }
-        </section>
+        ${showPressure ? renderTableSection('Pressão arterial', ['Data e hora', 'Leitura', 'Pulso', 'Observações'], pressureRows) : ''}
+        ${showGlicose ? renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto', 'Observações'], glicoseRows) : ''}
+        ${showWeight ? renderTableSection('Peso', ['Data e hora', 'Peso', 'Altura', 'Observações'], weightRows) : ''}
+        ${showMedications ? renderTableSection('Medicações', ['Medicação', 'Dosagem', 'Horário', 'Status'], medicationRows) : ''}
 
-        ${renderTableSection('Pressao arterial', ['Data e hora', 'Leitura', 'Pulso', 'Observacoes'], pressureRows)}
-        ${renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto', 'Observacoes'], glicoseRows)}
-        ${renderTableSection('Peso', ['Data e hora', 'Peso', 'Altura', 'Observacoes'], weightRows)}
-        ${renderTableSection('Medicacoes', ['Medicacao', 'Dosagem', 'Horario', 'Status'], medicationRows)}
-
-        <section class="section">
+        ${kind === 'complete' ? `<section class="section">
           <h2>Atividade recente</h2>
           ${
             report.history.length > 0
@@ -461,14 +516,14 @@ export function buildReportHtml(report: ReportData) {
                   .join('')}</ul>`
               : '<p class="empty">Sem atividade recente.</p>'
           }
-        </section>
+        </section>` : ''}
       </body>
     </html>
   `;
 }
 
-export async function exportReportPdf(report: ReportData) {
-  const html = buildReportHtml(report);
+export async function exportReportPdf(report: ReportData, kind: ReportKind = 'complete') {
+  const html = buildScopedReportHtml(report, kind);
   return Print.printToFileAsync({
     html,
     base64: false,

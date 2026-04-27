@@ -116,4 +116,72 @@ export const migrations = [
     SET source = 'manual'
     WHERE source = 'photo';
   `,
+  `
+    ALTER TABLE blood_pressure_readings ADD COLUMN uuid TEXT;
+    ALTER TABLE blood_pressure_readings ADD COLUMN updated_at TEXT;
+    ALTER TABLE blood_pressure_readings ADD COLUMN synced_at TEXT;
+    UPDATE blood_pressure_readings
+    SET
+      uuid = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+      updated_at = created_at
+    WHERE uuid IS NULL;
+  `,
+  `
+    ALTER TABLE glicose_readings ADD COLUMN uuid TEXT;
+    ALTER TABLE glicose_readings ADD COLUMN updated_at TEXT;
+    ALTER TABLE glicose_readings ADD COLUMN synced_at TEXT;
+    UPDATE glicose_readings
+    SET
+      uuid = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+      updated_at = created_at
+    WHERE uuid IS NULL;
+  `,
+  `
+    ALTER TABLE weight_readings ADD COLUMN uuid TEXT;
+    ALTER TABLE weight_readings ADD COLUMN updated_at TEXT;
+    ALTER TABLE weight_readings ADD COLUMN synced_at TEXT;
+    UPDATE weight_readings
+    SET
+      uuid = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+      updated_at = created_at
+    WHERE uuid IS NULL;
+  `,
+  `
+    ALTER TABLE medications ADD COLUMN uuid TEXT;
+    ALTER TABLE medications ADD COLUMN updated_at TEXT;
+    ALTER TABLE medications ADD COLUMN synced_at TEXT;
+    UPDATE medications
+    SET
+      uuid = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+      updated_at = created_at
+    WHERE uuid IS NULL;
+  `,
+  `
+    ALTER TABLE medication_logs ADD COLUMN uuid TEXT;
+    ALTER TABLE medication_logs ADD COLUMN updated_at TEXT;
+    ALTER TABLE medication_logs ADD COLUMN synced_at TEXT;
+    UPDATE medication_logs
+    SET
+      uuid = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6))),
+      updated_at = created_at
+    WHERE uuid IS NULL;
+  `,
+  `
+    ALTER TABLE blood_pressure_readings ADD COLUMN deleted_at TEXT;
+  `,
+  `
+    ALTER TABLE glicose_readings ADD COLUMN deleted_at TEXT;
+  `,
+  `
+    ALTER TABLE weight_readings ADD COLUMN deleted_at TEXT;
+  `,
+  `
+    ALTER TABLE medications ADD COLUMN deleted_at TEXT;
+  `,
+  `
+    ALTER TABLE medication_logs ADD COLUMN deleted_at TEXT;
+  `,
+  `
+    ALTER TABLE users ADD COLUMN age INTEGER;
+  `,
 ];

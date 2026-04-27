@@ -2,7 +2,7 @@
   "expo": {
     "name": "SigmaMed",
     "slug": "sigmamed",
-    "description": "Aplicativo para registro local de pressao, glicose, peso e lembretes de medicamentos.",
+    "description": "Aplicativo para acompanhamento pessoal de pressão, glicose, peso e lembretes de medicamentos. Não substitui orientação, diagnóstico ou acompanhamento profissional.",
     "version": "1.0.0",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -14,13 +14,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "sigmamed",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.andersonrodrigues.sigmamed",
       "buildNumber": "1",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Permitir que o SigmaMed use biometria para desbloquear o aplicativo com seguranca."
+        "NSFaceIDUsageDescription": "Permitir que o SigmaMed use biometria para desbloquear o aplicativo com segurança."
       }
     },
     "android": {
@@ -30,7 +29,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
       "package": "com.andersonrodrigues.sigmamed"
@@ -60,11 +58,20 @@
             "backgroundColor": "#08131D"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
+      "expo-sharing",
+      "expo-sqlite",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "apiBaseUrl": "$EXPO_PUBLIC_API_BASE_URL"
     }
   }
 }

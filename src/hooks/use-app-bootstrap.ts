@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { initDatabase } from '@/database/client';
 import { seedDatabaseIfEmpty } from '@/database/seed';
 import { MedicationService } from '@/features/medications/services/medication.service';
+import { pullRemoteRecords } from '@/services/remote-sync.service';
+import { syncPendingRecords } from '@/services/pending-sync.service';
 
 const medicationService = new MedicationService();
 
@@ -23,8 +25,14 @@ export function useAppBootstrap(): BootstrapState {
     async function bootstrap() {
       try {
         await initDatabase();
-        await seedDatabaseIfEmpty();
+
+        if (!process.env.EXPO_PUBLIC_API_BASE_URL) {
+          await seedDatabaseIfEmpty();
+        }
+
         await medicationService.syncReminders();
+        void pullRemoteRecords().catch(() => undefined);
+        void syncPendingRecords();
 
         if (isMounted) {
           setState({

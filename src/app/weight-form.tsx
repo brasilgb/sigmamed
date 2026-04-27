@@ -92,8 +92,8 @@ export default function WeightFormScreen() {
       title="Registrar peso"
       description={
         editingId
-          ? 'Atualize a pesagem salva e mantenha sua evolucao em ordem.'
-          : 'Registre peso e altura para acompanhar sua evolucao corporal.'
+          ? 'Atualize a pesagem salva e mantenha sua evolução em ordem.'
+          : 'Registre peso e altura para acompanhar sua evolução corporal.'
       }>
       <View style={styles.row}>
         <View style={styles.field}>
@@ -127,7 +127,7 @@ export default function WeightFormScreen() {
         </View>
       ) : null}
       <RecordInput
-        label="Observacoes"
+        label="Observações"
         placeholder="Ex.: pesagem matinal"
         value={notes}
         onChangeText={setNotes}

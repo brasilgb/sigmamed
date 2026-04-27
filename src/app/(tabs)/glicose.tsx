@@ -30,7 +30,7 @@ export default function GlicoseTabScreen() {
             Registros por contexto, com leitura manual mais direta.
           </ThemedText>
           <ThemedText style={styles.heroText}>
-            Jejum, pos-refeicao e leituras aleatorias ficam organizadas sem misturar origem e horario.
+            Jejum, pós-refeição e leituras aleatórias ficam organizadas sem misturar origem e horário.
           </ThemedText>
         </View>
 
@@ -43,7 +43,7 @@ export default function GlicoseTabScreen() {
             <ThemedText style={styles.statMeta}>{latest ? latest.context : 'Sem contexto ainda'}</ThemedText>
           </Card>
           <Card style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Nos ultimos 7 dias</ThemedText>
+            <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
             <ThemedText style={[styles.statValue, { color: ModulePalette.glicose.base }]}>
               {summary ? String(summary.glicoseLastSevenDays) : '--'}
             </ThemedText>
@@ -57,7 +57,7 @@ export default function GlicoseTabScreen() {
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Recentes" hint="Ultimas 5 medicoes" />
+        <SectionHeader title="Recentes" hint="Últimas 5 medições" />
 
         {glicoseReadings.length > 0 ? (
           glicoseReadings.map((item) => (

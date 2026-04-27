@@ -17,8 +17,8 @@ import { useDashboardData } from '@/hooks/use-dashboard-data';
 const modules = [
   {
     key: 'pressure',
-    title: 'Pressao',
-    description: 'Leituras e ultimo registro em um fluxo unico.',
+    title: 'Pressão',
+    description: 'Leituras e último registro em um fluxo único.',
     route: '/(tabs)/pressure' as const,
     color: ModulePalette.pressure.base,
     icon: 'waveform.path.ecg' as const,
@@ -26,7 +26,7 @@ const modules = [
   {
     key: 'glicose',
     title: 'Glicose',
-    description: 'Contexto da medicao e historico rapido no mesmo modulo.',
+    description: 'Contexto da medição e histórico rápido no mesmo módulo.',
     route: '/(tabs)/glicose' as const,
     color: ModulePalette.glicose.base,
     icon: 'drop.fill' as const,
@@ -41,8 +41,8 @@ const modules = [
   },
   {
     key: 'medications',
-    title: 'Medicacao',
-    description: 'Tratamentos ativos, registro diario e ajustes no mesmo lugar.',
+    title: 'Medicação',
+    description: 'Tratamentos ativos, registro diário e ajustes no mesmo lugar.',
     route: '/(tabs)/medications' as const,
     color: ModulePalette.medication.base,
     icon: 'pills.fill' as const,
@@ -52,7 +52,7 @@ const modules = [
 const quickActions = [
   {
     key: 'new-pressure',
-    title: 'Nova pressao',
+    title: 'Nova pressão',
     description: 'Registrar leitura manual',
     route: '/pressure-form' as const,
     color: ModulePalette.pressure.base,
@@ -79,7 +79,7 @@ const quickActions = [
   },
   {
     key: 'new-medication',
-    title: 'Nova medicacao',
+    title: 'Nova medicação',
     description: 'Cadastrar tratamento',
     route: '/medication-form' as const,
     color: ModulePalette.medication.base,
@@ -92,6 +92,7 @@ export default function HomeTabScreen() {
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
   const { history, isLoading, refresh, summary, trends } = useDashboardData(7);
   const firstName = user?.name.split(' ')[0] ?? 'Paciente';
+  const accountMeta = user?.age ? `${user.email} · ${user.age} anos` : user?.email;
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
@@ -115,10 +116,10 @@ export default function HomeTabScreen() {
 
         <View style={styles.heroCopy}>
           <ThemedText type="title" style={styles.heroTitle}>
-            {firstName}, cada cuidado agora tem seu proprio lugar.
+            {firstName}, cada cuidado agora tem seu próprio lugar.
           </ThemedText>
           <ThemedText style={styles.heroDescription}>
-            Veja seus totais, acompanhe os ultimos registros e acesse rapidamente pressao, glicose, peso e medicacao.
+            Veja seus totais, acompanhe os últimos registros e acesse rapidamente pressão, glicose, peso e medicação.
           </ThemedText>
         </View>
 
@@ -127,7 +128,7 @@ export default function HomeTabScreen() {
             <ProfileAvatar name={user.name} photoUri={user.photoUri} size={58} />
             <View style={styles.accountCopy}>
               <ThemedText style={styles.accountTitle}>{user.name}</ThemedText>
-              <ThemedText style={styles.accountMeta}>{user.email}</ThemedText>
+              <ThemedText style={styles.accountMeta}>{accountMeta}</ThemedText>
             </View>
             <View style={styles.biometricWrap}>
               <ThemedText style={styles.biometricLabel}>Biometria</ThemedText>
@@ -150,14 +151,14 @@ export default function HomeTabScreen() {
               <IconSymbol name="list.bullet.rectangle.fill" size={20} color={BrandPalette.navy} />
             </View>
             <View style={styles.reportTextWrap}>
-              <ThemedText style={styles.reportTitle}>Relatorio do periodo</ThemedText>
+              <ThemedText style={styles.reportTitle}>Relatório do período</ThemedText>
               <ThemedText style={styles.reportText}>
-                Organize leituras, alertas e medicacoes em um resumo pronto para compartilhar.
+                Organize leituras, tendências e medicações em um resumo pronto para compartilhar.
               </ThemedText>
             </View>
           </View>
           <View style={styles.reportAction}>
-            <ThemedText style={styles.reportActionText}>Abrir relatorio</ThemedText>
+            <ThemedText style={styles.reportActionText}>Abrir relatório</ThemedText>
           </View>
         </Pressable>
       </Card>
@@ -166,12 +167,12 @@ export default function HomeTabScreen() {
         <>
           <View style={styles.summaryGrid}>
             <SummaryCard label="Registros salvos" value={String(summary.totalReadings)} tone="default" />
-            <SummaryCard label="Adesao hoje" value={`${summary.adherenceToday}%`} tone="accent" />
+            <SummaryCard label="Adesão hoje" value={`${summary.adherenceToday}%`} tone="accent" />
           </View>
 
           <View style={styles.summaryGrid}>
-            <SummaryCard label="Pressao em 7 dias" value={String(summary.pressureLastSevenDays)} tone="success" />
-            <SummaryCard label="Medicacoes ativas" value={String(summary.activeMedications)} tone="default" />
+            <SummaryCard label="Pressão em 7 dias" value={String(summary.pressureLastSevenDays)} tone="success" />
+            <SummaryCard label="Medicações ativas" value={String(summary.activeMedications)} tone="default" />
           </View>
         </>
       ) : null}
@@ -209,9 +210,9 @@ export default function HomeTabScreen() {
       {trends ? (
         <View style={styles.section}>
           <SectionHeader title="Tendencias" hint="Ultimos 7 dias" />
-          <TrendCard metric={trends.pressure} onPress={() => router.push('/(tabs)/pressure')} actionLabel="Abrir modulo" />
-          <TrendCard metric={trends.glicose} onPress={() => router.push('/(tabs)/glicose')} actionLabel="Abrir modulo" />
-          <TrendCard metric={trends.weight} onPress={() => router.push('/(tabs)/weight')} actionLabel="Abrir modulo" />
+          <TrendCard metric={trends.pressure} onPress={() => router.push('/(tabs)/pressure')} actionLabel="Abrir módulo" />
+          <TrendCard metric={trends.glicose} onPress={() => router.push('/(tabs)/glicose')} actionLabel="Abrir módulo" />
+          <TrendCard metric={trends.weight} onPress={() => router.push('/(tabs)/weight')} actionLabel="Abrir módulo" />
         </View>
       ) : null}
 

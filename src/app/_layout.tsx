@@ -61,7 +61,7 @@ export default function RootLayout() {
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
         <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
         <ThemedText style={[styles.stateMessage, { color: Colors[activeTheme].textMuted }]}>
-          Preparando seu historico local...
+          Preparando seu histórico local...
         </ThemedText>
       </View>
     );
@@ -77,6 +77,7 @@ export default function RootLayout() {
             <Stack.Screen name="unlock" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="privacy" />
           </Stack>
         </AuthProvider>
         <StatusBar

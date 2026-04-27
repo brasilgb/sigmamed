@@ -1,12 +1,64 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import {
+  normalizeRemoteAvatarUrl,
+  normalizeRemotePhotoPath,
+  getRemoteAuthenticatedUser,
+  getRemoteUserPhotoUri,
+} from '@/features/auth/services/auth-api.service';
+import {
+  getSessionAuthToken,
+  getSessionTenantId,
+} from '@/features/auth/services/session-storage.service';
+import { getApiUrl } from '@/services/api-client';
+
 const PROFILE_PHOTO_DIR = `${FileSystem.documentDirectory ?? ''}profile-photos/`;
+
+type AvatarUploadResponse = {
+  data?: {
+    photo_path?: string;
+    avatar_url?: string;
+  };
+  message?: string;
+};
 
 function getFileExtension(uri: string) {
   const cleanUri = uri.split('?')[0] ?? uri;
   const match = cleanUri.match(/\.([a-zA-Z0-9]+)$/);
   return match ? match[1].toLowerCase() : 'jpg';
+}
+
+function getMimeType(uri: string) {
+  const extension = getFileExtension(uri);
+
+  if (extension === 'png') {
+    return 'image/png';
+  }
+
+  if (extension === 'webp') {
+    return 'image/webp';
+  }
+
+  return 'image/jpeg';
+}
+
+async function getAvatarHeaders() {
+  const token = await getSessionAuthToken();
+  const tenantId = await getSessionTenantId();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (tenantId) {
+    headers['X-Tenant-Id'] = tenantId;
+  }
+
+  return headers;
 }
 
 export function isManagedProfilePhotoUri(uri: string | null | undefined) {
@@ -44,5 +96,52 @@ export async function removeManagedProfilePhoto(uri: string | null | undefined) 
     await FileSystem.deleteAsync(uri!, { idempotent: true });
   } catch {
     // Ignore cleanup failures because the DB state is more important than orphan cleanup.
+  }
+}
+
+export async function uploadRemoteAvatar(uri: string) {
+  const extension = getFileExtension(uri);
+  const formData = new FormData();
+
+  formData.append('avatar', {
+    uri,
+    name: `avatar.${extension}`,
+    type: getMimeType(uri),
+  } as unknown as Blob);
+
+  const response = await fetch(getApiUrl('/auth/me/avatar'), {
+    method: 'POST',
+    headers: await getAvatarHeaders(),
+    body: formData,
+  });
+
+  const payload = (await response.json().catch(() => null)) as AvatarUploadResponse | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.message ?? 'Falha ao enviar avatar.');
+  }
+
+  const uploadedUri =
+    normalizeRemoteAvatarUrl(payload?.data?.avatar_url) ??
+    normalizeRemotePhotoPath(payload?.data?.photo_path);
+
+  if (uploadedUri) {
+    return `${uploadedUri}${uploadedUri.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  }
+
+  const remoteUser = await getRemoteAuthenticatedUser().catch(() => null);
+  return getRemoteUserPhotoUri(remoteUser) ?? uri;
+}
+
+export async function deleteRemoteAvatar() {
+  const response = await fetch(getApiUrl('/auth/me/avatar'), {
+    method: 'DELETE',
+    headers: await getAvatarHeaders(),
+  });
+
+  const payload = (await response.json().catch(() => null)) as AvatarUploadResponse | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.message ?? 'Falha ao remover avatar.');
   }
 }

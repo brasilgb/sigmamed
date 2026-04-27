@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -33,11 +34,15 @@ type AuthContextValue = {
   unlockByBiometric: () => Promise<boolean>;
   logout: () => Promise<void>;
   lock: () => void;
+  suspendAutoLock: () => void;
+  resumeAutoLock: () => void;
   updateBiometric: (enabled: boolean) => Promise<void>;
   updateAccount: (input: UpdateAccountInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+let autoLockSuspended = false;
+const AUTO_LOCK_BACKGROUND_DELAY_MS = 5000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const autoLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -81,12 +87,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState !== 'active' && user) {
-        setIsUnlocked(false);
+      if (nextState === 'active') {
+        if (autoLockTimeoutRef.current) {
+          clearTimeout(autoLockTimeoutRef.current);
+          autoLockTimeoutRef.current = null;
+        }
+
+        return;
+      }
+
+      if (nextState === 'background' && user && !autoLockSuspended) {
+        if (autoLockTimeoutRef.current) {
+          clearTimeout(autoLockTimeoutRef.current);
+        }
+
+        autoLockTimeoutRef.current = setTimeout(() => {
+          if (!autoLockSuspended) {
+            setIsUnlocked(false);
+          }
+
+          autoLockTimeoutRef.current = null;
+        }, AUTO_LOCK_BACKGROUND_DELAY_MS);
       }
     });
 
     return () => {
+      if (autoLockTimeoutRef.current) {
+        clearTimeout(autoLockTimeoutRef.current);
+      }
+
       subscription.remove();
     };
   }, [user]);
@@ -142,6 +171,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user) {
           setIsUnlocked(false);
         }
+      },
+      suspendAutoLock: () => {
+        autoLockSuspended = true;
+      },
+      resumeAutoLock: () => {
+        autoLockSuspended = false;
       },
       updateBiometric: async (enabled) => {
         if (!user) {

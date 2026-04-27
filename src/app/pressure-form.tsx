@@ -50,7 +50,7 @@ export default function PressureFormScreen() {
     const pulseValue = pulse ? Number(pulse) : null;
 
     if (!systolicValue || !diastolicValue) {
-      setError('Informe sistolica e diastolica.');
+      setError('Informe sistólica e diastólica.');
       return;
     }
 
@@ -72,7 +72,7 @@ export default function PressureFormScreen() {
       }
       router.replace('/(tabs)/pressure');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar pressao.');
+      setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar pressão.');
     } finally {
       setIsSubmitting(false);
     }
@@ -80,16 +80,16 @@ export default function PressureFormScreen() {
 
   return (
     <FormShell
-      title="Registrar pressao"
+      title="Registrar pressão"
       description={
         editingId
-          ? 'Atualize os dados da leitura e mantenha seu historico organizado.'
-          : 'Registre a medicao para acompanhar sua pressao com mais clareza.'
+          ? 'Atualize os dados da leitura e mantenha seu histórico organizado.'
+          : 'Registre a medição para acompanhar sua pressão com mais clareza.'
       }>
       <View style={styles.row}>
         <View style={styles.field}>
           <RecordInput
-            label="Sistolica"
+            label="Sistólica"
             keyboardType="number-pad"
             placeholder="Ex.: 120"
             value={systolic}
@@ -98,7 +98,7 @@ export default function PressureFormScreen() {
         </View>
         <View style={styles.field}>
           <RecordInput
-            label="Diastolica"
+            label="Diastólica"
             keyboardType="number-pad"
             placeholder="Ex.: 80"
             value={diastolic}
@@ -115,14 +115,14 @@ export default function PressureFormScreen() {
         onChangeText={setPulse}
       />
       <RecordInput
-        label="Observacoes"
-        placeholder="Ex.: medicao realizada pela manha"
+        label="Observações"
+        placeholder="Ex.: medição realizada pela manhã"
         value={notes}
         onChangeText={setNotes}
       />
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
       <AuthButton
-        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar pressao' : 'Salvar pressao'}
+        label={isSubmitting ? 'Salvando...' : editingId ? 'Atualizar pressão' : 'Salvar pressão'}
         disabled={isSubmitting}
         onPress={handleSubmit}
       />

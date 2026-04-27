@@ -5,6 +5,7 @@ type UserRow = {
   id: number;
   name: string;
   email: string;
+  age: number | null;
   photo_uri: string | null;
   password_hash: string;
   pin_hash: string;
@@ -34,12 +35,15 @@ type CreateUserInput = {
   passwordHash: string;
   pinHash: string;
   useBiometric: boolean;
+  photoUri?: string | null;
+  age?: number | null;
 };
 
 type UpdateUserInput = {
   name: string;
   email: string;
   photoUri?: string | null;
+  age?: number | null;
   passwordHash?: string;
 };
 
@@ -48,6 +52,7 @@ function mapUser(row: UserRow): AuthUser {
     id: row.id,
     name: row.name,
     email: row.email,
+    age: row.age,
     photoUri: row.photo_uri,
     useBiometric: Boolean(row.use_biometric),
     createdAt: row.created_at,
@@ -117,13 +122,15 @@ export class UserRepository {
 
       const userResult = await database.runAsync(
         `INSERT INTO users
-          (name, email, password_hash, pin_hash, use_biometric, updated_at)
-         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          (name, email, age, password_hash, pin_hash, use_biometric, photo_uri, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         input.name,
         input.email,
+        input.age ?? null,
         input.passwordHash,
         input.pinHash,
-        input.useBiometric ? 1 : 0
+        input.useBiometric ? 1 : 0,
+        input.photoUri ?? null
       );
 
       await database.runAsync(
@@ -182,10 +189,11 @@ export class UserRepository {
       if (input.passwordHash) {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, photo_uri = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, age = ?, photo_uri = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.age ?? null,
           input.photoUri ?? null,
           input.passwordHash,
           userId
@@ -193,10 +201,11 @@ export class UserRepository {
       } else {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, photo_uri = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, age = ?, photo_uri = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.age ?? null,
           input.photoUri ?? null,
           userId
         );

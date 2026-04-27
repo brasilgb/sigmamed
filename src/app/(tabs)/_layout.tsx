@@ -9,7 +9,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const selectedColorScheme = useColorScheme();
+  const colorScheme = selectedColorScheme === 'dark' ? 'dark' : 'light';
   const insets = useSafeAreaInsets();
   const { isLoading, isUnlocked, user } = useAuth();
 
@@ -28,11 +29,11 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+        tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].surface,
-          borderTopColor: Colors[colorScheme ?? 'light'].border,
+          backgroundColor: Colors[colorScheme].surface,
+          borderTopColor: Colors[colorScheme].border,
           height: 68 + insets.bottom,
           paddingTop: 8,
           paddingBottom: Math.max(insets.bottom, 10),
@@ -54,7 +55,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="pressure"
         options={{
-          title: 'Pressao',
+          title: 'Pressão',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="waveform.path.ecg" color={color} />,
         }}
       />
@@ -75,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="medications"
         options={{
-          title: 'Medicacao',
+          title: 'Medicação',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="pills.fill" color={color} />,
         }}
       />
