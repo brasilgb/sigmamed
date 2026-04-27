@@ -365,6 +365,32 @@ Valores aceitos em `resource`:
 - `medications`
 - `medication-logs`
 
+## SQLite Sync Readiness
+
+As tabelas locais sincronizaveis no SQLite sao:
+
+- `blood_pressure_readings`
+- `glicose_readings`
+- `weight_readings`
+- `medications`
+- `medication_logs`
+
+Todas devem manter os campos de controle:
+
+- `uuid`: identificador estavel para upsert remoto.
+- `updated_at`: referencia de conflito; o registro mais recente vence.
+- `synced_at`: controle local para saber se a alteracao ja foi enviada.
+- `deleted_at`: soft delete para sincronizar exclusoes.
+
+Regra local:
+
+- Criacao local gera `uuid` e define `updated_at`.
+- Atualizacao local redefine `updated_at` e limpa `synced_at`.
+- Exclusao local preenche `deleted_at`, redefine `updated_at` e limpa `synced_at`.
+- Pull remoto faz upsert por `uuid` e marca `synced_at`.
+
+`users` e `profiles` nao entram nesse sync generico. Eles continuam sendo tratados pelos endpoints de auth/profile, porque representam identidade, sessao e escopo remoto do usuario.
+
 ## Observações de Implementação
 
 - Login e registro são online-only.
