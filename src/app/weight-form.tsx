@@ -7,11 +7,9 @@ import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { RecordInput } from '@/components/forms/record-input';
 import { BrandPalette, Colors } from '@/constants/theme';
+import { getActiveAccountProfile } from '@/features/auth/services/auth.service';
 import { WeightRepository } from '@/features/weight/weight.repository';
-import {
-  calculateBodyMassIndex,
-  normalizeHeightInput,
-} from '@/features/weight/weight-utils';
+import { calculateBodyMassIndex, formatHeight, normalizeHeightInput } from '@/features/weight/weight-utils';
 
 const weightRepository = new WeightRepository();
 
@@ -19,18 +17,24 @@ function maskWeightInput(value: string) {
   return value.replace(/\D/g, '').slice(0, 3);
 }
 
-function maskHeightInput(value: string) {
-  return value.replace(/\D/g, '').slice(0, 3);
-}
-
 export default function WeightFormScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const editingId = params.id ? Number(params.id) : null;
   const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
+  const [profileHeight, setProfileHeight] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    getActiveAccountProfile()
+      .then((profile) => {
+        setProfileHeight(profile?.height ?? null);
+      })
+      .catch(() => {
+        setProfileHeight(null);
+      });
+  }, []);
 
   useEffect(() => {
     if (!editingId) {
@@ -43,15 +47,15 @@ export default function WeightFormScreen() {
       }
 
       setWeight(String(Math.round(record.weight)));
-      setHeight(record.height ? String(Math.round(record.height * 100)) : '');
+      setProfileHeight((currentHeight) => currentHeight ?? record.height);
       setNotes(record.notes ?? '');
     });
   }, [editingId]);
 
   const numericWeight = Number(weight);
-  const rawHeight = Number(height);
-  const numericHeight = normalizeHeightInput(rawHeight);
-  const bmi = calculateBodyMassIndex(numericWeight, numericHeight);
+  const normalizedProfileHeight = profileHeight ? normalizeHeightInput(profileHeight) : null;
+  const bmi = calculateBodyMassIndex(numericWeight, normalizedProfileHeight);
+  const formattedHeight = formatHeight(normalizedProfileHeight);
 
   async function handleSubmit() {
     if (!numericWeight) {
@@ -59,8 +63,8 @@ export default function WeightFormScreen() {
       return;
     }
 
-    if (!numericHeight) {
-      setError('Informe a altura.');
+    if (!normalizedProfileHeight) {
+      setError('Cadastre a altura do perfil ativo antes de registrar peso.');
       return;
     }
 
@@ -69,7 +73,7 @@ export default function WeightFormScreen() {
       setError(null);
       const payload = {
         weight: numericWeight,
-        height: numericHeight,
+        height: normalizedProfileHeight,
         unit: 'kg' as const,
         measuredAt: new Date().toISOString(),
         notes: notes.trim() || null,
@@ -93,37 +97,24 @@ export default function WeightFormScreen() {
       description={
         editingId
           ? 'Atualize a pesagem salva e mantenha sua evolução em ordem.'
-          : 'Registre peso e altura para acompanhar sua evolução corporal.'
+          : 'Registre o peso para acompanhar sua evolução corporal.'
       }>
-      <View style={styles.row}>
-        <View style={styles.field}>
-          <RecordInput
-            label="Peso"
-            keyboardType="number-pad"
-            placeholder="Ex.: 78"
-            hint="Unidade: kg. Informe apenas numeros inteiros."
-            value={weight}
-            maxLength={3}
-            onChangeText={(value) => setWeight(maskWeightInput(value))}
-          />
-        </View>
-        <View style={styles.field}>
-          <RecordInput
-            label="Altura"
-            keyboardType="number-pad"
-            placeholder="Ex.: 172"
-            hint="Informe somente centimetros inteiros."
-            value={height}
-            maxLength={3}
-            onChangeText={(value) => setHeight(maskHeightInput(value))}
-          />
-        </View>
-      </View>
+      <RecordInput
+        label="Peso"
+        keyboardType="number-pad"
+        placeholder="Ex.: 78"
+        hint="Unidade: kg. Informe apenas numeros inteiros."
+        value={weight}
+        maxLength={3}
+        onChangeText={(value) => setWeight(maskWeightInput(value))}
+      />
       {bmi ? (
         <View style={styles.bmiCard}>
           <ThemedText style={styles.bmiLabel}>IMC calculado</ThemedText>
           <ThemedText style={styles.bmiValue}>{bmi.toFixed(1)}</ThemedText>
-          <ThemedText style={styles.bmiHint}>Calculado automaticamente a partir do peso e da altura informados.</ThemedText>
+          <ThemedText style={styles.bmiHint}>
+            Calculado automaticamente com a altura do perfil ativo{formattedHeight ? `: ${formattedHeight} m.` : '.'}
+          </ThemedText>
         </View>
       ) : null}
       <RecordInput
@@ -143,13 +134,6 @@ export default function WeightFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  field: {
-    flex: 1,
-  },
   bmiCard: {
     borderRadius: 20,
     padding: 16,

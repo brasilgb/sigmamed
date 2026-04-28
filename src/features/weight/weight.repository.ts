@@ -1,11 +1,16 @@
 import { getDatabase } from '@/database/client';
-import { getActiveProfileId, createSyncUuid } from '@/services/sync-metadata.service';
+import {
+  createSyncUuid,
+  getActiveLocalProfileId,
+  getRemoteProfileIdForLocalProfile,
+} from '@/services/sync-metadata.service';
 import { pushSyncItems } from '@/services/sync-api.service';
 import type { NewWeightReading, WeightReading } from '@/types/health';
 
 type WeightRow = {
   id: number;
   uuid: string;
+  profile_id: number | null;
   weight: number;
   height: number | null;
   unit: 'kg';
@@ -21,6 +26,7 @@ function mapRow(row: WeightRow): WeightReading {
   return {
     id: row.id,
     uuid: row.uuid,
+    profileId: row.profile_id,
     weight: row.weight,
     height: row.height,
     unit: row.unit,
@@ -36,9 +42,16 @@ function mapRow(row: WeightRow): WeightReading {
 export class WeightRepository {
   async getById(id: number) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return null;
+    }
+
     const row = await database.getFirstAsync<WeightRow>(
-      'SELECT * FROM weight_readings WHERE id = ? AND deleted_at IS NULL',
-      id
+      'SELECT * FROM weight_readings WHERE id = ? AND profile_id = ? AND deleted_at IS NULL',
+      id,
+      profileId
     );
 
     return row ? mapRow(row) : null;
@@ -46,11 +59,19 @@ export class WeightRepository {
 
   async listRecent(limit = 10) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return [];
+    }
+
     const rows = await database.getAllAsync<WeightRow>(
       `SELECT * FROM weight_readings
-       WHERE deleted_at IS NULL
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
        LIMIT ?`,
+      profileId,
       limit
     );
 
@@ -60,11 +81,18 @@ export class WeightRepository {
   async create(input: NewWeightReading) {
     const database = await getDatabase();
     const uuid = createSyncUuid();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      throw new Error('Selecione um perfil acompanhado antes de registrar.');
+    }
+
     const result = await database.runAsync(
       `INSERT INTO weight_readings
-        (uuid, weight, height, unit, measured_at, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, weight, height, unit, measured_at, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
+      profileId,
       input.weight,
       input.height,
       input.unit,
@@ -153,9 +181,9 @@ export class WeightRepository {
 
   private async syncReading(reading: WeightReading) {
     try {
-      const profileId = await getActiveProfileId();
+      const remoteProfileId = await getRemoteProfileIdForLocalProfile(reading.profileId);
 
-      if (!profileId) {
+      if (!remoteProfileId) {
         return;
       }
 
@@ -164,7 +192,7 @@ export class WeightRepository {
         items: [
           {
             uuid: reading.uuid,
-            profile_id: profileId,
+            profile_id: remoteProfileId,
             weight: reading.weight,
             height: reading.height,
             unit: reading.unit,

@@ -11,6 +11,7 @@ export type MedicationLogStatus = 'pending' | 'taken' | 'skipped';
 export type BloodPressureReading = {
   id: number;
   uuid: string;
+  profileId: number | null;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -23,11 +24,12 @@ export type BloodPressureReading = {
   deletedAt: string | null;
 };
 
-export type NewBloodPressureReading = Omit<BloodPressureReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
+export type NewBloodPressureReading = Omit<BloodPressureReading, 'id' | 'uuid' | 'profileId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type GlicoseReading = {
   id: number;
   uuid: string;
+  profileId: number | null;
   glicoseValue: number;
   unit: 'mg/dL';
   context: GlicoseContext;
@@ -40,11 +42,12 @@ export type GlicoseReading = {
   deletedAt: string | null;
 };
 
-export type NewGlicoseReading = Omit<GlicoseReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
+export type NewGlicoseReading = Omit<GlicoseReading, 'id' | 'uuid' | 'profileId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type WeightReading = {
   id: number;
   uuid: string;
+  profileId: number | null;
   weight: number;
   height: number | null;
   unit: 'kg';
@@ -56,11 +59,12 @@ export type WeightReading = {
   deletedAt: string | null;
 };
 
-export type NewWeightReading = Omit<WeightReading, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
+export type NewWeightReading = Omit<WeightReading, 'id' | 'uuid' | 'profileId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type Medication = {
   id: number;
   uuid: string;
+  profileId: number | null;
   name: string;
   dosage: string;
   instructions: string | null;
@@ -77,11 +81,12 @@ export type Medication = {
   deletedAt: string | null;
 };
 
-export type NewMedication = Omit<Medication, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt' | 'todayStatus' | 'todayLoggedAt'>;
+export type NewMedication = Omit<Medication, 'id' | 'uuid' | 'profileId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt' | 'todayStatus' | 'todayLoggedAt'>;
 
 export type MedicationLog = {
   id: number;
   uuid: string;
+  profileId: number | null;
   medicationId: number;
   scheduledAt: string;
   takenAt: string | null;
@@ -92,7 +97,7 @@ export type MedicationLog = {
   deletedAt: string | null;
 };
 
-export type NewMedicationLog = Omit<MedicationLog, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
+export type NewMedicationLog = Omit<MedicationLog, 'id' | 'uuid' | 'profileId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'deletedAt'>;
 
 export type HistoryItem = {
   id: string;

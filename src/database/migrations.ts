@@ -184,4 +184,61 @@ export const migrations = [
   `
     ALTER TABLE users ADD COLUMN age INTEGER;
   `,
+  `
+    ALTER TABLE users ADD COLUMN account_usage TEXT NOT NULL DEFAULT 'personal';
+  `,
+  `
+    ALTER TABLE blood_pressure_readings ADD COLUMN profile_id INTEGER;
+    ALTER TABLE glicose_readings ADD COLUMN profile_id INTEGER;
+    ALTER TABLE weight_readings ADD COLUMN profile_id INTEGER;
+    ALTER TABLE medications ADD COLUMN profile_id INTEGER;
+    ALTER TABLE medication_logs ADD COLUMN profile_id INTEGER;
+
+    UPDATE blood_pressure_readings
+    SET profile_id = (
+      SELECT profiles.id
+      FROM profiles
+      ORDER BY profiles.id ASC
+      LIMIT 1
+    )
+    WHERE profile_id IS NULL;
+
+    UPDATE glicose_readings
+    SET profile_id = (
+      SELECT profiles.id
+      FROM profiles
+      ORDER BY profiles.id ASC
+      LIMIT 1
+    )
+    WHERE profile_id IS NULL;
+
+    UPDATE weight_readings
+    SET profile_id = (
+      SELECT profiles.id
+      FROM profiles
+      ORDER BY profiles.id ASC
+      LIMIT 1
+    )
+    WHERE profile_id IS NULL;
+
+    UPDATE medications
+    SET profile_id = (
+      SELECT profiles.id
+      FROM profiles
+      ORDER BY profiles.id ASC
+      LIMIT 1
+    )
+    WHERE profile_id IS NULL;
+
+    UPDATE medication_logs
+    SET profile_id = (
+      SELECT medications.profile_id
+      FROM medications
+      WHERE medications.id = medication_logs.medication_id
+    )
+    WHERE profile_id IS NULL;
+  `,
+  `
+    ALTER TABLE profiles ADD COLUMN remote_profile_id INTEGER;
+  `,
 ];

@@ -77,6 +77,8 @@ export default function RootLayout() {
             <Stack.Screen name="unlock" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="profiles" />
+            <Stack.Screen name="cloud-sync" />
             <Stack.Screen name="privacy" />
           </Stack>
         </AuthProvider>

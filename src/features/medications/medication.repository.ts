@@ -1,6 +1,10 @@
 import { getDatabase } from '@/database/client';
 import { pushSyncItems } from '@/services/sync-api.service';
-import { createSyncUuid, getActiveProfileId } from '@/services/sync-metadata.service';
+import {
+  createSyncUuid,
+  getActiveLocalProfileId,
+  getRemoteProfileIdForLocalProfile,
+} from '@/services/sync-metadata.service';
 import type {
     Medication,
     MedicationLog,
@@ -11,6 +15,7 @@ import type {
 type MedicationRow = {
   id: number;
   uuid: string;
+  profile_id: number | null;
   name: string;
   dosage: string;
   instructions: string | null;
@@ -30,6 +35,7 @@ type MedicationRow = {
 type MedicationLogRow = {
   id: number;
   uuid: string;
+  profile_id: number | null;
   medication_uuid: string | null;
   medication_id: number;
   scheduled_at: string;
@@ -45,6 +51,7 @@ function mapMedication(row: MedicationRow): Medication {
   return {
     id: row.id,
     uuid: row.uuid,
+    profileId: row.profile_id,
     name: row.name,
     dosage: row.dosage,
     instructions: row.instructions,
@@ -66,6 +73,7 @@ function mapLog(row: MedicationLogRow): MedicationLog {
   return {
     id: row.id,
     uuid: row.uuid,
+    profileId: row.profile_id,
     medicationId: row.medication_id,
     scheduledAt: row.scheduled_at,
     takenAt: row.taken_at,
@@ -101,9 +109,16 @@ function toRemoteScheduledTime(value: string | null, referenceDate?: string | nu
 export class MedicationRepository {
   async getById(id: number) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return null;
+    }
+
     const row = await database.getFirstAsync<MedicationRow>(
-      'SELECT * FROM medications WHERE id = ? AND deleted_at IS NULL',
-      id
+      'SELECT * FROM medications WHERE id = ? AND profile_id = ? AND deleted_at IS NULL',
+      id,
+      profileId
     );
 
     return row ? mapMedication(row) : null;
@@ -111,6 +126,12 @@ export class MedicationRepository {
 
   async listActive() {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return [];
+    }
+
     const rows = await database.getAllAsync<MedicationRow>(
       `SELECT
           medications.*,
@@ -134,8 +155,10 @@ export class MedicationRepository {
           ) as today_logged_at
         FROM medications
        WHERE active = 1
+         AND profile_id = ?
          AND deleted_at IS NULL
-       ORDER BY name ASC`
+       ORDER BY name ASC`,
+      profileId
     );
 
     return rows.map(mapMedication);
@@ -143,6 +166,12 @@ export class MedicationRepository {
 
   async listAll() {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return [];
+    }
+
     const rows = await database.getAllAsync<MedicationRow>(
       `SELECT
           medications.*,
@@ -164,9 +193,11 @@ export class MedicationRepository {
             ORDER BY datetime(medication_logs.scheduled_at) DESC, medication_logs.id DESC
             LIMIT 1
           ) as today_logged_at
-        FROM medications
-       WHERE deleted_at IS NULL
-       ORDER BY active DESC, name ASC`
+       FROM medications
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+       ORDER BY active DESC, name ASC`,
+      profileId
     );
 
     return rows.map(mapMedication);
@@ -175,11 +206,18 @@ export class MedicationRepository {
   async createMedication(input: NewMedication) {
     const database = await getDatabase();
     const uuid = createSyncUuid();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      throw new Error('Selecione um perfil acompanhado antes de cadastrar medicamento.');
+    }
+
     const result = await database.runAsync(
       `INSERT INTO medications
-        (uuid, name, dosage, instructions, active, scheduled_time, reminder_enabled, repeat_reminder_every_five_minutes, reminder_minutes_before, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, name, dosage, instructions, active, scheduled_time, reminder_enabled, repeat_reminder_every_five_minutes, reminder_minutes_before, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
+      profileId,
       input.name,
       input.dosage,
       input.instructions,
@@ -234,11 +272,22 @@ export class MedicationRepository {
   async createLog(input: NewMedicationLog) {
     const database = await getDatabase();
     const uuid = createSyncUuid();
+    const medicationProfile = await database.getFirstAsync<{ profile_id: number | null }>(
+      'SELECT profile_id FROM medications WHERE id = ?',
+      input.medicationId
+    );
+    const profileId = medicationProfile?.profile_id ?? await getActiveLocalProfileId();
+
+    if (!profileId) {
+      throw new Error('Selecione um perfil acompanhado antes de registrar medicação.');
+    }
+
     const result = await database.runAsync(
       `INSERT INTO medication_logs
-        (uuid, medication_id, scheduled_at, taken_at, status, updated_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, medication_id, scheduled_at, taken_at, status, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
+      profileId,
       input.medicationId,
       input.scheduledAt,
       input.takenAt,
@@ -346,9 +395,9 @@ export class MedicationRepository {
 
   private async syncMedication(medication: Medication) {
     try {
-      const profileId = await getActiveProfileId();
+      const remoteProfileId = await getRemoteProfileIdForLocalProfile(medication.profileId);
 
-      if (!profileId) {
+      if (!remoteProfileId) {
         return;
       }
 
@@ -357,7 +406,7 @@ export class MedicationRepository {
         items: [
           {
             uuid: medication.uuid,
-            profile_id: profileId,
+            profile_id: remoteProfileId,
             name: medication.name,
             dosage: medication.dosage,
             instructions: medication.instructions,
@@ -384,9 +433,9 @@ export class MedicationRepository {
 
   private async syncMedicationLog(log: MedicationLog) {
     try {
-      const profileId = await getActiveProfileId();
+      const remoteProfileId = await getRemoteProfileIdForLocalProfile(log.profileId);
 
-      if (!profileId) {
+      if (!remoteProfileId) {
         return;
       }
 
@@ -395,7 +444,7 @@ export class MedicationRepository {
         items: [
           {
             uuid: log.uuid,
-            profile_id: profileId,
+            profile_id: remoteProfileId,
             medication_id: log.medicationId,
             medication_uuid: await this.getMedicationUuid(log.medicationId),
             taken_at: log.takenAt ?? log.scheduledAt,

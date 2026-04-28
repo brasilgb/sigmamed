@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function SettingsScreen() {
-  const { biometricAvailable, lock, logout, updateAccount, updateBiometric, user } = useAuth();
+  const { biometricAvailable, deleteAccount, lock, logout, updateAccount, updateBiometric, user } = useAuth();
   const emailRef = useRef<TextInput>(null);
   const currentPasswordRef = useRef<TextInput>(null);
   const newPasswordRef = useRef<TextInput>(null);
@@ -28,6 +28,7 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -145,6 +146,47 @@ export default function SettingsScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleDeleteAccount() {
+    if (!user || isDeleting) {
+      return;
+    }
+
+    Alert.alert(
+      'Excluir conta definitivamente',
+      'Isso exclui a conta e os dados no banco da nuvem e neste aparelho. Não há como recuperar depois.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir definitivamente',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                setIsDeleting(true);
+                setError(null);
+                setSuccessMessage(null);
+
+                if (isManagedProfilePhotoUri(photoUri)) {
+                  await removeManagedProfilePhoto(photoUri);
+                }
+
+                await deleteAccount();
+                router.replace('/(auth)/welcome');
+              } catch (deleteError) {
+                setError(deleteError instanceof Error ? deleteError.message : 'Falha ao excluir conta.');
+              } finally {
+                setIsDeleting(false);
+              }
+            })();
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -277,6 +319,44 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {user && user.accountUsage !== 'professional' ? (
+        <View style={styles.sectionCard}>
+          <ThemedText style={styles.sectionEyebrow}>Acompanhados</ThemedText>
+          <ThemedText style={styles.sectionTitle}>
+            {user.accountUsage === 'family' ? 'Pessoas da família' : 'Perfis de cuidado'}
+          </ThemedText>
+          <View style={styles.peopleCard}>
+            <View style={styles.peopleIcon}>
+              <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
+            </View>
+            <View style={styles.peopleCopy}>
+              <ThemedText style={styles.peopleTitle}>Gerenciar acompanhados</ThemedText>
+              <ThemedText style={styles.peopleText}>
+                Cadastre perfis dentro desta conta principal para organizar quem recebe os registros.
+              </ThemedText>
+            </View>
+          </View>
+          <AuthButton label="Abrir acompanhados" variant="secondary" onPress={() => router.push('/profiles' as never)} />
+        </View>
+      ) : null}
+
+      <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Nuvem</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Backup e sincronização</ThemedText>
+        <View style={styles.cloudCard}>
+          <View style={styles.cloudIcon}>
+            <IconSymbol name="cloud.fill" size={22} color={BrandPalette.primary} />
+          </View>
+          <View style={styles.cloudCopy}>
+            <ThemedText style={styles.cloudTitle}>Salvar meus dados na nuvem</ThemedText>
+            <ThemedText style={styles.cloudText}>
+              Veja por que ativar backup, Pix e sincronização mantendo o app funcionando offline.
+            </ThemedText>
+          </View>
+        </View>
+        <AuthButton label="Entender nuvem" variant="secondary" onPress={() => router.push('/cloud-sync' as never)} />
+      </View>
+
       <View style={styles.sectionCard}>
         <ThemedText style={styles.sectionEyebrow}>Sessão</ThemedText>
         <ThemedText style={styles.sectionTitle}>Ações rápidas</ThemedText>
@@ -284,6 +364,25 @@ export default function SettingsScreen() {
           <AuthButton label="Bloquear app" variant="secondary" onPress={lock} style={styles.sessionButton} />
           <AuthButton label="Sair da conta" onPress={() => void logout()} style={styles.sessionButton} />
         </View>
+      </View>
+
+      <View style={[styles.sectionCard, styles.dangerSection]}>
+        <ThemedText style={styles.dangerEyebrow}>Conta</ThemedText>
+        <ThemedText style={styles.dangerTitle}>Excluir conta definitivamente</ThemedText>
+        <ThemedText style={styles.dangerText}>
+          Remove a conta principal, perfis acompanhados e registros no banco da nuvem e neste aparelho.
+          Não ha retorno depois da confirmação.
+        </ThemedText>
+        <AuthButton
+          label={isDeleting ? 'Excluindo...' : 'Excluir conta'}
+          variant="secondary"
+          selected
+          selectedBackgroundColor="#FFF1F1"
+          selectedBorderColor="#F2B8B8"
+          selectedTextColor={Colors.light.danger}
+          disabled={isDeleting}
+          onPress={handleDeleteAccount}
+        />
       </View>
 
       <View style={styles.sectionCard}>
@@ -442,12 +541,94 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  peopleCard: {
+    borderRadius: 20,
+    backgroundColor: Colors.light.surfaceMuted,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  peopleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#DDF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  peopleCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  peopleTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  peopleText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
+  cloudCard: {
+    borderRadius: 20,
+    backgroundColor: '#F0F8F6',
+    padding: 16,
+    flexDirection: 'row',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+  },
+  cloudIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#DDF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cloudCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  cloudTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  cloudText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
   sessionRow: {
     flexDirection: 'row',
     gap: 12,
   },
   sessionButton: {
     flex: 1,
+  },
+  dangerSection: {
+    borderColor: '#F2B8B8',
+    backgroundColor: '#FFF8F8',
+  },
+  dangerEyebrow: {
+    color: Colors.light.danger,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dangerTitle: {
+    color: Colors.light.danger,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  dangerText: {
+    color: Colors.light.textMuted,
+    lineHeight: 21,
   },
   errorText: {
     color: Colors.light.danger,

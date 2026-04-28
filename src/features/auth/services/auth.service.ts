@@ -1,5 +1,7 @@
 import { UserRepository } from '@/features/auth/repositories/user.repository';
 import {
+  createRemoteProfile,
+  deleteRemoteAccount,
   getRemoteAuthenticatedUser,
   getRemoteUserAge,
   getRemoteProfileId,
@@ -11,9 +13,12 @@ import {
 import { deleteRemoteAvatar, uploadRemoteAvatar } from '@/features/auth/services/profile-photo.service';
 import { pullRemoteRecords } from '@/services/remote-sync.service';
 import { syncPendingRecords } from '@/services/pending-sync.service';
+import { getActiveLocalProfileId, setActiveLocalProfileId } from '@/services/sync-metadata.service';
 import {
   clearRemoteSession,
+  clearSessionLocalProfileId,
   clearSessionUserId,
+  getSessionAuthToken,
   getSessionUserId,
   setSessionAuthToken,
   setSessionProfileId,
@@ -21,7 +26,8 @@ import {
   setSessionUserId,
 } from '@/features/auth/services/session-storage.service';
 import { hashSecret, matchesSecret } from '@/features/auth/services/security.service';
-import type { AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
+import { ApiRequestError } from '@/services/api-client';
+import type { AuthProfile, AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 const userRepository = new UserRepository();
 
@@ -44,8 +50,15 @@ export async function restoreSessionUser() {
 }
 
 export async function registerUser(input: RegisterInput): Promise<AuthUser> {
+  const accountUsage = input.accountUsage;
   const name = input.name.trim();
   const email = normalizeEmail(input.email);
+  const patientName = input.patientName?.trim() ?? '';
+  const hasExistingLocalUser = await hasRegisteredUser();
+
+  if (hasExistingLocalUser) {
+    throw new Error('Este aparelho ja possui uma conta principal cadastrada.');
+  }
 
   if (!name) {
     throw new Error('Informe seu nome.');
@@ -55,8 +68,16 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     throw new Error('Informe seu e-mail.');
   }
 
-  if (!input.age || input.age < 1 || input.age > 130) {
-    throw new Error('Informe uma idade válida.');
+  if (accountUsage === 'personal' && (!input.age || input.age < 1 || input.age > 130)) {
+    throw new Error('Informe uma idade valida.');
+  }
+
+  if (accountUsage === 'personal' && (!input.height || input.height < 30 || input.height > 250)) {
+    throw new Error('Informe uma altura valida em centimetros.');
+  }
+
+  if (accountUsage !== 'personal' && !patientName) {
+    throw new Error('Informe o nome da pessoa acompanhada.');
   }
 
   if (input.password.length < 6) {
@@ -74,20 +95,33 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
   }
 
   const remoteAuth = await registerRemoteUser({
+    accountUsage,
     name,
     email,
     age: input.age,
+    height: input.height,
+    patientName: patientName || null,
     password: input.password,
-  });
+  }).catch(() => null);
 
+  const initialRemoteProfileId = remoteAuth?.profileId ?? null;
   const user = await userRepository.createUserWithProfile({
+    accountUsage,
     name,
     email,
     passwordHash: await hashSecret(input.password),
     pinHash: await hashSecret(input.pin),
     useBiometric: input.useBiometric,
-    age: getRemoteUserAge(remoteAuth.user) ?? input.age,
+    age: getRemoteUserAge(remoteAuth?.user ?? null) ?? input.age,
+    profileFullName: accountUsage === 'personal' ? name : patientName,
+    profileHeight: input.height,
+    remoteProfileId: initialRemoteProfileId,
   });
+
+  if (!remoteAuth) {
+    await setSessionUserId(user.id);
+    return user;
+  }
 
   await setSessionAuthToken(remoteAuth.token);
 
@@ -107,6 +141,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
 
   if (remoteProfileId) {
     await setSessionProfileId(remoteProfileId);
+    await userRepository.updateFirstProfileRemoteId(user.id, remoteProfileId);
   }
 
   await setSessionUserId(user.id);
@@ -116,6 +151,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
 
 export async function loginUser(input: LoginInput): Promise<AuthUser> {
   const email = normalizeEmail(input.email);
+  const localUserCount = await userRepository.getCount();
 
   const remoteAuth = await loginRemoteUser({
     email,
@@ -153,7 +189,15 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
       photoUri: getRemoteUserPhotoUri(remoteUser) ?? record.photo_uri,
       passwordHash: await hashSecret(input.password),
     });
+
+    if (remoteProfileId) {
+      await userRepository.updateFirstProfileRemoteId(user.id, remoteProfileId);
+    }
   } else {
+    if (localUserCount > 0) {
+      throw new Error('Este aparelho ja possui uma conta principal cadastrada.');
+    }
+
     const pin = input.pin?.trim() ?? '';
 
     if (!(pin.length === 4 || pin.length === 6) || !/^\d+$/.test(pin)) {
@@ -161,6 +205,7 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
     }
 
     user = await userRepository.createUserWithProfile({
+      accountUsage: 'personal',
       name: remoteUser?.name ?? email,
       email,
       age: getRemoteUserAge(remoteUser),
@@ -168,6 +213,7 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
       pinHash: await hashSecret(pin),
       useBiometric: false,
       photoUri: getRemoteUserPhotoUri(remoteUser),
+      remoteProfileId,
     });
   }
 
@@ -201,6 +247,29 @@ export async function unlockWithPin(userId: number, pin: string) {
 
 export async function logoutUser() {
   await Promise.all([clearSessionUserId(), clearRemoteSession()]);
+}
+
+export async function deleteLocalAccount(userId: number) {
+  const user = await userRepository.getById(userId);
+
+  if (!user) {
+    throw new Error('Conta não encontrada.');
+  }
+
+  const token = await getSessionAuthToken();
+
+  if (token) {
+    try {
+      await deleteRemoteAccount();
+    } catch (error) {
+      if (!(error instanceof ApiRequestError && (error.status === 401 || error.status === 404))) {
+        throw error;
+      }
+    }
+  }
+
+  await userRepository.deleteAccount(userId);
+  await Promise.all([clearSessionUserId(), clearRemoteSession(), clearSessionLocalProfileId()]);
 }
 
 export async function setBiometricPreference(userId: number, enabled: boolean) {
@@ -262,4 +331,51 @@ export async function updateAccount(userId: number, input: UpdateAccountInput): 
     photoUri,
     passwordHash: newPassword ? await hashSecret(newPassword) : undefined,
   });
+}
+
+export async function getAccountProfiles(userId: number): Promise<AuthProfile[]> {
+  return userRepository.getProfilesByUserId(userId);
+}
+
+export async function getActiveAccountProfileId() {
+  return getActiveLocalProfileId();
+}
+
+export async function getActiveAccountProfile() {
+  const profileId = await getActiveLocalProfileId();
+
+  if (profileId) {
+    return userRepository.getProfileById(profileId);
+  }
+
+  const userId = await getSessionUserId();
+  return userId ? userRepository.getProfileByUserId(userId) : null;
+}
+
+export async function setActiveAccountProfile(profileId: number) {
+  await setActiveLocalProfileId(profileId);
+}
+
+export async function createAccountProfile(input: {
+  userId: number;
+  fullName: string;
+  height?: number | null;
+  notes?: string | null;
+}): Promise<AuthProfile> {
+  const user = await userRepository.getById(input.userId);
+
+  if (!user) {
+    throw new Error('Conta não encontrada.');
+  }
+
+  if (user.accountUsage === 'professional') {
+    throw new Error('Contas de cuidador usam somente o paciente principal.');
+  }
+
+  if (input.height !== null && input.height !== undefined && (input.height < 30 || input.height > 250)) {
+    throw new Error('Informe uma altura valida em centimetros.');
+  }
+
+  const remoteProfileId = await createRemoteProfile(input).catch(() => null);
+  return userRepository.createProfile({ ...input, remoteProfileId });
 }

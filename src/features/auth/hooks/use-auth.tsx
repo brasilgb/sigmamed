@@ -11,6 +11,7 @@ import { AppState } from 'react-native';
 
 import { authenticateWithBiometrics, isBiometricSupported } from '@/features/auth/services/biometric.service';
 import {
+  deleteLocalAccount,
   hasRegisteredUser,
   loginUser,
   logoutUser,
@@ -33,6 +34,7 @@ type AuthContextValue = {
   unlockByPin: (pin: string) => Promise<void>;
   unlockByBiometric: () => Promise<boolean>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   lock: () => void;
   suspendAutoLock: () => void;
   resumeAutoLock: () => void;
@@ -165,6 +167,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await logoutUser();
         setUser(null);
         setHasAccount(await hasRegisteredUser());
+        setIsUnlocked(false);
+      },
+      deleteAccount: async () => {
+        if (!user) {
+          return;
+        }
+
+        await deleteLocalAccount(user.id);
+        setUser(null);
+        setHasAccount(false);
         setIsUnlocked(false);
       },
       lock: () => {

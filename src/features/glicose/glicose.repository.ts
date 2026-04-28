@@ -1,11 +1,16 @@
 import { getDatabase } from '@/database/client';
-import { getActiveProfileId, createSyncUuid } from '@/services/sync-metadata.service';
+import {
+  createSyncUuid,
+  getActiveLocalProfileId,
+  getRemoteProfileIdForLocalProfile,
+} from '@/services/sync-metadata.service';
 import { pushSyncItems } from '@/services/sync-api.service';
 import type { GlicoseReading, NewGlicoseReading } from '@/types/health';
 
 type GlicoseRow = {
   id: number;
   uuid: string;
+  profile_id: number | null;
   glicose_value: number;
   unit: 'mg/dL';
   context: GlicoseReading['context'];
@@ -22,6 +27,7 @@ function mapRow(row: GlicoseRow): GlicoseReading {
   return {
     id: row.id,
     uuid: row.uuid,
+    profileId: row.profile_id,
     glicoseValue: row.glicose_value,
     unit: row.unit,
     context: row.context,
@@ -38,9 +44,16 @@ function mapRow(row: GlicoseRow): GlicoseReading {
 export class GlicoseRepository {
   async getById(id: number) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return null;
+    }
+
     const row = await database.getFirstAsync<GlicoseRow>(
-      'SELECT * FROM glicose_readings WHERE id = ? AND deleted_at IS NULL',
-      id
+      'SELECT * FROM glicose_readings WHERE id = ? AND profile_id = ? AND deleted_at IS NULL',
+      id,
+      profileId
     );
 
     return row ? mapRow(row) : null;
@@ -48,11 +61,19 @@ export class GlicoseRepository {
 
   async listRecent(limit = 10) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return [];
+    }
+
     const rows = await database.getAllAsync<GlicoseRow>(
       `SELECT * FROM glicose_readings
-       WHERE deleted_at IS NULL
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
        LIMIT ?`,
+      profileId,
       limit
     );
 
@@ -62,11 +83,18 @@ export class GlicoseRepository {
   async create(input: NewGlicoseReading) {
     const database = await getDatabase();
     const uuid = createSyncUuid();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      throw new Error('Selecione um perfil acompanhado antes de registrar.');
+    }
+
     const result = await database.runAsync(
       `INSERT INTO glicose_readings
-        (uuid, glicose_value, unit, context, measured_at, source, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, glicose_value, unit, context, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
+      profileId,
       input.glicoseValue,
       input.unit,
       input.context,
@@ -157,9 +185,9 @@ export class GlicoseRepository {
 
   private async syncReading(reading: GlicoseReading) {
     try {
-      const profileId = await getActiveProfileId();
+      const remoteProfileId = await getRemoteProfileIdForLocalProfile(reading.profileId);
 
-      if (!profileId) {
+      if (!remoteProfileId) {
         return;
       }
 
@@ -168,7 +196,7 @@ export class GlicoseRepository {
         items: [
           {
             uuid: reading.uuid,
-            profile_id: profileId,
+            profile_id: remoteProfileId,
             glicose_value: reading.glicoseValue,
             unit: reading.unit,
             context: reading.context,

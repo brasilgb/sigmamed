@@ -21,13 +21,11 @@ export default function WelcomeScreen() {
       </View>
 
       <AuthButton label="Criar conta" onPress={() => router.push('/(auth)/register')} />
-      {hasAccount ? (
-        <AuthButton
-          label="Entrar com e-mail e senha"
-          variant="secondary"
-          onPress={() => router.push('/(auth)/login')}
-        />
-      ) : null}
+      <AuthButton
+        label={hasAccount ? 'Entrar com e-mail e senha' : 'Ja tenho conta na nuvem'}
+        variant="secondary"
+        onPress={() => router.push('/(auth)/login')}
+      />
       <AuthButton label="Privacidade e uso" variant="secondary" onPress={() => router.push('/privacy')} />
     </AuthScreen>
   );

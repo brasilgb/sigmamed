@@ -17,6 +17,18 @@ type ApiErrorResponse = {
   errors?: Record<string, string[]>;
 };
 
+export class ApiRequestError extends Error {
+  status: number;
+  payload?: ApiErrorResponse;
+
+  constructor(message: string, status: number, payload?: ApiErrorResponse) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 const configuredBaseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   Constants.expoConfig?.extra?.apiBaseUrl ??
@@ -91,7 +103,12 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const payload = await parseApiResponse<T | ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getApiErrorMessage(payload as ApiErrorResponse | undefined, 'Falha ao conectar com a API.'));
+    const errorPayload = payload as ApiErrorResponse | undefined;
+    throw new ApiRequestError(
+      getApiErrorMessage(errorPayload, 'Falha ao conectar com a API.'),
+      response.status,
+      errorPayload
+    );
   }
 
   return payload as T;

@@ -1,5 +1,6 @@
 export type AuthUser = {
   id: number;
+  accountUsage: AccountUsage;
   name: string;
   email: string;
   age: number | null;
@@ -9,8 +10,11 @@ export type AuthUser = {
   updatedAt: string;
 };
 
+export type AccountUsage = 'personal' | 'family' | 'professional';
+
 export type AuthProfile = {
   id: number;
+  remoteProfileId: number | null;
   userId: number;
   fullName: string | null;
   birthDate: string | null;
@@ -25,9 +29,12 @@ export type AuthProfile = {
 };
 
 export type RegisterInput = {
+  accountUsage: AccountUsage;
   name: string;
   email: string;
   age: number | null;
+  height: number | null;
+  patientName?: string | null;
   password: string;
   pin: string;
   useBiometric: boolean;

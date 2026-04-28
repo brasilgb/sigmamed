@@ -1,11 +1,16 @@
 import { getDatabase } from '@/database/client';
-import { getActiveProfileId, createSyncUuid } from '@/services/sync-metadata.service';
+import {
+  createSyncUuid,
+  getActiveLocalProfileId,
+  getRemoteProfileIdForLocalProfile,
+} from '@/services/sync-metadata.service';
 import { pushSyncItems } from '@/services/sync-api.service';
 import type { BloodPressureReading, NewBloodPressureReading } from '@/types/health';
 
 type BloodPressureRow = {
   id: number;
   uuid: string;
+  profile_id: number | null;
   systolic: number;
   diastolic: number;
   pulse: number | null;
@@ -22,6 +27,7 @@ function mapRow(row: BloodPressureRow): BloodPressureReading {
   return {
     id: row.id,
     uuid: row.uuid,
+    profileId: row.profile_id,
     systolic: row.systolic,
     diastolic: row.diastolic,
     pulse: row.pulse,
@@ -38,9 +44,16 @@ function mapRow(row: BloodPressureRow): BloodPressureReading {
 export class PressureRepository {
   async getById(id: number) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return null;
+    }
+
     const row = await database.getFirstAsync<BloodPressureRow>(
-      'SELECT * FROM blood_pressure_readings WHERE id = ? AND deleted_at IS NULL',
-      id
+      'SELECT * FROM blood_pressure_readings WHERE id = ? AND profile_id = ? AND deleted_at IS NULL',
+      id,
+      profileId
     );
 
     return row ? mapRow(row) : null;
@@ -48,11 +61,19 @@ export class PressureRepository {
 
   async listRecent(limit = 10) {
     const database = await getDatabase();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      return [];
+    }
+
     const rows = await database.getAllAsync<BloodPressureRow>(
       `SELECT * FROM blood_pressure_readings
-       WHERE deleted_at IS NULL
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
        LIMIT ?`,
+      profileId,
       limit
     );
 
@@ -62,11 +83,18 @@ export class PressureRepository {
   async create(input: NewBloodPressureReading) {
     const database = await getDatabase();
     const uuid = createSyncUuid();
+    const profileId = await getActiveLocalProfileId();
+
+    if (!profileId) {
+      throw new Error('Selecione um perfil acompanhado antes de registrar.');
+    }
+
     const result = await database.runAsync(
       `INSERT INTO blood_pressure_readings
-        (uuid, systolic, diastolic, pulse, measured_at, source, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, systolic, diastolic, pulse, measured_at, source, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
+      profileId,
       input.systolic,
       input.diastolic,
       input.pulse,
@@ -157,9 +185,9 @@ export class PressureRepository {
 
   private async syncReading(reading: BloodPressureReading) {
     try {
-      const profileId = await getActiveProfileId();
+      const remoteProfileId = await getRemoteProfileIdForLocalProfile(reading.profileId);
 
-      if (!profileId) {
+      if (!remoteProfileId) {
         return;
       }
 
@@ -168,7 +196,7 @@ export class PressureRepository {
         items: [
           {
             uuid: reading.uuid,
-            profile_id: profileId,
+            profile_id: remoteProfileId,
             systolic: reading.systolic,
             diastolic: reading.diastolic,
             pulse: reading.pulse,

@@ -19,7 +19,13 @@ type AuthApiUser = {
 
 type AuthApiProfile = {
   id: number | string;
+  name?: string | null;
+  full_name?: string | null;
+  height?: number | string | null;
+  notes?: string | null;
 };
+
+export type RemoteProfile = AuthApiProfile;
 
 type AuthApiData = {
   token?: string;
@@ -113,17 +119,23 @@ export type RemoteAuthResult = {
 };
 
 export async function registerRemoteUser(input: {
+  accountUsage: string;
   name: string;
   email: string;
   age: number | null;
+  height: number | null;
+  patientName?: string | null;
   password: string;
 }): Promise<RemoteAuthResult> {
   const response = await apiRequest<AuthApiResponse>('/auth/register', {
     method: 'POST',
     body: {
+      account_usage: input.accountUsage,
       name: input.name,
       email: input.email,
       age: input.age,
+      height: input.height,
+      patient_name: input.patientName ?? null,
       password: input.password,
       password_confirmation: input.password,
     },
@@ -211,6 +223,13 @@ export async function getRemoteSessionContext() {
     tenantId: null,
     profileId: 'profile_id' in response ? response.profile_id ?? null : null,
   };
+}
+
+export async function deleteRemoteAccount() {
+  await apiRequest('/auth/me', {
+    method: 'DELETE',
+    authenticated: true,
+  });
 }
 
 export function getRemoteUserPhotoUri(user: AuthApiUser | null) {
@@ -306,4 +325,51 @@ export async function getRemoteProfileId() {
   }
 
   return null;
+}
+
+export async function createRemoteProfile(input: {
+  fullName: string;
+  height?: number | null;
+  notes?: string | null;
+}) {
+  const response = await apiRequest<ProfileApiResponse>('/profiles', {
+    method: 'POST',
+    authenticated: true,
+    body: {
+      name: input.fullName,
+      height: input.height ?? null,
+      notes: input.notes?.trim() || null,
+    },
+  });
+
+  if ('data' in response && response.data && !Array.isArray(response.data) && 'id' in response.data) {
+    return response.data.id;
+  }
+
+  if ('id' in response && response.id) {
+    return response.id;
+  }
+
+  return null;
+}
+
+export async function listRemoteProfiles(): Promise<RemoteProfile[]> {
+  const response = await apiRequest<ProfileApiResponse>('/profiles', {
+    method: 'GET',
+    authenticated: true,
+  });
+
+  if ('data' in response && Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  if ('data' in response && response.data && !Array.isArray(response.data) && 'id' in response.data) {
+    return [response.data];
+  }
+
+  if ('id' in response && response.id) {
+    return [response];
+  }
+
+  return [];
 }

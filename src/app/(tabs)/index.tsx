@@ -163,6 +163,23 @@ export default function HomeTabScreen() {
         </Pressable>
       </Card>
 
+      <Card style={styles.cloudCard}>
+        <Pressable style={styles.cloudPressable} onPress={() => router.push('/cloud-sync' as never)}>
+          <View style={styles.cloudCopy}>
+            <View style={styles.cloudIconWrap}>
+              <IconSymbol name="cloud.fill" size={22} color={BrandPalette.primary} />
+            </View>
+            <View style={styles.cloudTextWrap}>
+              <ThemedText style={styles.cloudTitle}>Quer salvar seus dados na nuvem?</ThemedText>
+              <ThemedText style={styles.cloudText}>
+                Entenda como manter o app offline e sincronizar seus registros depois.
+              </ThemedText>
+            </View>
+          </View>
+          <IconSymbol name="chevron.right" size={24} color={Colors.light.textSoft} />
+        </Pressable>
+      </Card>
+
       {summary ? (
         <>
           <View style={styles.summaryGrid}>
@@ -395,6 +412,45 @@ const styles = StyleSheet.create({
     color: BrandPalette.white,
     fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  cloudCard: {
+    padding: 0,
+    backgroundColor: Colors.light.surface,
+    borderColor: '#CFE5DF',
+  },
+  cloudPressable: {
+    padding: Space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cloudCopy: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  cloudIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: Radius.md,
+    backgroundColor: '#DDF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cloudTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  cloudTitle: {
+    color: Colors.light.text,
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  cloudText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
   },
   quickGrid: {
     flexDirection: 'row',

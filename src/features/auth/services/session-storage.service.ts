@@ -4,6 +4,7 @@ const SESSION_USER_ID_KEY = 'sigmamed.session.userId';
 const SESSION_AUTH_TOKEN_KEY = 'sigmamed.session.authToken';
 const SESSION_TENANT_ID_KEY = 'sigmamed.session.tenantId';
 const SESSION_PROFILE_ID_KEY = 'sigmamed.session.profileId';
+const SESSION_LOCAL_PROFILE_ID_KEY = 'sigmamed.session.localProfileId';
 
 export async function setSessionUserId(userId: number) {
   await SecureStore.setItemAsync(SESSION_USER_ID_KEY, String(userId));
@@ -52,6 +53,19 @@ export async function getSessionProfileId() {
 
 export async function clearSessionProfileId() {
   await SecureStore.deleteItemAsync(SESSION_PROFILE_ID_KEY);
+}
+
+export async function setSessionLocalProfileId(profileId: string | number) {
+  await SecureStore.setItemAsync(SESSION_LOCAL_PROFILE_ID_KEY, String(profileId));
+}
+
+export async function getSessionLocalProfileId() {
+  const value = await SecureStore.getItemAsync(SESSION_LOCAL_PROFILE_ID_KEY);
+  return value ? Number(value) : null;
+}
+
+export async function clearSessionLocalProfileId() {
+  await SecureStore.deleteItemAsync(SESSION_LOCAL_PROFILE_ID_KEY);
 }
 
 export async function clearRemoteSession() {

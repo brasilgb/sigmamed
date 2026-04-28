@@ -1,4 +1,5 @@
 import { getDatabase } from '@/database/client';
+import { getActiveLocalProfileId } from '@/services/sync-metadata.service';
 import type {
   DashboardSummary,
   DashboardTrends,
@@ -21,6 +22,21 @@ type MetricRow = {
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const database = await getDatabase();
+  const profileId = await getActiveLocalProfileId();
+
+  if (!profileId) {
+    return {
+      totalReadings: 0,
+      pressureLastSevenDays: 0,
+      glicoseLastSevenDays: 0,
+      weightLastSevenDays: 0,
+      activeMedications: 0,
+      adherenceToday: 0,
+      latestPressure: null,
+      latestGlicose: null,
+      latestWeight: null,
+    };
+  }
 
   const [
     totalPressure,
@@ -35,9 +51,18 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     weightLastSevenDays,
     adherenceToday,
   ] = await Promise.all([
-    database.getFirstAsync<CountRow>('SELECT COUNT(*) as count FROM blood_pressure_readings'),
-    database.getFirstAsync<CountRow>('SELECT COUNT(*) as count FROM glicose_readings'),
-    database.getFirstAsync<CountRow>('SELECT COUNT(*) as count FROM weight_readings'),
+    database.getFirstAsync<CountRow>(
+      'SELECT COUNT(*) as count FROM blood_pressure_readings WHERE profile_id = ? AND deleted_at IS NULL',
+      profileId
+    ),
+    database.getFirstAsync<CountRow>(
+      'SELECT COUNT(*) as count FROM glicose_readings WHERE profile_id = ? AND deleted_at IS NULL',
+      profileId
+    ),
+    database.getFirstAsync<CountRow>(
+      'SELECT COUNT(*) as count FROM weight_readings WHERE profile_id = ? AND deleted_at IS NULL',
+      profileId
+    ),
     database.getFirstAsync<DashboardSummary['latestPressure']>(
       `SELECT
         id,
@@ -49,8 +74,11 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         notes,
         created_at as createdAt
        FROM blood_pressure_readings
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
-       LIMIT 1`
+       LIMIT 1`,
+      profileId
     ),
     database.getFirstAsync<DashboardSummary['latestGlicose']>(
       `SELECT
@@ -63,8 +91,11 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         notes,
         created_at as createdAt
        FROM glicose_readings
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
-       LIMIT 1`
+       LIMIT 1`,
+      profileId
     ),
     database.getFirstAsync<DashboardSummary['latestWeight']>(
       `SELECT
@@ -76,24 +107,39 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         notes,
         created_at as createdAt
        FROM weight_readings
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
        ORDER BY datetime(measured_at) DESC
-       LIMIT 1`
+       LIMIT 1`,
+      profileId
     ),
-    database.getFirstAsync<CountRow>('SELECT COUNT(*) as count FROM medications WHERE active = 1'),
+    database.getFirstAsync<CountRow>(
+      'SELECT COUNT(*) as count FROM medications WHERE profile_id = ? AND active = 1 AND deleted_at IS NULL',
+      profileId
+    ),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM blood_pressure_readings
-       WHERE datetime(measured_at) >= datetime('now', '-7 day')`
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', '-7 day')`,
+      profileId
     ),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM glicose_readings
-       WHERE datetime(measured_at) >= datetime('now', '-7 day')`
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', '-7 day')`,
+      profileId
     ),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM weight_readings
-       WHERE datetime(measured_at) >= datetime('now', '-7 day')`
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', '-7 day')`,
+      profileId
     ),
     database.getFirstAsync<AdherenceRow>(
       `SELECT
@@ -105,7 +151,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
           0
         ) as adherence
        FROM medication_logs
-       WHERE date(scheduled_at) = date('now')`
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND date(scheduled_at) = date('now')`,
+      profileId
     ),
   ]);
 
@@ -207,28 +256,47 @@ function buildMetricTrend(
 
 export async function getDashboardTrends(periodDays: ReportPeriodDays = 7): Promise<DashboardTrends> {
   const database = await getDatabase();
+  const profileId = await getActiveLocalProfileId();
   const periodModifier = `-${periodDays} day`;
+
+  if (!profileId) {
+    return {
+      periodDays,
+      pressure: buildMetricTrend('pressure', 'Sistólica média', 'mmHg', periodDays, []),
+      glicose: buildMetricTrend('glicose', 'Glicose média', 'mg/dL', periodDays, []),
+      weight: buildMetricTrend('weight', 'Peso médio', 'kg', periodDays, []),
+    };
+  }
 
   const [pressureRows, glicoseRows, weightRows] = await Promise.all([
     database.getAllAsync<MetricRow>(
       `SELECT measured_at as measuredAt, systolic as value
        FROM blood_pressure_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) ASC`,
+      profileId,
       periodModifier
     ),
     database.getAllAsync<MetricRow>(
       `SELECT measured_at as measuredAt, glicose_value as value
        FROM glicose_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) ASC`,
+      profileId,
       periodModifier
     ),
     database.getAllAsync<MetricRow>(
       `SELECT measured_at as measuredAt, weight as value
        FROM weight_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) ASC`,
+      profileId,
       periodModifier
     ),
   ]);
@@ -251,6 +319,12 @@ type UnifiedHistoryRow = {
 
 export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
   const database = await getDatabase();
+  const profileId = await getActiveLocalProfileId();
+
+  if (!profileId) {
+    return [];
+  }
+
   const rows = await database.getAllAsync<UnifiedHistoryRow>(
     `
       SELECT id, category, title, subtitle, measured_at
@@ -262,6 +336,8 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
           COALESCE('Pulso ' || pulse || ' bpm', 'Sem pulso informado') as subtitle,
           measured_at
         FROM blood_pressure_readings
+        WHERE profile_id = ?
+          AND deleted_at IS NULL
         UNION ALL
         SELECT
           id,
@@ -274,6 +350,8 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
           END as subtitle,
           measured_at
         FROM glicose_readings
+        WHERE profile_id = ?
+          AND deleted_at IS NULL
         UNION ALL
         SELECT
           id,
@@ -282,6 +360,8 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
           COALESCE(notes, 'Peso registrado') as subtitle,
           measured_at
         FROM weight_readings
+        WHERE profile_id = ?
+          AND deleted_at IS NULL
         UNION ALL
         SELECT
           medication_logs.id as id,
@@ -295,10 +375,16 @@ export async function getRecentHistory(limit = 12): Promise<HistoryItem[]> {
           medication_logs.scheduled_at as measured_at
         FROM medication_logs
         INNER JOIN medications ON medications.id = medication_logs.medication_id
+        WHERE medication_logs.profile_id = ?
+          AND medication_logs.deleted_at IS NULL
       )
       ORDER BY measured_at DESC
       LIMIT ?
     `,
+    profileId,
+    profileId,
+    profileId,
+    profileId,
     limit
   );
 

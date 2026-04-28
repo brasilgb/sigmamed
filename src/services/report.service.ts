@@ -5,6 +5,7 @@ import { MedicationRepository } from '@/features/medications/medication.reposito
 import { UserRepository } from '@/features/auth/repositories/user.repository';
 import { getSessionUserId } from '@/features/auth/services/session-storage.service';
 import { getDashboardSummary, getDashboardTrends, getRecentHistory } from '@/services/dashboard.service';
+import { getActiveLocalProfileId } from '@/services/sync-metadata.service';
 import { formatDate, formatDateTime } from '@/utils/date';
 import type {
   BloodPressureReading,
@@ -81,6 +82,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
   const database = await getDatabase();
   const periodModifier = `-${periodDays} day`;
   const sessionUserId = await getSessionUserId().catch(() => null);
+  const profileId = await getActiveLocalProfileId();
 
   const [
     summary,
@@ -110,9 +112,12 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         notes,
         created_at as createdAt
        FROM blood_pressure_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) DESC
        LIMIT 8`,
+      profileId,
       periodModifier
     ),
     database.getAllAsync<GlicoseReading>(
@@ -126,9 +131,12 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         notes,
         created_at as createdAt
        FROM glicose_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) DESC
        LIMIT 8`,
+      profileId,
       periodModifier
     ),
     database.getAllAsync<WeightReading>(
@@ -141,31 +149,46 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         notes,
         created_at as createdAt
        FROM weight_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)
        ORDER BY datetime(measured_at) DESC
        LIMIT 8`,
+      profileId,
       periodModifier
     ),
     medicationRepository.listAll(),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM blood_pressure_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)`,
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)`,
+      profileId,
       periodModifier
     ),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM glicose_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)`,
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)`,
+      profileId,
       periodModifier
     ),
     database.getFirstAsync<CountRow>(
       `SELECT COUNT(*) as count
        FROM weight_readings
-       WHERE datetime(measured_at) >= datetime('now', ?)`,
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(measured_at) >= datetime('now', ?)`,
+      profileId,
       periodModifier
     ),
-    database.getFirstAsync<CountRow>('SELECT COUNT(*) as count FROM medications WHERE active = 1'),
+    database.getFirstAsync<CountRow>(
+      'SELECT COUNT(*) as count FROM medications WHERE profile_id = ? AND active = 1 AND deleted_at IS NULL',
+      profileId
+    ),
     database.getFirstAsync<AdherenceRow>(
       `SELECT
         COALESCE(
@@ -180,7 +203,10 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
         COUNT(*) as total_count
        FROM medication_logs
-       WHERE datetime(scheduled_at) >= datetime('now', ?)`,
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+         AND datetime(scheduled_at) >= datetime('now', ?)`,
+      profileId,
       periodModifier
     ),
   ]);
@@ -191,7 +217,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
     try {
       const [currentUser, profile] = await Promise.all([
         userRepository.getById(sessionUserId),
-        userRepository.getProfileByUserId(sessionUserId),
+        profileId ? userRepository.getProfileById(profileId) : userRepository.getProfileByUserId(sessionUserId),
       ]);
 
       if (currentUser) {

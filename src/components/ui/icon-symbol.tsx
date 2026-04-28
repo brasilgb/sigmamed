@@ -29,6 +29,12 @@ const MAPPING = {
   'lock.fill': 'lock',
   'rectangle.portrait.and.arrow.right.fill': 'logout',
   'gearshape.fill': 'settings',
+  'cloud.fill': 'cloud',
+  'qrcode': 'qr-code',
+  'wifi.slash': 'wifi-off',
+  'arrow.triangle.2.circlepath': 'sync',
+  'person.2.fill': 'group',
+  'person.crop.circle.fill.badge.plus': 'person-add',
 } satisfies Record<string, MaterialIconName>;
 
 /**

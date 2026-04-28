@@ -1,8 +1,9 @@
 import { getDatabase } from '@/database/client';
-import type { AuthProfile, AuthUser } from '@/features/auth/types/auth';
+import type { AccountUsage, AuthProfile, AuthUser } from '@/features/auth/types/auth';
 
 type UserRow = {
   id: number;
+  account_usage: AccountUsage | null;
   name: string;
   email: string;
   age: number | null;
@@ -16,6 +17,7 @@ type UserRow = {
 
 type ProfileRow = {
   id: number;
+  remote_profile_id: number | null;
   user_id: number;
   full_name: string | null;
   birth_date: string | null;
@@ -30,6 +32,7 @@ type ProfileRow = {
 };
 
 type CreateUserInput = {
+  accountUsage: AccountUsage;
   name: string;
   email: string;
   passwordHash: string;
@@ -37,6 +40,25 @@ type CreateUserInput = {
   useBiometric: boolean;
   photoUri?: string | null;
   age?: number | null;
+  profileFullName?: string | null;
+  profileHeight?: number | null;
+  remoteProfileId?: number | string | null;
+};
+
+type CreateProfileInput = {
+  userId: number;
+  fullName: string;
+  height?: number | null;
+  notes?: string | null;
+  remoteProfileId?: number | string | null;
+};
+
+type UpsertRemoteProfileInput = {
+  userId: number;
+  remoteProfileId: number | string;
+  fullName?: string | null;
+  height?: number | string | null;
+  notes?: string | null;
 };
 
 type UpdateUserInput = {
@@ -50,6 +72,7 @@ type UpdateUserInput = {
 function mapUser(row: UserRow): AuthUser {
   return {
     id: row.id,
+    accountUsage: row.account_usage ?? 'personal',
     name: row.name,
     email: row.email,
     age: row.age,
@@ -63,6 +86,7 @@ function mapUser(row: UserRow): AuthUser {
 function mapProfile(row: ProfileRow): AuthProfile {
   return {
     id: row.id,
+    remoteProfileId: row.remote_profile_id,
     userId: row.user_id,
     fullName: row.full_name,
     birthDate: row.birth_date,
@@ -122,11 +146,12 @@ export class UserRepository {
 
       const userResult = await database.runAsync(
         `INSERT INTO users
-          (name, email, age, password_hash, pin_hash, use_biometric, photo_uri, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          (name, email, age, account_usage, password_hash, pin_hash, use_biometric, photo_uri, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         input.name,
         input.email,
         input.age ?? null,
+        input.accountUsage,
         input.passwordHash,
         input.pinHash,
         input.useBiometric ? 1 : 0,
@@ -135,10 +160,12 @@ export class UserRepository {
 
       await database.runAsync(
         `INSERT INTO profiles
-          (user_id, full_name, updated_at)
-         VALUES (?, ?, CURRENT_TIMESTAMP)`,
+          (user_id, remote_profile_id, full_name, height, updated_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         userResult.lastInsertRowId,
-        input.name
+        input.remoteProfileId ? Number(input.remoteProfileId) : null,
+        input.profileFullName ?? input.name,
+        input.profileHeight ?? null
       );
 
       const createdRow = await database.getFirstAsync<UserRow>(
@@ -211,13 +238,17 @@ export class UserRepository {
         );
       }
 
-      await database.runAsync(
-        `UPDATE profiles
-         SET full_name = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = ?`,
-        input.name,
-        userId
-      );
+      const userRecord = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE id = ?', userId);
+
+      if ((userRecord?.account_usage ?? 'personal') === 'personal') {
+        await database.runAsync(
+          `UPDATE profiles
+           SET full_name = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ?`,
+          input.name,
+          userId
+        );
+      }
 
       const row = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE id = ?', userId);
 
@@ -235,6 +266,39 @@ export class UserRepository {
     return updatedUser;
   }
 
+  async deleteAccount(userId: number): Promise<void> {
+    const database = await getDatabase();
+
+    await database.withTransactionAsync(async () => {
+      const profiles = await database.getAllAsync<{ id: number }>(
+        'SELECT id FROM profiles WHERE user_id = ?',
+        userId
+      );
+      const profileIds = profiles.map((profile) => profile.id);
+
+      if (profileIds.length > 0) {
+        const placeholders = profileIds.map(() => '?').join(', ');
+
+        await database.runAsync(
+          `DELETE FROM medication_logs
+           WHERE profile_id IN (${placeholders})
+              OR medication_id IN (
+                SELECT id FROM medications WHERE profile_id IN (${placeholders})
+              )`,
+          ...profileIds,
+          ...profileIds
+        );
+        await database.runAsync(`DELETE FROM medications WHERE profile_id IN (${placeholders})`, ...profileIds);
+        await database.runAsync(`DELETE FROM blood_pressure_readings WHERE profile_id IN (${placeholders})`, ...profileIds);
+        await database.runAsync(`DELETE FROM glicose_readings WHERE profile_id IN (${placeholders})`, ...profileIds);
+        await database.runAsync(`DELETE FROM weight_readings WHERE profile_id IN (${placeholders})`, ...profileIds);
+      }
+
+      await database.runAsync('DELETE FROM profiles WHERE user_id = ?', userId);
+      await database.runAsync('DELETE FROM users WHERE id = ?', userId);
+    });
+  }
+
   async getProfileByUserId(userId: number): Promise<AuthProfile | null> {
     const database = await getDatabase();
     const row = await database.getFirstAsync<ProfileRow>(
@@ -242,5 +306,137 @@ export class UserRepository {
       userId
     );
     return row ? mapProfile(row) : null;
+  }
+
+  async getProfileById(id: number): Promise<AuthProfile | null> {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<ProfileRow>('SELECT * FROM profiles WHERE id = ?', id);
+    return row ? mapProfile(row) : null;
+  }
+
+  async getProfileByRemoteId(remoteProfileId: number): Promise<AuthProfile | null> {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<ProfileRow>(
+      'SELECT * FROM profiles WHERE remote_profile_id = ?',
+      remoteProfileId
+    );
+    return row ? mapProfile(row) : null;
+  }
+
+  async updateProfileRemoteId(profileId: number, remoteProfileId: number | string): Promise<void> {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE profiles
+       SET remote_profile_id = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      Number(remoteProfileId),
+      profileId
+    );
+  }
+
+  async updateFirstProfileRemoteId(userId: number, remoteProfileId: number | string): Promise<void> {
+    const database = await getDatabase();
+    const profile = await database.getFirstAsync<ProfileRow>(
+      `SELECT *
+       FROM profiles
+       WHERE user_id = ?
+       ORDER BY id ASC
+       LIMIT 1`,
+      userId
+    );
+
+    if (!profile || profile.remote_profile_id) {
+      return;
+    }
+
+    await this.updateProfileRemoteId(profile.id, remoteProfileId);
+  }
+
+  async getProfilesByUserId(userId: number): Promise<AuthProfile[]> {
+    const database = await getDatabase();
+    const rows = await database.getAllAsync<ProfileRow>(
+      `SELECT *
+       FROM profiles
+       WHERE user_id = ?
+       ORDER BY updated_at DESC, id DESC`,
+      userId
+    );
+
+    return rows.map(mapProfile);
+  }
+
+  async createProfile(input: CreateProfileInput): Promise<AuthProfile> {
+    const database = await getDatabase();
+    const fullName = input.fullName.trim();
+
+    if (!fullName) {
+      throw new Error('Informe o nome da pessoa acompanhada.');
+    }
+
+    const result = await database.runAsync(
+      `INSERT INTO profiles
+        (user_id, remote_profile_id, full_name, height, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      input.userId,
+      input.remoteProfileId ? Number(input.remoteProfileId) : null,
+      fullName,
+      input.height ?? null,
+      input.notes?.trim() || null
+    );
+
+    const row = await database.getFirstAsync<ProfileRow>(
+      'SELECT * FROM profiles WHERE id = ?',
+      result.lastInsertRowId
+    );
+
+    if (!row) {
+      throw new Error('Falha ao cadastrar acompanhado.');
+    }
+
+    return mapProfile(row);
+  }
+
+  async upsertRemoteProfile(input: UpsertRemoteProfileInput): Promise<AuthProfile> {
+    const database = await getDatabase();
+    const remoteProfileId = Number(input.remoteProfileId);
+    const existing = await database.getFirstAsync<ProfileRow>(
+      'SELECT * FROM profiles WHERE remote_profile_id = ?',
+      remoteProfileId
+    );
+    const height =
+      input.height === null || input.height === undefined || input.height === ''
+        ? null
+        : Number(input.height);
+
+    if (existing) {
+      await database.runAsync(
+        `UPDATE profiles
+         SET full_name = COALESCE(?, full_name),
+             height = ?,
+             notes = COALESCE(?, notes),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        input.fullName?.trim() || null,
+        Number.isFinite(height) ? height : null,
+        input.notes?.trim() || null,
+        existing.id
+      );
+
+      const row = await database.getFirstAsync<ProfileRow>('SELECT * FROM profiles WHERE id = ?', existing.id);
+
+      if (!row) {
+        throw new Error('Falha ao atualizar perfil remoto.');
+      }
+
+      return mapProfile(row);
+    }
+
+    return this.createProfile({
+      userId: input.userId,
+      remoteProfileId,
+      fullName: input.fullName?.trim() || 'Perfil remoto',
+      height: Number.isFinite(height) ? height : null,
+      notes: input.notes ?? null,
+    });
   }
 }
