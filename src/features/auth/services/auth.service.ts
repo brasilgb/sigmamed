@@ -96,7 +96,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     age: input.age,
     height: input.height,
     password: input.password,
-  }).catch(() => null);
+  });
 
   const initialRemoteProfileId = remoteAuth?.profileId ?? null;
   const user = await userRepository.createUserWithProfile({
@@ -112,11 +112,6 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     remoteProfileId: initialRemoteProfileId,
     createInitialProfile: accountUsage === 'personal',
   });
-
-  if (!remoteAuth) {
-    await setSessionUserId(user.id);
-    return user;
-  }
 
   await setSessionAuthToken(remoteAuth.token);
 

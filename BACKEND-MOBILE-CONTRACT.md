@@ -98,6 +98,7 @@ O app usa:
 - `data.avatar_url` do upload de avatar para foto de perfil remota
 
 Regra SaaS: o backend deve persistir o cliente principal no cadastro mesmo sem plano ativo. Esse cadastro precisa criar `user`, `tenant`, perfil inicial e um registro de cliente/assinatura em status `inactive` ou equivalente. Isso permite gerenciar no SaaS quem se cadastrou, qual `account_usage` foi escolhido e se a conta ja aderiu ou nao a algum plano. A falta de plano ativo bloqueia apenas sincronizacao em nuvem e recursos pagos, nao o cadastro da conta.
+O app atual exige sucesso em `POST /auth/register` para concluir o cadastro. Se a API estiver indisponivel ou retornar erro, a conta local nao e criada, para evitar cadastro apenas no aparelho sem registro no SaaS.
 
 Compatibilidade atual do app:
 
@@ -667,7 +668,7 @@ Antes de puxar os registros clinicos, o app chama `GET /profiles` e faz upsert l
 ## Observações de Implementação
 
 - Login remoto é online-only.
-- Registro pode criar conta local mesmo sem API; nesse caso a sincronização fica pendente até autenticar/liberar a nuvem.
+- Registro exige API disponivel e resposta de sucesso para gravar o cliente no SaaS; o app nao cria mais conta local quando `POST /auth/register` falha.
 - Depois do login, o app opera offline-first com SQLite.
 - Quando o backend estiver disponível, o app tenta `sync/push` dos pendentes.
 - Em outro celular, o app faz login online e depois `sync/pull`.
