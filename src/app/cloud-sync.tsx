@@ -1,11 +1,23 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
+import { useAuth } from '@/features/auth/hooks/use-auth';
+import {
+  createBillingCheckout,
+  getBillingCycleLabel,
+  getBillingPlanLabel,
+  getBillingPlanPriceLabel,
+  getBillingSyncAccess,
+  type BillingCheckout,
+  type BillingPlan,
+  type BillingSyncAccess,
+} from '@/services/billing.service';
 
 const benefits = [
   {
@@ -25,7 +37,115 @@ const benefits = [
   },
 ];
 
+const planOptions: {
+  plan: BillingPlan;
+  account: 'personal' | 'family';
+  title: string;
+  cycle: string;
+  description: string;
+}[] = [
+  {
+    plan: 'personal_monthly',
+    account: 'personal',
+    title: 'Essencial mensal',
+    cycle: 'Mensal',
+    description: 'Para uso individual com backup e sincronizacao em nuvem.',
+  },
+  {
+    plan: 'personal_annual',
+    account: 'personal',
+    title: 'Essencial anual',
+    cycle: 'Anual',
+    description: 'Mesmo acesso pessoal com ciclo anual.',
+  },
+  {
+    plan: 'family_caregiver_monthly',
+    account: 'family',
+    title: 'Cuidado Familiar mensal',
+    cycle: 'Mensal',
+    description: 'Para conta que acompanha outra pessoa ou perfis de cuidado.',
+  },
+  {
+    plan: 'family_caregiver_annual',
+    account: 'family',
+    title: 'Cuidado Familiar anual',
+    cycle: 'Anual',
+    description: 'Mesmo acesso familiar/cuidador com ciclo anual.',
+  },
+];
+
+function formatAmount(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
+
 export default function CloudSyncScreen() {
+  const { user } = useAuth();
+  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<BillingPlan | null>(null);
+  const [checkout, setCheckout] = useState<BillingCheckout | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const accountPlanType = user?.accountUsage === 'personal' ? 'personal' : 'family';
+  const visiblePlans = useMemo(
+    () => planOptions.filter((option) => option.account === accountPlanType),
+    [accountPlanType]
+  );
+
+  useEffect(() => {
+    setSelectedPlan(visiblePlans[0]?.plan ?? null);
+  }, [visiblePlans]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadAccess() {
+      setIsLoading(true);
+
+      try {
+        const access = await getBillingSyncAccess();
+
+        if (isMounted) {
+          setSyncAccess(access);
+        }
+      } catch {
+        if (isMounted) {
+          setError('Nao foi possivel carregar o status da assinatura.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadAccess();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function handleCheckout() {
+    if (!selectedPlan) {
+      return;
+    }
+
+    try {
+      setIsCheckingOut(true);
+      setError(null);
+      setCheckout(await createBillingCheckout(selectedPlan));
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Falha ao gerar Pix.');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  }
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -76,17 +196,75 @@ export default function CloudSyncScreen() {
             <IconSymbol name="qrcode" size={22} color={BrandPalette.navy} />
           </View>
           <View style={styles.paymentCopy}>
-            <ThemedText style={styles.paymentTitle}>Liberação por Pix</ThemedText>
+            <ThemedText style={styles.paymentTitle}>Planos com Pix</ThemedText>
             <ThemedText style={styles.paymentText}>
-              Em breve, o backend vai gerar QR code ou Pix copia e cola. Depois da confirmação do pagamento,
-              a sincronização na nuvem ficará ativa para esta conta.
+              A conta principal fica cadastrada no SaaS mesmo sem plano ativo. Ao escolher um plano, o
+              backend gera o Pix e libera a sincronização depois da confirmação do pagamento.
             </ThemedText>
           </View>
         </View>
-        <AuthButton label="Quero salvar na nuvem" disabled onPress={() => undefined} />
-        <ThemedText style={styles.paymentHint}>
-          Esta etapa depende da integração de pagamento no backend.
-        </ThemedText>
+        <View style={styles.statusCard}>
+          <ThemedText style={styles.statusLabel}>Status</ThemedText>
+          <ThemedText style={styles.statusValue}>
+            {syncAccess?.sync_enabled ? 'Sincronizando na nuvem' : isLoading ? 'Carregando...' : 'Nuvem não ativada'}
+          </ThemedText>
+        </View>
+        <View style={styles.planList}>
+          {visiblePlans.map((option) => {
+            const isSelected = selectedPlan === option.plan;
+
+            return (
+              <Pressable
+                key={option.plan}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                onPress={() => {
+                  setSelectedPlan(option.plan);
+                  setCheckout(null);
+                  setError(null);
+                }}
+                style={[styles.planCard, isSelected ? styles.planCardSelected : null]}>
+                <View style={styles.planHeader}>
+                  <ThemedText style={styles.planTitle}>{option.title}</ThemedText>
+                  <View style={styles.planBadges}>
+                    <ThemedText style={[styles.planPrice, isSelected ? styles.planPriceSelected : null]}>
+                      {getBillingPlanPriceLabel(option.plan)}
+                    </ThemedText>
+                    <ThemedText style={[styles.planCycle, isSelected ? styles.planCycleSelected : null]}>
+                      {getBillingCycleLabel(option.plan.endsWith('_annual') ? 'annual' : 'monthly')}
+                    </ThemedText>
+                  </View>
+                </View>
+                <ThemedText style={styles.planDescription}>{option.description}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+        {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+        <AuthButton
+          label={isCheckingOut ? 'Gerando Pix...' : 'Gerar Pix'}
+          disabled={isCheckingOut || !selectedPlan}
+          onPress={handleCheckout}
+        />
+        {checkout ? (
+          <View style={styles.checkoutCard}>
+            <ThemedText style={styles.checkoutTitle}>
+              {getBillingPlanLabel(checkout.plan)}: {formatAmount(checkout.amount)}
+            </ThemedText>
+            {checkout.qr_code_base64 ? (
+              <Image
+                source={{ uri: `data:image/png;base64,${checkout.qr_code_base64}` }}
+                style={styles.qrImage}
+              />
+            ) : null}
+            <ThemedText selectable style={styles.pixCode}>
+              {checkout.qr_code}
+            </ThemedText>
+            <ThemedText style={styles.paymentHint}>
+              Depois da aprovação do pagamento, o backend deve marcar a sincronização como ativa.
+            </ThemedText>
+          </View>
+        ) : null}
       </View>
     </Screen>
   );
@@ -199,6 +377,123 @@ const styles = StyleSheet.create({
     borderColor: '#D6E2E6',
     padding: Space.lg,
     gap: 14,
+  },
+  statusCard: {
+    borderRadius: Radius.md,
+    backgroundColor: '#F3F8F9',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    padding: Space.md,
+    gap: 4,
+  },
+  statusLabel: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  statusValue: {
+    color: Colors.light.text,
+    fontWeight: '800',
+  },
+  planList: {
+    gap: 10,
+  },
+  planCard: {
+    borderRadius: Radius.md,
+    backgroundColor: '#F7FAFB',
+    borderWidth: 1,
+    borderColor: '#D6E2E6',
+    padding: Space.md,
+    gap: 8,
+  },
+  planCardSelected: {
+    backgroundColor: '#E9F7F4',
+    borderColor: BrandPalette.primary,
+  },
+  planHeader: {
+    gap: 10,
+  },
+  planTitle: {
+    flex: 1,
+    color: Colors.light.text,
+    fontWeight: '800',
+  },
+  planBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  planPrice: {
+    borderRadius: Radius.pill,
+    backgroundColor: '#F4E8C8',
+    borderWidth: 1,
+    borderColor: '#E8D49C',
+    color: BrandPalette.navy,
+    fontSize: 12,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  planPriceSelected: {
+    backgroundColor: Colors.light.surface,
+    borderColor: '#B7DDD6',
+    color: BrandPalette.primary,
+  },
+  planCycle: {
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  planCycleSelected: {
+    color: BrandPalette.primary,
+    borderColor: '#B7DDD6',
+  },
+  planDescription: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  errorText: {
+    color: Colors.light.danger,
+    fontWeight: '700',
+  },
+  checkoutCard: {
+    borderRadius: Radius.md,
+    backgroundColor: '#F7FAFB',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    padding: Space.md,
+    gap: 12,
+  },
+  checkoutTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+  },
+  qrImage: {
+    width: 180,
+    height: 180,
+    alignSelf: 'center',
+    borderRadius: Radius.sm,
+  },
+  pixCode: {
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    color: Colors.light.text,
+    fontSize: 12,
+    lineHeight: 18,
+    padding: 10,
   },
   paymentHeader: {
     flexDirection: 'row',

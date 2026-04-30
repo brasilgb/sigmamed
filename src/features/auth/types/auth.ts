@@ -17,6 +17,7 @@ export type AuthProfile = {
   remoteProfileId: number | null;
   userId: number;
   fullName: string | null;
+  age: number | null;
   birthDate: string | null;
   sex: string | null;
   height: number | null;
@@ -34,7 +35,6 @@ export type RegisterInput = {
   email: string;
   age: number | null;
   height: number | null;
-  patientName?: string | null;
   password: string;
   pin: string;
   useBiometric: boolean;

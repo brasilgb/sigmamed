@@ -10,12 +10,20 @@ import { AuthScreen } from '@/components/auth/auth-screen';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  getBillingCycleLabel,
+  getBillingPlanLabel,
+  getBillingSyncAccess,
+  type BillingSyncAccess,
+} from '@/services/billing.service';
 
 export default function UnlockScreen() {
   const { biometricAvailable, isUnlocked, unlockByBiometric, unlockByPin, user } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isPinBusy, setIsPinBusy] = useState(false);
   const [isBiometricBusy, setIsBiometricBusy] = useState(false);
   const autoBiometricAttemptedRef = useRef(false);
@@ -54,6 +62,41 @@ export default function UnlockScreen() {
     autoBiometricAttemptedRef.current = true;
     void handleBiometricUnlock({ silent: true });
   }, [biometricAvailable, handleBiometricUnlock, user?.useBiometric]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPlan() {
+      if (!user) {
+        setSyncAccess(null);
+        return;
+      }
+
+      setIsLoadingPlan(true);
+
+      try {
+        const access = await getBillingSyncAccess();
+
+        if (isMounted) {
+          setSyncAccess(access);
+        }
+      } catch {
+        if (isMounted) {
+          setSyncAccess(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPlan(false);
+        }
+      }
+    }
+
+    void loadPlan();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   if (!user) {
     return <Redirect href="/(auth)/welcome" />;
@@ -104,6 +147,12 @@ export default function UnlockScreen() {
     user.useBiometric && !biometricAvailable
       ? 'Biometria não disponível ou não cadastrada neste aparelho.'
       : null;
+  const planCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
+  const planText = syncAccess?.sync_enabled
+    ? `${getBillingPlanLabel(syncAccess.plan)}${planCycle ? ` - ${planCycle}` : ''}`
+    : isLoadingPlan
+      ? 'Carregando plano...'
+      : 'Nuvem não ativada';
 
   return (
     <AuthScreen
@@ -121,6 +170,17 @@ export default function UnlockScreen() {
         <View style={styles.accountCopy}>
           <ThemedText style={[styles.accountLabel, { color: Colors[colorScheme].textMuted }]}>
             Conta ativa
+          </ThemedText>
+          <ThemedText
+            style={[
+              styles.planBadge,
+              {
+                backgroundColor: syncAccess?.sync_enabled ? '#DDF1EC' : Colors[colorScheme].surface,
+                borderColor: Colors[colorScheme].border,
+                color: syncAccess?.sync_enabled ? '#0E9F8C' : Colors[colorScheme].textMuted,
+              },
+            ]}>
+            {planText}
           </ThemedText>
           <ThemedText style={[styles.accountName, { color: Colors[colorScheme].text }]}>
             {user.name}
@@ -180,6 +240,16 @@ const styles = StyleSheet.create({
   accountLabel: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  planBadge: {
+    borderRadius: 999,
+    borderWidth: 1,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 18,
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   accountName: {
     fontSize: 20,

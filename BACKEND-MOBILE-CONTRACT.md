@@ -33,7 +33,7 @@ Login deve retornar `token` e `user` dentro de `data`; `tenant`, `profile` ou `p
 No cadastro, o app envia também o tipo de uso escolhido:
 
 - `personal`: uso pessoal. `age` e `height` representam o próprio usuário e o perfil inicial usa o nome da conta.
-- `family`: uso familiar/cuidador. A conta é do responsável/cuidador e `patient_name` representa a primeira pessoa acompanhada. `height`, quando enviado, representa a altura dessa pessoa acompanhada.
+- `family`: uso familiar/cuidador. A conta é do responsável/cuidador. Pessoas acompanhadas são cadastradas depois, em `/profiles`.
 
 `professional` pode ser mantido pelo backend apenas como compatibilidade com contas antigas, mas o cadastro mobile atual nao oferece essa opcao separada porque `family` e cuidador usam o mesmo fluxo.
 
@@ -46,13 +46,12 @@ Payload de registro esperado:
   "email": "joao@exemplo.com",
   "age": 35,
   "height": 170,
-  "patient_name": null,
   "password": "secret123",
   "password_confirmation": "secret123"
 }
 ```
 
-Para `family`, `age` pode ser `null` no cadastro da conta e `height` e opcional. O backend deve criar a conta de login e criar ou preparar o primeiro perfil acompanhado com `patient_name`, gravando `height` nesse perfil quando informado.
+Para `family`, `age` e `height` podem ser `null` no cadastro da conta. O backend deve criar a conta principal, tenant e cliente SaaS, mas nao precisa criar pessoa acompanhada nesse endpoint. Depois do cadastro, o app apenas informa que os acompanhados devem ser cadastrados em Configurações > Acompanhados, tela que chama `POST /profiles`.
 No app atual, se ja existir uma conta principal local, cadastro de outro usuario e login que criaria outro usuario local devem ser bloqueados.
 O tenant atual pode ser obtido em:
 
@@ -97,6 +96,8 @@ O app usa:
 - `GET /api/v1/auth/me` para obter o tenant atual depois do login
 - `GET /api/v1/profile` para obter `profile_id` nos payloads de sync
 - `data.avatar_url` do upload de avatar para foto de perfil remota
+
+Regra SaaS: o backend deve persistir o cliente principal no cadastro mesmo sem plano ativo. Esse cadastro precisa criar `user`, `tenant`, perfil inicial e um registro de cliente/assinatura em status `inactive` ou equivalente. Isso permite gerenciar no SaaS quem se cadastrou, qual `account_usage` foi escolhido e se a conta ja aderiu ou nao a algum plano. A falta de plano ativo bloqueia apenas sincronizacao em nuvem e recursos pagos, nao o cadastro da conta.
 
 Compatibilidade atual do app:
 
@@ -203,6 +204,7 @@ Response esperado:
       "user_id": 1,
       "name": "Maria Silva",
       "photo_path": null,
+      "age": 68,
       "height": 165,
       "target_weight": null,
       "has_diabetes": false,
@@ -232,6 +234,7 @@ Body:
 ```json
 {
   "name": "Maria Silva",
+  "age": 68,
   "height": 165,
   "notes": "Acompanhamento familiar"
 }
@@ -247,6 +250,7 @@ Response esperado:
     "tenant_id": 1,
     "user_id": 1,
     "name": "Maria Silva",
+    "age": 68,
     "height": 165,
     "notes": "Acompanhamento familiar",
     "created_at": "2026-04-25T10:00:00Z",
@@ -547,8 +551,11 @@ Response esperado:
   "data": {
     "sync_enabled": false,
     "status": "inactive",
+    "plan": null,
+    "cycle": null,
     "expires_at": null,
-    "provider": "mercado_pago"
+    "provider": "mercado_pago",
+    "paid_at": null
   },
   "meta": {},
   "message": "Sync access loaded."
@@ -569,13 +576,35 @@ Body:
 
 ```json
 {
-  "plan": "personal" 
+  "plan": "personal_monthly"
 }
 ```
 
 Valores suportados em `plan`:
-- `personal`: R$ 9,90 (uso individual)
-- `family`: R$ 19,90 (familiar/cuidador)
+
+- `personal_monthly`: uso pessoal, ciclo mensal.
+- `personal_annual`: uso pessoal, ciclo anual.
+- `family_caregiver_monthly`: familiar/cuidador, ciclo mensal.
+- `family_caregiver_annual`: familiar/cuidador, ciclo anual.
+
+Nomes comerciais sugeridos para exibição:
+
+- `personal_monthly`: Essencial mensal.
+- `personal_annual`: Essencial anual.
+- `family_caregiver_monthly`: Cuidado Familiar mensal.
+- `family_caregiver_annual`: Cuidado Familiar anual.
+
+Valores sugeridos:
+
+- `personal_monthly`: R$ 9,90/mês.
+- `personal_annual`: R$ 99,90/ano.
+- `family_caregiver_monthly`: R$ 19,90/mês.
+- `family_caregiver_annual`: R$ 199,90/ano.
+
+O backend continua sendo a fonte final dos valores cobrados e deve retornar o valor efetivo em `data.amount`.
+
+Regra de compatibilidade: contas `account_usage = personal` devem usar planos `personal_*`. Contas `family` ou `professional` devem usar planos `family_caregiver_*`. O backend deve validar essa combinacao antes de criar o pagamento.
+Os valores finais ficam no backend e devem retornar em `data.amount`; o app nao depende de preco hardcoded para confirmar o pagamento.
 
 Response esperado:
 
@@ -584,10 +613,12 @@ Response esperado:
   "data": {
     "payment_id": "123456789",
     "status": "pending",
+    "plan": "family_caregiver_monthly",
     "amount": 19.9,
     "currency": "BRL",
     "qr_code": "000201...",
     "qr_code_base64": "iVBORw0KGgo...",
+    "checkout_url": null,
     "expires_at": "2026-04-25T12:30:00Z"
   },
   "meta": {},
@@ -595,11 +626,13 @@ Response esperado:
 }
 ```
 
-Quando o pagamento for aprovado pelo Mercado Pago (via Webhook), o backend ativa `sync_enabled = true` e preenche `paid_at`.
+Quando o checkout Pix for criado, o backend deve registrar a tentativa de pagamento vinculada ao tenant/cliente, com `plan`, `cycle`, `provider`, `payment_id`, `amount`, `status = pending` e vencimento do Pix.
+
+Quando o pagamento for aprovado pelo Mercado Pago ou outro provedor via webhook, o backend ativa `sync_enabled = true`, preenche `paid_at`, define `plan`, `cycle`, `expires_at` e atualiza o status da assinatura para `active`.
 
 Quando o pagamento for confirmado pelo provedor, o backend deve marcar `sync_enabled = true` para o tenant/usuário autenticado. Enquanto `sync_enabled` for `false`, endpoints de `sync/push` e `sync/pull` devem retornar erro claro de acesso não liberado.
 
-Observacao de status mobile: a tela atual de nuvem ainda e informativa e nao chama esses endpoints de billing. O contrato acima representa a API esperada para habilitar a proxima etapa de checkout Pix e controle de acesso ao sync.
+Observacao de status mobile: a tela de nuvem consulta `GET /billing/sync-access` e chama `POST /billing/sync-access/checkout` enviando `plan`. Ela exibe o Pix retornado pelo backend e espera o webhook atualizar o acesso ao sync.
 
 ## SQLite Sync Readiness
 

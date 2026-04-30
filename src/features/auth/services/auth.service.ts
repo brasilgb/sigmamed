@@ -53,7 +53,6 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
   const accountUsage = input.accountUsage;
   const name = input.name.trim();
   const email = normalizeEmail(input.email);
-  const patientName = input.patientName?.trim() ?? '';
   const hasExistingLocalUser = await hasRegisteredUser();
 
   if (hasExistingLocalUser) {
@@ -76,10 +75,6 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     throw new Error('Informe uma altura valida em centimetros.');
   }
 
-  if (accountUsage !== 'personal' && !patientName) {
-    throw new Error('Informe o nome da pessoa acompanhada.');
-  }
-
   if (input.password.length < 6) {
     throw new Error('A senha precisa ter ao menos 6 caracteres.');
   }
@@ -100,7 +95,6 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     email,
     age: input.age,
     height: input.height,
-    patientName: patientName || null,
     password: input.password,
   }).catch(() => null);
 
@@ -113,9 +107,10 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     pinHash: await hashSecret(input.pin),
     useBiometric: input.useBiometric,
     age: getRemoteUserAge(remoteAuth?.user ?? null) ?? input.age,
-    profileFullName: accountUsage === 'personal' ? name : patientName,
-    profileHeight: input.height,
+    profileFullName: name,
+    profileHeight: accountUsage === 'personal' ? input.height : null,
     remoteProfileId: initialRemoteProfileId,
+    createInitialProfile: accountUsage === 'personal',
   });
 
   if (!remoteAuth) {
@@ -359,6 +354,7 @@ export async function setActiveAccountProfile(profileId: number) {
 export async function createAccountProfile(input: {
   userId: number;
   fullName: string;
+  age?: number | null;
   height?: number | null;
   notes?: string | null;
 }): Promise<AuthProfile> {
@@ -368,8 +364,12 @@ export async function createAccountProfile(input: {
     throw new Error('Conta não encontrada.');
   }
 
-  if (user.accountUsage === 'professional') {
-    throw new Error('Contas de cuidador usam somente o paciente principal.');
+  if (user.accountUsage === 'personal') {
+    throw new Error('Contas pessoais usam somente o perfil da propria conta.');
+  }
+
+  if (input.age !== null && input.age !== undefined && (input.age < 1 || input.age > 130)) {
+    throw new Error('Informe uma idade valida.');
   }
 
   if (input.height !== null && input.height !== undefined && (input.height < 30 || input.height > 250)) {

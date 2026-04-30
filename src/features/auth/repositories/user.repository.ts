@@ -20,6 +20,7 @@ type ProfileRow = {
   remote_profile_id: number | null;
   user_id: number;
   full_name: string | null;
+  age: number | null;
   birth_date: string | null;
   sex: string | null;
   height: number | null;
@@ -43,11 +44,13 @@ type CreateUserInput = {
   profileFullName?: string | null;
   profileHeight?: number | null;
   remoteProfileId?: number | string | null;
+  createInitialProfile?: boolean;
 };
 
 type CreateProfileInput = {
   userId: number;
   fullName: string;
+  age?: number | null;
   height?: number | null;
   notes?: string | null;
   remoteProfileId?: number | string | null;
@@ -57,6 +60,7 @@ type UpsertRemoteProfileInput = {
   userId: number;
   remoteProfileId: number | string;
   fullName?: string | null;
+  age?: number | string | null;
   height?: number | string | null;
   notes?: string | null;
 };
@@ -89,6 +93,7 @@ function mapProfile(row: ProfileRow): AuthProfile {
     remoteProfileId: row.remote_profile_id,
     userId: row.user_id,
     fullName: row.full_name,
+    age: row.age,
     birthDate: row.birth_date,
     sex: row.sex,
     height: row.height,
@@ -158,15 +163,17 @@ export class UserRepository {
         input.photoUri ?? null
       );
 
-      await database.runAsync(
-        `INSERT INTO profiles
-          (user_id, remote_profile_id, full_name, height, updated_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-        userResult.lastInsertRowId,
-        input.remoteProfileId ? Number(input.remoteProfileId) : null,
-        input.profileFullName ?? input.name,
-        input.profileHeight ?? null
-      );
+      if (input.createInitialProfile !== false) {
+        await database.runAsync(
+          `INSERT INTO profiles
+            (user_id, remote_profile_id, full_name, height, updated_at)
+           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          userResult.lastInsertRowId,
+          input.remoteProfileId ? Number(input.remoteProfileId) : null,
+          input.profileFullName ?? input.name,
+          input.profileHeight ?? null
+        );
+      }
 
       const createdRow = await database.getFirstAsync<UserRow>(
         'SELECT * FROM users WHERE id = ?',
@@ -375,11 +382,12 @@ export class UserRepository {
 
     const result = await database.runAsync(
       `INSERT INTO profiles
-        (user_id, remote_profile_id, full_name, height, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (user_id, remote_profile_id, full_name, age, height, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       input.userId,
       input.remoteProfileId ? Number(input.remoteProfileId) : null,
       fullName,
+      input.age ?? null,
       input.height ?? null,
       input.notes?.trim() || null
     );
@@ -407,16 +415,22 @@ export class UserRepository {
       input.height === null || input.height === undefined || input.height === ''
         ? null
         : Number(input.height);
+    const age =
+      input.age === null || input.age === undefined || input.age === ''
+        ? null
+        : Number(input.age);
 
     if (existing) {
       await database.runAsync(
         `UPDATE profiles
          SET full_name = COALESCE(?, full_name),
+             age = ?,
              height = ?,
              notes = COALESCE(?, notes),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         input.fullName?.trim() || null,
+        Number.isFinite(age) ? age : null,
         Number.isFinite(height) ? height : null,
         input.notes?.trim() || null,
         existing.id
@@ -435,6 +449,7 @@ export class UserRepository {
       userId: input.userId,
       remoteProfileId,
       fullName: input.fullName?.trim() || 'Perfil remoto',
+      age: Number.isFinite(age) ? age : null,
       height: Number.isFinite(height) ? height : null,
       notes: input.notes ?? null,
     });

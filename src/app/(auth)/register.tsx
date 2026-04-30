@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { Colors, Radius } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -32,7 +32,6 @@ export default function RegisterScreen() {
   const emailRef = useRef<TextInput>(null);
   const ageRef = useRef<TextInput>(null);
   const heightRef = useRef<TextInput>(null);
-  const patientNameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
   const pinRef = useRef<TextInput>(null);
@@ -41,7 +40,6 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [age, setAge] = useState('');
   const [height, setHeight] = useState('');
-  const [patientName, setPatientName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pin, setPin] = useState('');
@@ -69,13 +67,27 @@ export default function RegisterScreen() {
         name,
         email,
         age: accountUsage === 'personal' && age.trim() ? Number(age) : null,
-        height: height.trim() ? Number(height) : null,
-        patientName: accountUsage === 'personal' ? null : patientName.trim() || null,
+        height: accountUsage === 'personal' && height.trim() ? Number(height) : null,
         password,
         pin,
         useBiometric: biometricAvailable && useBiometric,
       });
+
+      if (accountUsage === 'personal') {
+        router.replace('/(tabs)');
+        return;
+      }
+
       router.replace('/(tabs)');
+      Alert.alert(
+        'Conta criada',
+        'Para cadastrar a pessoa acompanhada, acesse Configurações e depois Acompanhados.',
+        [
+          {
+            text: 'OK',
+          },
+        ]
+      );
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao criar conta.');
     } finally {
@@ -137,7 +149,7 @@ export default function RegisterScreen() {
             return;
           }
 
-          patientNameRef.current?.focus();
+          passwordRef.current?.focus();
         }}
       />
       {accountUsage === 'personal' ? (
@@ -168,34 +180,12 @@ export default function RegisterScreen() {
           />
         </>
       ) : (
-        <>
-          <AuthInput
-            ref={patientNameRef}
-            label="Nome da pessoa acompanhada"
-            autoCapitalize="words"
-            returnKeyType="next"
-            textContentType="name"
-            autoComplete="name"
-            placeholder="Ex.: Maria Silva"
-            value={patientName}
-            onChangeText={setPatientName}
-            onSubmitEditing={() => heightRef.current?.focus()}
-            hint="Depois voce podera organizar os registros deste perfil."
-          />
-          <AuthInput
-            ref={heightRef}
-            label="Altura da pessoa em cm"
-            keyboardType="decimal-pad"
-            maxLength={3}
-            returnKeyType="next"
-            textContentType="none"
-            placeholder="Ex.: 170"
-            value={height}
-            onChangeText={(value) => setHeight(value.replace(/\D/g, ''))}
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            hint="Usada depois para calcular o IMC nos registros de peso."
-          />
-        </>
+        <View style={styles.infoCard}>
+          <ThemedText style={styles.infoTitle}>Acompanhados depois do cadastro</ThemedText>
+          <ThemedText style={styles.infoText}>
+            Primeiro criamos a conta do responsável. Em seguida você poderá cadastrar a pessoa acompanhada.
+          </ThemedText>
+        </View>
       )}
       <AuthInput
         ref={passwordRef}
@@ -345,6 +335,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   preferenceDescription: {
+    color: Colors.light.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  infoCard: {
+    borderRadius: Radius.md,
+    backgroundColor: '#F0F8F6',
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+    padding: 14,
+    gap: 4,
+  },
+  infoTitle: {
+    color: Colors.light.text,
+    fontWeight: '800',
+  },
+  infoText: {
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,

@@ -21,6 +21,7 @@ import {
   updateAccount,
   unlockWithPin,
 } from '@/features/auth/services/auth.service';
+import { setCloudReminderPending } from '@/features/auth/services/session-storage.service';
 import type { AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 type AuthContextValue = {
@@ -131,12 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       biometricAvailable,
       register: async (input) => {
         const createdUser = await registerUser(input);
+        await setCloudReminderPending(true);
         setHasAccount(true);
         setUser(createdUser);
         setIsUnlocked(true);
       },
       login: async (input) => {
         const loggedUser = await loginUser(input);
+        await setCloudReminderPending(true);
         setHasAccount(true);
         setUser(loggedUser);
         setIsUnlocked(true);
@@ -147,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const unlockedUser = await unlockWithPin(user.id, pin);
+        await setCloudReminderPending(true);
         setUser(unlockedUser);
         setIsUnlocked(true);
       },
@@ -158,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const success = await authenticateWithBiometrics().catch(() => false);
 
         if (success) {
+          await setCloudReminderPending(true);
           setIsUnlocked(true);
         }
 

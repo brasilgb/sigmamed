@@ -5,6 +5,7 @@ const SESSION_AUTH_TOKEN_KEY = 'sigmamed.session.authToken';
 const SESSION_TENANT_ID_KEY = 'sigmamed.session.tenantId';
 const SESSION_PROFILE_ID_KEY = 'sigmamed.session.profileId';
 const SESSION_LOCAL_PROFILE_ID_KEY = 'sigmamed.session.localProfileId';
+const CLOUD_REMINDER_PENDING_KEY = 'sigmamed.cloudReminder.pending';
 
 export async function setSessionUserId(userId: number) {
   await SecureStore.setItemAsync(SESSION_USER_ID_KEY, String(userId));
@@ -66,6 +67,19 @@ export async function getSessionLocalProfileId() {
 
 export async function clearSessionLocalProfileId() {
   await SecureStore.deleteItemAsync(SESSION_LOCAL_PROFILE_ID_KEY);
+}
+
+export async function setCloudReminderPending(pending: boolean) {
+  if (pending) {
+    await SecureStore.setItemAsync(CLOUD_REMINDER_PENDING_KEY, '1');
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(CLOUD_REMINDER_PENDING_KEY);
+}
+
+export async function getCloudReminderPending() {
+  return (await SecureStore.getItemAsync(CLOUD_REMINDER_PENDING_KEY)) === '1';
 }
 
 export async function clearRemoteSession() {

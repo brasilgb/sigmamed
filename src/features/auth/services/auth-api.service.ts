@@ -21,6 +21,7 @@ type AuthApiProfile = {
   id: number | string;
   name?: string | null;
   full_name?: string | null;
+  age?: number | string | null;
   height?: number | string | null;
   notes?: string | null;
 };
@@ -124,7 +125,6 @@ export async function registerRemoteUser(input: {
   email: string;
   age: number | null;
   height: number | null;
-  patientName?: string | null;
   password: string;
 }): Promise<RemoteAuthResult> {
   const response = await apiRequest<AuthApiResponse>('/auth/register', {
@@ -135,7 +135,6 @@ export async function registerRemoteUser(input: {
       email: input.email,
       age: input.age,
       height: input.height,
-      patient_name: input.patientName ?? null,
       password: input.password,
       password_confirmation: input.password,
     },
@@ -329,6 +328,7 @@ export async function getRemoteProfileId() {
 
 export async function createRemoteProfile(input: {
   fullName: string;
+  age?: number | null;
   height?: number | null;
   notes?: string | null;
 }) {
@@ -337,6 +337,7 @@ export async function createRemoteProfile(input: {
     authenticated: true,
     body: {
       name: input.fullName,
+      age: input.age ?? null,
       height: input.height ?? null,
       notes: input.notes?.trim() || null,
     },

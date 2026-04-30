@@ -241,4 +241,7 @@ export const migrations = [
   `
     ALTER TABLE profiles ADD COLUMN remote_profile_id INTEGER;
   `,
+  `
+    ALTER TABLE profiles ADD COLUMN age INTEGER;
+  `,
 ];

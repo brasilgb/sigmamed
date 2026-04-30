@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { HistoryList } from '@/components/dashboard/history-list';
 import { SummaryCard } from '@/components/dashboard/summary-card';
@@ -12,7 +13,12 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, ModulePalette, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import {
+  getCloudReminderPending,
+  setCloudReminderPending,
+} from '@/features/auth/services/session-storage.service';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { getBillingSyncAccess } from '@/services/billing.service';
 
 const modules = [
   {
@@ -91,11 +97,78 @@ const quickActions = [
 export default function HomeTabScreen() {
   const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
   const { history, isLoading, refresh, summary, trends } = useDashboardData(7);
+  const [showCloudReminder, setShowCloudReminder] = useState(false);
   const firstName = user?.name.split(' ')[0] ?? 'Paciente';
   const accountMeta = user?.age ? `${user.email} · ${user.age} anos` : user?.email;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkCloudAccess() {
+      if (!user) {
+        return;
+      }
+
+      const isPending = await getCloudReminderPending();
+
+      if (!isPending) {
+        return;
+      }
+
+      const access = await getBillingSyncAccess().catch(() => null);
+
+      if (isMounted && !access?.sync_enabled) {
+        setShowCloudReminder(true);
+        return;
+      }
+
+      if (isMounted) {
+        await setCloudReminderPending(false);
+      }
+    }
+
+    void checkCloudAccess();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  async function closeCloudReminder() {
+    await setCloudReminderPending(false);
+    setShowCloudReminder(false);
+  }
+
   return (
     <Screen isRefreshing={isLoading} onRefresh={refresh}>
+      <Modal transparent visible={showCloudReminder} animationType="fade" onRequestClose={() => void closeCloudReminder()}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.cloudReminderCard}>
+            <View style={styles.cloudReminderIcon}>
+              <IconSymbol name="cloud.fill" size={28} color={BrandPalette.primary} />
+            </View>
+            <ThemedText style={styles.cloudReminderTitle}>Salvar seus dados na nuvem</ThemedText>
+            <ThemedText style={styles.cloudReminderText}>
+              Ative backup e sincronização para recuperar seus registros ao trocar de aparelho ou reinstalar o app.
+            </ThemedText>
+            <View style={styles.cloudReminderActions}>
+              <Pressable style={styles.cloudReminderSecondary} onPress={() => void closeCloudReminder()}>
+                <ThemedText style={styles.cloudReminderSecondaryText}>Fechar</ThemedText>
+              </Pressable>
+              <Pressable
+                style={styles.cloudReminderPrimary}
+                onPress={() => {
+                  void setCloudReminderPending(false);
+                  setShowCloudReminder(false);
+                  router.push('/cloud-sync' as never);
+                }}>
+                <ThemedText style={styles.cloudReminderPrimaryText}>Veja como</ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.hero}>
         <View style={styles.heroTop}>
           <View style={styles.brandBadge}>
@@ -244,6 +317,78 @@ export default function HomeTabScreen() {
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(16, 37, 50, 0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 34,
+    paddingVertical: 22,
+  },
+  cloudReminderCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: '#D6E2E6',
+    padding: Space.xl,
+    gap: 14,
+  },
+  cloudReminderIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: Radius.lg,
+    backgroundColor: '#DDF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cloudReminderTitle: {
+    color: Colors.light.text,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+  },
+  cloudReminderText: {
+    color: Colors.light.textMuted,
+    lineHeight: 22,
+  },
+  cloudReminderActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  cloudReminderSecondary: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  cloudReminderPrimary: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: Radius.lg,
+    backgroundColor: BrandPalette.navy,
+    borderWidth: 1,
+    borderColor: '#0A1724',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  cloudReminderSecondaryText: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  cloudReminderPrimaryText: {
+    color: Colors.light.surface,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   hero: {
     borderRadius: Radius.xl,
     backgroundColor: Colors.light.surfaceMuted,

@@ -19,12 +19,14 @@ import type { AuthProfile } from '@/features/auth/types/auth';
 
 export default function ProfilesScreen() {
   const { user } = useAuth();
-  const canCreateProfiles = user?.accountUsage !== 'professional';
+  const canCreateProfiles = user?.accountUsage !== 'personal';
+  const ageRef = useRef<TextInput>(null);
   const heightRef = useRef<TextInput>(null);
   const notesRef = useRef<TextInput>(null);
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
   const [fullName, setFullName] = useState('');
+  const [age, setAge] = useState('');
   const [height, setHeight] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,10 +69,12 @@ export default function ProfilesScreen() {
       await createAccountProfile({
         userId: user.id,
         fullName,
+        age: age.trim() ? Number(age) : null,
         height: height.trim() ? Number(height) : null,
         notes,
       });
       setFullName('');
+      setAge('');
       setHeight('');
       setNotes('');
       setSuccessMessage('Acompanhado cadastrado.');
@@ -122,6 +126,17 @@ export default function ProfilesScreen() {
             returnKeyType="next"
             textContentType="name"
             autoComplete="name"
+            onSubmitEditing={() => ageRef.current?.focus()}
+          />
+          <RecordInput
+            ref={ageRef}
+            label="Idade em anos"
+            value={age}
+            onChangeText={(value) => setAge(value.replace(/\D/g, ''))}
+            placeholder="Opcional"
+            keyboardType="number-pad"
+            maxLength={3}
+            returnKeyType="next"
             onSubmitEditing={() => heightRef.current?.focus()}
           />
           <RecordInput
@@ -155,10 +170,10 @@ export default function ProfilesScreen() {
         </View>
       ) : (
         <View style={styles.sectionCard}>
-          <ThemedText style={styles.sectionEyebrow}>Perfil principal</ThemedText>
-          <ThemedText style={styles.sectionTitle}>Cuidador</ThemedText>
+          <ThemedText style={styles.sectionEyebrow}>Perfil pessoal</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Uso individual</ThemedText>
           <ThemedText style={styles.readOnlyText}>
-            Contas de cuidador usam somente o paciente principal cadastrado na criacao da conta.
+            Contas pessoais usam somente o perfil da propria conta.
           </ThemedText>
         </View>
       )}
@@ -173,7 +188,10 @@ export default function ProfilesScreen() {
             <View style={styles.profileCopy}>
               <ThemedText style={styles.profileName}>{profile.fullName ?? 'Sem nome'}</ThemedText>
               <ThemedText style={styles.profileMeta}>
-                {profile.height ? `${profile.height} cm` : 'Altura nao informada'}
+                {[
+                  profile.age ? `${profile.age} anos` : null,
+                  profile.height ? `${profile.height} cm` : null,
+                ].filter(Boolean).join(' · ') || 'Idade e altura nao informadas'}
               </ThemedText>
               {profile.notes ? <ThemedText style={styles.profileNotes}>{profile.notes}</ThemedText> : null}
             </View>

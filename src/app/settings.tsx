@@ -15,9 +15,37 @@ import {
   removeManagedProfilePhoto,
 } from '@/features/auth/services/profile-photo.service';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import {
+  getBillingCycleLabel,
+  getBillingPlanLabel,
+  getBillingSyncAccess,
+  type BillingSyncAccess,
+} from '@/services/billing.service';
+
+function formatDate(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat('pt-BR').format(date);
+}
 
 export default function SettingsScreen() {
-  const { biometricAvailable, deleteAccount, lock, logout, updateAccount, updateBiometric, user } = useAuth();
+  const {
+    biometricAvailable,
+    deleteAccount,
+    lock,
+    logout,
+    updateAccount,
+    updateBiometric,
+    user,
+  } = useAuth();
   const emailRef = useRef<TextInput>(null);
   const currentPasswordRef = useRef<TextInput>(null);
   const newPasswordRef = useRef<TextInput>(null);
@@ -28,8 +56,10 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -41,12 +71,54 @@ export default function SettingsScreen() {
     setPhotoUri(user.photoUri);
   }, [user]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSyncAccess() {
+      if (!user) {
+        setSyncAccess(null);
+        return;
+      }
+
+      setIsLoadingPlan(true);
+
+      try {
+        const access = await getBillingSyncAccess();
+
+        if (isMounted) {
+          setSyncAccess(access);
+        }
+      } catch {
+        if (isMounted) {
+          setSyncAccess(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPlan(false);
+        }
+      }
+    }
+
+    void loadSyncAccess();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   const initials = name
     .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('') || 'SM';
+  const planCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
+  const planExpiresAt = formatDate(syncAccess?.expires_at);
+  const planStatusText = syncAccess?.sync_enabled
+    ? `${getBillingPlanLabel(syncAccess.plan)}${planCycle ? ` - ${planCycle}` : ''}`
+    : isLoadingPlan
+      ? 'Carregando plano...'
+      : 'Nuvem não ativada';
 
   async function handleTakePhoto() {
     if (!user) {
@@ -319,12 +391,10 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {user && user.accountUsage !== 'professional' ? (
+      {user && user.accountUsage !== 'personal' ? (
         <View style={styles.sectionCard}>
           <ThemedText style={styles.sectionEyebrow}>Acompanhados</ThemedText>
-          <ThemedText style={styles.sectionTitle}>
-            {user.accountUsage === 'family' ? 'Pessoas da família' : 'Perfis de cuidado'}
-          </ThemedText>
+          <ThemedText style={styles.sectionTitle}>Pessoas que acompanho</ThemedText>
           <View style={styles.peopleCard}>
             <View style={styles.peopleIcon}>
               <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
@@ -353,6 +423,24 @@ export default function SettingsScreen() {
               Veja por que ativar backup, Pix e sincronização mantendo o app funcionando offline.
             </ThemedText>
           </View>
+        </View>
+        <View style={styles.planSummaryCard}>
+          <View style={styles.planSummaryHeader}>
+            <ThemedText style={styles.planSummaryLabel}>Plano atual</ThemedText>
+            <ThemedText
+              style={[
+                styles.planStatusBadge,
+                syncAccess?.sync_enabled ? styles.planStatusBadgeActive : null,
+              ]}>
+              {syncAccess?.sync_enabled ? 'Ativo' : 'Inativo'}
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.planSummaryTitle}>{planStatusText}</ThemedText>
+          <ThemedText style={styles.planSummaryText}>
+            {syncAccess?.sync_enabled && planExpiresAt
+              ? `Vigente ate ${planExpiresAt}.`
+              : 'Seus dados ainda não estão sincronizados na nuvem. Escolha um plano para liberar backup e sincronizacao.'}
+          </ThemedText>
         </View>
         <AuthButton label="Entender nuvem" variant="secondary" onPress={() => router.push('/cloud-sync' as never)} />
       </View>
@@ -600,6 +688,51 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   cloudText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
+  planSummaryCard: {
+    borderRadius: 20,
+    backgroundColor: '#F7FAFB',
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  planSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  planSummaryLabel: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  planStatusBadge: {
+    borderRadius: 999,
+    backgroundColor: '#F1F4F6',
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  planStatusBadgeActive: {
+    backgroundColor: '#DDF1EC',
+    color: BrandPalette.primary,
+  },
+  planSummaryTitle: {
+    color: Colors.light.text,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  planSummaryText: {
     color: Colors.light.textMuted,
     lineHeight: 20,
   },
