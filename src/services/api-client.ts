@@ -17,6 +17,24 @@ type ApiErrorResponse = {
   errors?: Record<string, string[]>;
 };
 
+const apiMessageTranslations: Record<string, string> = {
+  'account deleted.': 'Conta excluída.',
+  'avatar removed.': 'Avatar removido.',
+  'avatar uploaded.': 'Avatar enviado.',
+  'blood-pressure pull completed.': 'Sincronização de pressão baixada com sucesso.',
+  'blood-pressure push completed.': 'Sincronização de pressão enviada com sucesso.',
+  'feedback received.': 'Feedback recebido.',
+  'feedbacks loaded.': 'Feedbacks carregados.',
+  'login successful.': 'Login realizado com sucesso.',
+  'pix payment created.': 'Pagamento Pix criado.',
+  'profile created.': 'Perfil criado.',
+  'profile loaded.': 'Perfil carregado.',
+  'profiles loaded.': 'Perfis carregados.',
+  'registration successful.': 'Cadastro realizado com sucesso.',
+  'sync access loaded.': 'Acesso à sincronização carregado.',
+  'synchronization is not enabled.': 'Sincronização não liberada para esta conta.',
+};
+
 export class ApiRequestError extends Error {
   status: number;
   payload?: ApiErrorResponse;
@@ -64,11 +82,15 @@ function getApiErrorMessage(payload: ApiErrorResponse | undefined, fallback: str
     const firstError = Object.values(payload.errors)[0]?.[0];
 
     if (firstError) {
-      return firstError;
+      return translateApiMessage(firstError);
     }
   }
 
-  return payload?.message ?? fallback;
+  return translateApiMessage(payload?.message ?? fallback);
+}
+
+export function translateApiMessage(message: string) {
+  return apiMessageTranslations[message.trim().toLowerCase()] ?? message;
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {

@@ -29,7 +29,7 @@ const usageOptions: {
 ];
 
 export default function RegisterScreen() {
-  const { biometricAvailable, register } = useAuth();
+  const { biometricAvailable, biometricHardwareAvailable, register } = useAuth();
   const emailRef = useRef<TextInput>(null);
   const ageRef = useRef<TextInput>(null);
   const heightRef = useRef<TextInput>(null);
@@ -250,7 +250,7 @@ export default function RegisterScreen() {
         onSubmitEditing={() => void handleSubmit()}
       />
 
-      <View style={[styles.preferenceRow, !biometricAvailable ? styles.preferenceRowDisabled : null]}>
+      {biometricHardwareAvailable ? <View style={[styles.preferenceRow, !biometricAvailable ? styles.preferenceRowDisabled : null]}>
           <View style={styles.preferenceText}>
             <ThemedText style={styles.preferenceTitle}>Ativar biometria</ThemedText>
             <ThemedText style={styles.preferenceDescription}>
@@ -267,7 +267,7 @@ export default function RegisterScreen() {
             thumbColor={biometricAvailable && useBiometric ? Colors.light.tint : Colors.light.surface}
             ios_backgroundColor="#D7E2E6"
           />
-        </View>
+        </View> : null}
 
       <Pressable
         accessibilityRole="checkbox"

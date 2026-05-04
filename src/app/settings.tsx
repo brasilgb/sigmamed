@@ -60,6 +60,7 @@ function parseOptionalNumber(value: string) {
 export default function SettingsScreen() {
   const {
     biometricAvailable,
+    biometricHardwareAvailable,
     deleteAccount,
     lock,
     logout,
@@ -316,7 +317,7 @@ export default function SettingsScreen() {
             Conta, segurança e sessão no mesmo lugar.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Atualize seus dados, ajuste a biometria e controle a sessão do app com menos atrito.
+            Atualize seus dados{biometricHardwareAvailable ? ', ajuste a biometria' : ''} e controle a sessão do app com menos atrito.
           </ThemedText>
         </View>
       </View>
@@ -418,7 +419,7 @@ export default function SettingsScreen() {
 
       <View style={styles.sectionCard}>
         <ThemedText style={styles.sectionEyebrow}>Seguranca</ThemedText>
-        <ThemedText style={styles.sectionTitle}>Senha e biometria</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Senha{biometricHardwareAvailable ? ' e biometria' : ''}</ThemedText>
         <RecordInput
           ref={currentPasswordRef}
           label="Senha atual"
@@ -445,7 +446,7 @@ export default function SettingsScreen() {
           hint="Deixe em branco se quiser manter a senha atual."
         />
 
-        <View style={styles.biometricCard}>
+        {biometricHardwareAvailable ? <View style={styles.biometricCard}>
           <View style={styles.biometricCopy}>
             <ThemedText style={styles.biometricTitle}>Biometria</ThemedText>
             <ThemedText style={styles.biometricText}>
@@ -468,7 +469,7 @@ export default function SettingsScreen() {
               void updateBiometric(!user.useBiometric);
             }}
           />
-        </View>
+        </View> : null}
       </View>
 
       <View style={styles.sectionCard}>

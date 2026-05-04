@@ -1,8 +1,11 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import type { Medication } from '@/types/health';
 
 const REMINDER_KIND = 'medication-reminder';
+const REMINDER_CHANNEL_ID = 'medication-reminders';
+const REMINDER_VIBRATION_PATTERN = [0, 500, 250, 500];
 
 let notificationsConfigured = false;
 
@@ -20,7 +23,28 @@ export function configureMedicationNotifications() {
     }),
   });
 
+  void ensureMedicationReminderChannel();
   notificationsConfigured = true;
+}
+
+async function ensureMedicationReminderChannel() {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+
+  try {
+    await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
+      name: 'Lembretes de medicação',
+      description: 'Alertas sonoros e vibração para horários de medicação.',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      enableVibrate: true,
+      vibrationPattern: REMINDER_VIBRATION_PATTERN,
+      showBadge: false,
+    });
+  } catch {
+    // If channels are unavailable, keep scheduling with per-notification defaults.
+  }
 }
 
 function parseTime(value: string) {
@@ -60,6 +84,21 @@ function buildReminderBody(medication: Medication) {
   const base = `${medication.name} ${medication.dosage}`.trim();
   const timeText = medication.scheduledTime ? `Dose prevista às ${medication.scheduledTime}.` : 'Dose prevista em 5 minutos.';
   return `${base}. ${timeText}`;
+}
+
+function buildReminderContent(medication: Medication, repeating = false): Notifications.NotificationContentInput {
+  return {
+    title: repeating ? 'Lembrete recorrente de medicamento' : 'Lembrete de medicamento',
+    body: repeating ? `${medication.name} ${medication.dosage}`.trim() : buildReminderBody(medication),
+    sound: 'default',
+    vibrate: REMINDER_VIBRATION_PATTERN,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
+    data: {
+      kind: REMINDER_KIND,
+      medicationId: medication.id,
+      repeating,
+    },
+  };
 }
 
 function buildTodayAtTime(value: string) {
@@ -119,17 +158,11 @@ async function scheduleMedicationReminder(medication: Medication) {
 
   if (reminderTime > now) {
     await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Lembrete de medicamento',
-        body: buildReminderBody(medication),
-        data: {
-          kind: REMINDER_KIND,
-          medicationId: medication.id,
-        },
-      },
+      content: buildReminderContent(medication),
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: reminderTime,
+        channelId: REMINDER_CHANNEL_ID,
       },
     });
   }
@@ -144,18 +177,11 @@ async function scheduleMedicationReminder(medication: Medication) {
   await Promise.all(
     repeatTimes.map((date) =>
       Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Lembrete recorrente de medicamento',
-          body: `${medication.name} ${medication.dosage}`.trim(),
-          data: {
-            kind: REMINDER_KIND,
-            medicationId: medication.id,
-            repeating: true,
-          },
-        },
+        content: buildReminderContent(medication, true),
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date,
+          channelId: REMINDER_CHANNEL_ID,
         },
       })
     )
@@ -180,5 +206,6 @@ export async function syncMedicationReminderNotifications(medications: Medicatio
     return;
   }
 
+  await ensureMedicationReminderChannel();
   await Promise.all(medications.map((medication) => scheduleMedicationReminder(medication)));
 }

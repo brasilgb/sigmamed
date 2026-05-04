@@ -9,7 +9,11 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
-import { authenticateWithBiometrics, isBiometricSupported } from '@/features/auth/services/biometric.service';
+import {
+  authenticateWithBiometrics,
+  hasBiometricHardware,
+  isBiometricSupported,
+} from '@/features/auth/services/biometric.service';
 import {
   deleteLocalAccount,
   hasRegisteredUser,
@@ -30,6 +34,7 @@ type AuthContextValue = {
   isUnlocked: boolean;
   user: AuthUser | null;
   biometricAvailable: boolean;
+  biometricHardwareAvailable: boolean;
   register: (input: RegisterInput) => Promise<void>;
   login: (input: LoginInput) => Promise<void>;
   unlockByPin: (pin: string) => Promise<void>;
@@ -53,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricHardwareAvailable, setBiometricHardwareAvailable] = useState(false);
   const autoLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -60,10 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function hydrate() {
       try {
-        const [registered, restoredUser, biometricSupport] = await Promise.all([
+        const [registered, restoredUser, biometricSupport, biometricHardware] = await Promise.all([
           hasRegisteredUser(),
           restoreSessionUser(),
           isBiometricSupported().catch(() => false),
+          hasBiometricHardware().catch(() => false),
         ]);
 
         if (!isMounted) {
@@ -73,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setHasAccount(registered);
         setUser(restoredUser);
         setBiometricAvailable(biometricSupport);
+        setBiometricHardwareAvailable(biometricHardware);
         setIsUnlocked(false);
       } finally {
         if (isMounted) {
@@ -130,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isUnlocked,
       user,
       biometricAvailable,
+      biometricHardwareAvailable,
       register: async (input) => {
         const createdUser = await registerUser(input);
         await setCloudReminderPending(true);
@@ -215,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(updatedUser);
       },
     }),
-    [biometricAvailable, hasAccount, isLoading, isUnlocked, user]
+    [biometricAvailable, biometricHardwareAvailable, hasAccount, isLoading, isUnlocked, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

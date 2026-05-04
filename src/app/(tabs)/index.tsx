@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { HistoryList } from '@/components/dashboard/history-list';
 import { TrendCard } from '@/components/dashboard/trend-card';
@@ -77,7 +77,7 @@ function formatWeight(summary: DashboardSummary | null) {
 }
 
 export default function HomeTabScreen() {
-  const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
+  const { lock, logout, user } = useAuth();
   const { history, isLoading, refresh, summary, trends } = useDashboardData(7);
   const {
     activeProfileId,
@@ -228,16 +228,6 @@ export default function HomeTabScreen() {
             <View style={styles.accountCopy}>
               <ThemedText style={styles.accountTitle}>{user.name}</ThemedText>
               <ThemedText style={styles.accountMeta}>{accountMeta}</ThemedText>
-            </View>
-            <View style={styles.biometricWrap}>
-              <ThemedText style={styles.biometricLabel}>Biometria</ThemedText>
-              <Switch
-                disabled={!biometricAvailable}
-                value={user.useBiometric}
-                onValueChange={(value) => {
-                  void updateBiometric(value);
-                }}
-              />
             </View>
           </View>
         ) : null}
@@ -672,15 +662,6 @@ const styles = StyleSheet.create({
     color: '#BCD1E8',
     fontSize: 14,
     lineHeight: 20,
-  },
-  biometricWrap: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  biometricLabel: {
-    color: '#BCD1E8',
-    fontSize: 12,
-    fontWeight: '700',
   },
   overviewGrid: {
     flexDirection: 'row',

@@ -43,7 +43,7 @@ export default function HistoryScreen() {
     timeFilter?: 'all' | '7d' | '30d';
     medicationStatusFilter?: 'all' | 'active' | 'inactive';
   }>();
-  const { biometricAvailable, lock, logout, updateBiometric, user } = useAuth();
+  const { biometricAvailable, biometricHardwareAvailable, lock, logout, updateBiometric, user } = useAuth();
   const [trendRange, setTrendRange] = useState<'7d' | '30d'>('7d');
   const { history, isLoading, refresh, summary, trends } = useDashboardData(trendRange === '7d' ? 7 : 30);
   const { items: medications, toggleTakenStatus } = useMedications();
@@ -352,7 +352,7 @@ export default function HistoryScreen() {
           <ThemedText style={styles.accountTitle}>Conta e acesso</ThemedText>
           <ThemedText style={styles.accountMeta}>{user.name}</ThemedText>
           <ThemedText style={styles.accountMeta}>{user.email}</ThemedText>
-          <View style={styles.preferenceRow}>
+          {biometricHardwareAvailable ? <View style={styles.preferenceRow}>
             <View style={styles.preferenceText}>
               <ThemedText style={styles.preferenceTitle}>Biometria</ThemedText>
               <ThemedText style={styles.preferenceDescription}>
@@ -368,7 +368,7 @@ export default function HistoryScreen() {
                 updateBiometric(value).catch(() => null);
               }}
             />
-          </View>
+          </View> : null}
           <View style={styles.actionRow}>
             <AuthButton label="Bloquear app" variant="secondary" onPress={lock} style={styles.actionButton} />
             <AuthButton label="Logout" onPress={() => void logout()} style={styles.actionButton} />

@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -14,6 +15,8 @@ export default function TabLayout() {
   const selectedColorScheme = useColorScheme();
   const colorScheme = selectedColorScheme === 'dark' ? 'dark' : 'light';
   const insets = useSafeAreaInsets();
+  const tabBarHorizontalInset = 22;
+  const tabBarBottomOffset = Math.max(insets.bottom - 16, 10);
   const { isLoading, isUnlocked, user } = useAuth();
 
   useBillingSyncAccess({ enabled: Boolean(user && isUnlocked) });
@@ -37,39 +40,51 @@ export default function TabLayout() {
         screenOptions={{
           tabBarActiveTintColor: BrandPalette.primary,
           tabBarInactiveTintColor: Colors[colorScheme].textSoft,
+          tabBarInactiveBackgroundColor: 'transparent',
           tabBarStyle: {
             backgroundColor: Colors[colorScheme].surface,
-            borderTopColor: 'transparent',
-            borderTopWidth: 0,
-            height: 58 + insets.bottom,
-            marginHorizontal: 14,
-            marginBottom: Math.max(insets.bottom, 8),
-            paddingTop: 4,
-            paddingBottom: Math.max(insets.bottom, 4),
-            borderRadius: 24,
+            borderColor: Colors[colorScheme].border,
+            borderTopWidth: 1,
+            borderWidth: 1,
+            bottom: tabBarBottomOffset,
+            height: 68,
+            left: tabBarHorizontalInset,
+            paddingHorizontal: 8,
+            paddingTop: 7,
+            paddingBottom: 7,
             position: 'absolute',
+            right: tabBarHorizontalInset,
+            borderRadius: 28,
             shadowColor: BrandPalette.deepNavy,
-            shadowOpacity: 0.14,
-            shadowRadius: 18,
+            shadowOpacity: colorScheme === 'dark' ? 0.28 : 0.12,
+            shadowRadius: 24,
             shadowOffset: {
               width: 0,
-              height: 8,
+              height: 12,
             },
-            elevation: 14,
+            elevation: 10,
+            ...Platform.select({
+              android: {
+                overflow: 'hidden',
+              },
+            }),
           },
           tabBarItemStyle: {
-            height: 48,
+            height: 54,
             borderRadius: 20,
-            marginHorizontal: 2,
-            paddingVertical: 2,
+            marginHorizontal: 1,
+            paddingVertical: 4,
             alignItems: 'center',
             justifyContent: 'center',
           },
+          tabBarIconStyle: {
+            marginTop: 1,
+          },
           tabBarLabelStyle: {
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: '800',
             marginTop: -2,
-            marginBottom: 2,
+            marginBottom: 0,
           },
           headerShown: false,
           tabBarButton: HapticTab,

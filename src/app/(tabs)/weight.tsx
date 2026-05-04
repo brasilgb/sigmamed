@@ -40,8 +40,12 @@ export default function WeightTabScreen() {
 
         <View style={styles.heroStats}>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Ultima pesagem</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.weight.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Ultima pesagem</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.weight.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {latest ? `${latest.weight} ${latest.unit}` : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>
@@ -59,8 +63,12 @@ export default function WeightTabScreen() {
             ) : null}
           </View>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.weight.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Nos últimos 7 dias</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.weight.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {summary ? String(summary.weightLastSevenDays) : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>pesagens salvas</ThemedText>
@@ -156,9 +164,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    minWidth: 0,
     borderRadius: 22,
     backgroundColor: Colors.light.surface,
-    padding: 16,
+    padding: 14,
     gap: 6,
     borderWidth: 1,
     borderColor: '#E2ECEF',
@@ -169,8 +178,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '800',
+    includeFontPadding: false,
   },
   statMeta: {
     color: Colors.light.textSoft,

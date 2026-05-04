@@ -81,7 +81,7 @@ Accept: application/json
     "token": "1|abcdefg1234567890"
   },
   "meta": {},
-  "message": "Registration successful."
+  "message": "Cadastro realizado com sucesso."
 }
 ```
 
@@ -132,7 +132,7 @@ Response esperado:
 {
   "data": {},
   "meta": {},
-  "message": "Account deleted."
+  "message": "Conta excluída."
 }
 ```
 
@@ -167,7 +167,7 @@ Response esperado:
     "updated_at": "2026-04-25T10:00:00Z"
   },
   "meta": {},
-  "message": "Profile loaded."
+  "message": "Perfil carregado."
 }
 ```
 
@@ -216,7 +216,7 @@ Response esperado:
     }
   ],
   "meta": {},
-  "message": "Profiles loaded."
+  "message": "Perfis carregados."
 }
 ```
 
@@ -258,7 +258,7 @@ Response esperado:
     "updated_at": "2026-04-25T10:00:00Z"
   },
   "meta": {},
-  "message": "Profile created."
+  "message": "Perfil criado."
 }
 ```
 
@@ -292,7 +292,7 @@ Response:
     "avatar_url": "http://localhost/storage/avatars/abc123def456.png"
   },
   "meta": {},
-  "message": "Avatar uploaded."
+  "message": "Avatar enviado."
 }
 ```
 
@@ -311,7 +311,7 @@ Response:
 {
   "data": {},
   "meta": {},
-  "message": "Avatar removed."
+  "message": "Avatar removido."
 }
 ```
 
@@ -454,7 +454,7 @@ O backend deve retornar os itens persistidos.
 ```json
 {
   "success": true,
-  "message": "Blood-pressure push completed.",
+  "message": "Sincronização de pressão enviada com sucesso.",
   "meta": {},
   "data": [
     {
@@ -500,7 +500,7 @@ Response:
 ```json
 {
   "success": true,
-  "message": "Blood-pressure pull completed.",
+  "message": "Sincronização de pressão baixada com sucesso.",
   "meta": {},
   "data": [
     {
@@ -559,7 +559,7 @@ Response esperado:
     "paid_at": null
   },
   "meta": {},
-  "message": "Sync access loaded."
+  "message": "Acesso à sincronização carregado."
 }
 ```
 
@@ -623,7 +623,7 @@ Response esperado:
     "expires_at": "2026-04-25T12:30:00Z"
   },
   "meta": {},
-  "message": "Pix payment created."
+  "message": "Pagamento Pix criado."
 }
 ```
 
@@ -687,7 +687,7 @@ Response esperado:
     "created_at": "2026-05-02T12:00:00Z"
   },
   "meta": {},
-  "message": "Feedback received."
+  "message": "Feedback recebido."
 }
 ```
 
@@ -804,7 +804,7 @@ Response sugerido:
       "5": 1
     }
   },
-  "message": "Feedbacks loaded."
+  "message": "Feedbacks carregados."
 }
 ```
 

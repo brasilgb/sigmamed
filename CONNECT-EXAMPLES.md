@@ -39,7 +39,7 @@ Body:
     "token": "1|abcdefg1234567890..."
   },
   "meta": {},
-  "message": "Login successful."
+  "message": "Login realizado com sucesso."
 }
 ```
 
@@ -95,7 +95,7 @@ Body:
     "token": "1|abcdefg1234567890..."
   },
   "meta": {},
-  "message": "Registration successful."
+  "message": "Cadastro realizado com sucesso."
 }
 ```
 
@@ -155,7 +155,7 @@ Body:
     "photo_path": "avatars/abc123def456.png",
     "avatar_url": "http://localhost/storage/avatars/abc123def456.png"
   },
-  "message": "Avatar uploaded."
+  "message": "Avatar enviado."
 }
 ```
 
@@ -176,7 +176,7 @@ X-Tenant-Id: 1
 ```json
 {
   "data": {},
-  "message": "Avatar removed."
+  "message": "Avatar removido."
 }
 ```
 
@@ -244,7 +244,7 @@ X-Tenant-Id: 1
 ```json
 {
   "success": true,
-  "message": "Blood-pressure push completed.",
+  "message": "Sincronização de pressão enviada com sucesso.",
   "data": [
     {
       "id": 1,
@@ -294,7 +294,7 @@ X-Tenant-Id: 1
 ```json
 {
   "success": true,
-  "message": "Blood-pressure pull completed.",
+  "message": "Sincronização de pressão baixada com sucesso.",
   "data": [
     {
       "id": 1,

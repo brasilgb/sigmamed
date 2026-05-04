@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
@@ -10,7 +12,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 import { formatGlicoseContext } from '@/features/glicose/glicose-utils';
-import { buildScopedReportHtml, getReportData } from '@/services/report.service';
+import { buildScopedReportHtml, exportReportPdf, getReportData } from '@/services/report.service';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { formatDateTime } from '@/utils/date';
 import type { ReportData, ReportKind, ReportPeriodDays } from '@/types/health';
@@ -41,6 +43,7 @@ export default function ReportScreen() {
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -81,10 +84,44 @@ export default function ReportScreen() {
     }
   }
 
+  async function handleShare() {
+    if (!data) {
+      return;
+    }
+
+    try {
+      setIsSharing(true);
+      suspendAutoLock();
+
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+
+      if (!isSharingAvailable) {
+        throw new Error('Compartilhamento indisponível neste dispositivo.');
+      }
+
+      const file = await exportReportPdf(data, reportKind);
+
+      await Sharing.shareAsync(file.uri, {
+        dialogTitle: 'Compartilhar relatório',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+      });
+    } catch (shareError) {
+      Alert.alert(
+        'Falha ao compartilhar',
+        shareError instanceof Error ? shareError.message : 'Não foi possível compartilhar o relatório.'
+      );
+    } finally {
+      resumeAutoLock();
+      setIsSharing(false);
+    }
+  }
+
   const showPressure = reportKind === 'complete' || reportKind === 'pressure';
   const showGlicose = reportKind === 'complete' || reportKind === 'glicose';
   const showWeight = reportKind === 'complete' || reportKind === 'weight';
   const showMedications = reportKind === 'complete' || reportKind === 'medications';
+  const actionsDisabled = !data || isExporting || isSharing;
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={load}>
@@ -136,11 +173,42 @@ export default function ReportScreen() {
             />
           ))}
         </View>
-        <AuthButton
-          label={isExporting ? 'Abrindo relatório...' : 'Abrir PDF'}
-          onPress={handleExport}
-          disabled={!data || isExporting}
-        />
+        <View style={styles.reportActionsRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir PDF"
+            onPress={handleExport}
+            disabled={actionsDisabled}
+            style={({ pressed }) => [
+              styles.reportActionButton,
+              actionsDisabled && styles.reportActionDisabled,
+              pressed && !actionsDisabled && styles.reportActionPressed,
+            ]}>
+            {isExporting ? (
+              <ActivityIndicator color={BrandPalette.primary} />
+            ) : (
+              <MaterialIcons name="picture-as-pdf" size={25} color={BrandPalette.primary} />
+            )}
+            <ThemedText style={styles.reportActionText}>PDF</ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Compartilhar relatório"
+            onPress={handleShare}
+            disabled={actionsDisabled}
+            style={({ pressed }) => [
+              styles.reportActionButton,
+              actionsDisabled && styles.reportActionDisabled,
+              pressed && !actionsDisabled && styles.reportActionPressed,
+            ]}>
+            {isSharing ? (
+              <ActivityIndicator color={BrandPalette.primary} />
+            ) : (
+              <MaterialIcons name="ios-share" size={25} color={BrandPalette.primary} />
+            )}
+            <ThemedText style={styles.reportActionText}>Compartilhar</ThemedText>
+          </Pressable>
+        </View>
       </Card>
 
       {error ? (
@@ -386,6 +454,34 @@ const styles = StyleSheet.create({
     minHeight: 46,
     minWidth: '30%',
     flexGrow: 1,
+  },
+  reportActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  reportActionButton: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  reportActionPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
+  },
+  reportActionDisabled: {
+    opacity: 0.48,
+  },
+  reportActionText: {
+    color: BrandPalette.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
   },
   summaryGrid: {
     flexDirection: 'row',

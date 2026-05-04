@@ -11,7 +11,7 @@ import {
   getSessionAuthToken,
   getSessionTenantId,
 } from '@/features/auth/services/session-storage.service';
-import { getApiUrl } from '@/services/api-client';
+import { getApiUrl, translateApiMessage } from '@/services/api-client';
 
 const PROFILE_PHOTO_DIR = `${FileSystem.documentDirectory ?? ''}profile-photos/`;
 
@@ -118,7 +118,7 @@ export async function uploadRemoteAvatar(uri: string) {
   const payload = (await response.json().catch(() => null)) as AvatarUploadResponse | null;
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Falha ao enviar avatar.');
+    throw new Error(payload?.message ? translateApiMessage(payload.message) : 'Falha ao enviar avatar.');
   }
 
   const uploadedUri =
@@ -142,6 +142,6 @@ export async function deleteRemoteAvatar() {
   const payload = (await response.json().catch(() => null)) as AvatarUploadResponse | null;
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Falha ao remover avatar.');
+    throw new Error(payload?.message ? translateApiMessage(payload.message) : 'Falha ao remover avatar.');
   }
 }

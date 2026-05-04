@@ -8,7 +8,7 @@ import { AuthScreen } from '@/components/auth/auth-screen';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function WelcomeScreen() {
-  const { hasAccount } = useAuth();
+  const { biometricHardwareAvailable, hasAccount } = useAuth();
 
   return (
     <AuthScreen
@@ -16,7 +16,9 @@ export default function WelcomeScreen() {
       subtitle="Crie sua conta para registrar e armazenar pressão, glicose, peso e medicações em um único lugar, para uso pessoal ou cuidado de outra pessoa. O Meu Controle não medica, não diagnostica e não presta atendimento médico.">
       <View style={styles.featureList}>
         <ThemedText style={styles.feature}>Registros organizados por módulo e por acompanhado</ThemedText>
-        <ThemedText style={styles.feature}>Acesso protegido com senha, PIN e biometria opcional</ThemedText>
+        <ThemedText style={styles.feature}>
+          Acesso protegido com senha, PIN{biometricHardwareAvailable ? ' e biometria opcional' : ''}
+        </ThemedText>
         <ThemedText style={styles.feature}>Dados mantidos para consulta posterior e controle do histórico</ThemedText>
       </View>
 

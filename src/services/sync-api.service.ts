@@ -28,7 +28,10 @@ export function isSyncDisabledError(error: unknown) {
     return false;
   }
 
-  return error.message.toLowerCase().includes('synchronization is not enabled');
+  const message = error.message.toLowerCase();
+  return message.includes('synchronization is not enabled') ||
+    message.includes('sincronização não liberada') ||
+    message.includes('sincronizacao nao liberada');
 }
 
 export async function pushSyncItems<TItem extends Record<string, unknown>, TResponse = TItem>(

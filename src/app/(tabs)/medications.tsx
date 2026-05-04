@@ -49,8 +49,12 @@ export default function MedicationsTabScreen() {
 
         <View style={styles.heroStats}>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Ativas</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.medication.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Ativas</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.medication.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {summary ? String(summary.activeMedications) : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>medicações em andamento</ThemedText>
@@ -59,8 +63,12 @@ export default function MedicationsTabScreen() {
             ) : null}
           </View>
           <View style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Aderência hoje</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.medication.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Aderência hoje</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.medication.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {summary ? `${summary.adherenceToday}%` : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>registros do dia</ThemedText>
@@ -209,9 +217,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    minWidth: 0,
     borderRadius: 22,
     backgroundColor: Colors.light.surface,
-    padding: 16,
+    padding: 14,
     gap: 6,
     borderWidth: 1,
     borderColor: '#E2ECEF',
@@ -222,8 +231,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '800',
+    includeFontPadding: false,
   },
   statMeta: {
     color: Colors.light.textSoft,

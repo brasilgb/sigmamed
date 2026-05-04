@@ -40,8 +40,12 @@ export default function GlicoseTabScreen() {
 
         <View style={styles.heroStats}>
           <Card style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Ultima leitura</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.glicose.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>Ultima leitura</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.glicose.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {latest ? `${latest.glicoseValue} ${latest.unit}` : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>
@@ -52,8 +56,12 @@ export default function GlicoseTabScreen() {
             ) : null}
           </Card>
           <Card style={styles.statCard}>
-            <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
-            <ThemedText style={[styles.statValue, { color: ModulePalette.glicose.base }]}>
+            <ThemedText style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Nos últimos 7 dias</ThemedText>
+            <ThemedText
+              style={[styles.statValue, { color: ModulePalette.glicose.base }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}>
               {summary ? String(summary.glicoseLastSevenDays) : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>leituras salvas</ThemedText>
@@ -140,6 +148,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   statLabel: {
@@ -148,8 +157,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '800',
+    includeFontPadding: false,
   },
   statMeta: {
     color: Colors.light.textSoft,

@@ -8,6 +8,10 @@ export async function isBiometricSupported() {
   return hasHardware && isEnrolled;
 }
 
+export function hasBiometricHardware() {
+  return LocalAuthentication.hasHardwareAsync();
+}
+
 function withBiometricTimeout(authentication: Promise<LocalAuthentication.LocalAuthenticationResult>) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 

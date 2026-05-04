@@ -18,7 +18,7 @@ import {
 } from '@/services/billing.service';
 
 export default function UnlockScreen() {
-  const { biometricAvailable, isUnlocked, unlockByBiometric, unlockByPin, user } = useAuth();
+  const { biometricAvailable, biometricHardwareAvailable, isUnlocked, unlockByBiometric, unlockByPin, user } = useAuth();
   const colorScheme = useColorScheme() ?? 'light';
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +108,7 @@ export default function UnlockScreen() {
   }
 
   const biometricUnavailableMessage =
-    user.useBiometric && !biometricAvailable
+    user.useBiometric && biometricHardwareAvailable && !biometricAvailable
       ? 'Biometria não disponível ou não cadastrada neste aparelho.'
       : null;
   const planCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
@@ -122,7 +122,11 @@ export default function UnlockScreen() {
   return (
     <AuthScreen
       title={`Olá, ${user.name.split(' ')[0]}`}
-      subtitle="Use seu PIN para continuar. Se a biometria estiver ativa, você também pode entrar por ela.">
+      subtitle={
+        biometricHardwareAvailable
+          ? 'Use seu PIN para continuar. Se a biometria estiver ativa, você também pode entrar por ela.'
+          : 'Use seu PIN para continuar.'
+      }>
       <View
         style={[
           styles.accountCard,
