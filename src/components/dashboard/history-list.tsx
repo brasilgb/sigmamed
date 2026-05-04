@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { ModulePalette, Colors, Radius, Surface } from '@/constants/theme';
+import { BrandPalette, ModulePalette, Colors, Radius, Surface } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import type { HistoryItem } from '@/types/health';
 
@@ -13,9 +13,10 @@ const categoryStyles: Record<HistoryItem['category'], { dot: string; label: stri
 
 type HistoryListProps = {
   items: HistoryItem[];
+  profileName?: string | null;
 };
 
-export function HistoryList({ items }: HistoryListProps) {
+export function HistoryList({ items, profileName }: HistoryListProps) {
   return (
     <View style={styles.list}>
       {items.map((item) => {
@@ -30,6 +31,9 @@ export function HistoryList({ items }: HistoryListProps) {
                 <ThemedText style={styles.badge}>{category.label}</ThemedText>
               </View>
               <ThemedText style={styles.subtitle}>{item.subtitle}</ThemedText>
+              {profileName ? (
+                <ThemedText style={styles.profileName}>Acompanhado: {profileName}</ThemedText>
+              ) : null}
               <ThemedText style={styles.timestamp}>{item.timestamp}</ThemedText>
             </View>
           </View>
@@ -86,6 +90,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: Colors.light.textMuted,
+  },
+  profileName: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: BrandPalette.primary,
+    fontWeight: '700',
   },
   timestamp: {
     fontSize: 13,

@@ -1,4 +1,13 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+  Poppins_900Black,
+  useFonts,
+} from '@expo-google-fonts/poppins';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -20,6 +29,14 @@ const medicationService = new MedicationService();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isReady, error } = useAppBootstrap();
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+    Poppins_900Black,
+  });
   const activeTheme = colorScheme ?? 'light';
 
   useEffect(() => {
@@ -46,7 +63,7 @@ export default function RootLayout() {
     return (
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
         <ThemedText type="title" style={[styles.stateTitle, { color: Colors[activeTheme].text }]}>
-          SigmaMed
+          Meu Controle
         </ThemedText>
         <ThemedText style={[styles.stateMessage, { color: Colors[activeTheme].textMuted }]}>
           Falha ao preparar o banco local.
@@ -56,7 +73,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!isReady) {
+  if (!isReady || !fontsLoaded) {
     return (
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
         <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
@@ -78,6 +95,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="settings" />
             <Stack.Screen name="profiles" />
+            <Stack.Screen name="profile-form" />
             <Stack.Screen name="cloud-sync" />
             <Stack.Screen name="privacy" />
           </Stack>

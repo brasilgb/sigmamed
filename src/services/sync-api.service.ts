@@ -1,4 +1,4 @@
-import { apiRequest } from '@/services/api-client';
+import { apiRequest, ApiRequestError } from '@/services/api-client';
 
 export type SyncResource =
   | 'blood-pressure'
@@ -23,6 +23,14 @@ export type SyncResponse<TItem> = {
   data: TItem[];
 };
 
+export function isSyncDisabledError(error: unknown) {
+  if (!(error instanceof ApiRequestError)) {
+    return false;
+  }
+
+  return error.message.toLowerCase().includes('synchronization is not enabled');
+}
+
 export async function pushSyncItems<TItem extends Record<string, unknown>, TResponse = TItem>(
   input: SyncPushInput<TItem>
 ) {
@@ -40,4 +48,3 @@ export async function pullSyncItems<TResponse>(input: SyncPullInput) {
     body: input,
   });
 }
-

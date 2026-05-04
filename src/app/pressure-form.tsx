@@ -5,9 +5,11 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
 import { PressureRepository } from '@/features/pressure/pressure.repository';
+import { useProfileSelection } from '@/hooks/use-profile-selection';
 
 const pressureRepository = new PressureRepository();
 
@@ -26,6 +28,7 @@ export default function PressureFormScreen() {
   const [notes, setNotes] = useState(params.rawText ?? '');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const profileSelection = useProfileSelection({ enabled: !editingId });
 
   useEffect(() => {
     if (!editingId) {
@@ -57,6 +60,7 @@ export default function PressureFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
+      await profileSelection.applySelectedProfile();
       const payload = {
         systolic: systolicValue,
         diastolic: diastolicValue,
@@ -86,6 +90,13 @@ export default function PressureFormScreen() {
           ? 'Atualize os dados da leitura e mantenha seu histórico organizado.'
           : 'Registre a medição para acompanhar sua pressão com mais clareza.'
       }>
+      {profileSelection.shouldSelectProfile && !editingId ? (
+        <ProfileSelector
+          profiles={profileSelection.profiles}
+          selectedProfileId={profileSelection.selectedProfileId}
+          onChange={profileSelection.setSelectedProfileId}
+        />
+      ) : null}
       <View style={styles.row}>
         <View style={styles.field}>
           <RecordInput

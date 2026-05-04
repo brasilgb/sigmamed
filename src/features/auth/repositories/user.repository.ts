@@ -51,6 +51,7 @@ type CreateProfileInput = {
   userId: number;
   fullName: string;
   age?: number | null;
+  sex?: string | null;
   height?: number | null;
   notes?: string | null;
   remoteProfileId?: number | string | null;
@@ -61,6 +62,7 @@ type UpsertRemoteProfileInput = {
   remoteProfileId: number | string;
   fullName?: string | null;
   age?: number | string | null;
+  sex?: string | null;
   height?: number | string | null;
   notes?: string | null;
 };
@@ -71,6 +73,14 @@ type UpdateUserInput = {
   photoUri?: string | null;
   age?: number | null;
   passwordHash?: string;
+};
+
+type UpdateProfileInput = {
+  fullName?: string | null;
+  age?: number | null;
+  sex?: string | null;
+  height?: number | null;
+  notes?: string | null;
 };
 
 function mapUser(row: UserRow): AuthUser {
@@ -372,6 +382,41 @@ export class UserRepository {
     return rows.map(mapProfile);
   }
 
+  async updateProfile(profileId: number, input: UpdateProfileInput): Promise<AuthProfile> {
+    const database = await getDatabase();
+    const existing = await database.getFirstAsync<ProfileRow>('SELECT * FROM profiles WHERE id = ?', profileId);
+
+    if (!existing) {
+      throw new Error('Perfil não encontrado.');
+    }
+
+    const nextFullName = input.fullName === undefined ? existing.full_name : input.fullName?.trim() || existing.full_name;
+    const nextAge = input.age === undefined ? existing.age : input.age;
+    const nextSex = input.sex === undefined ? existing.sex : input.sex?.trim() || null;
+    const nextHeight = input.height === undefined ? existing.height : input.height;
+    const nextNotes = input.notes === undefined ? existing.notes : input.notes?.trim() || null;
+
+    await database.runAsync(
+      `UPDATE profiles
+       SET full_name = ?, age = ?, sex = ?, height = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      nextFullName,
+      nextAge,
+      nextSex,
+      nextHeight,
+      nextNotes,
+      profileId
+    );
+
+    const row = await database.getFirstAsync<ProfileRow>('SELECT * FROM profiles WHERE id = ?', profileId);
+
+    if (!row) {
+      throw new Error('Perfil não encontrado.');
+    }
+
+    return mapProfile(row);
+  }
+
   async createProfile(input: CreateProfileInput): Promise<AuthProfile> {
     const database = await getDatabase();
     const fullName = input.fullName.trim();
@@ -382,12 +427,13 @@ export class UserRepository {
 
     const result = await database.runAsync(
       `INSERT INTO profiles
-        (user_id, remote_profile_id, full_name, age, height, notes, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (user_id, remote_profile_id, full_name, age, sex, height, notes, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       input.userId,
       input.remoteProfileId ? Number(input.remoteProfileId) : null,
       fullName,
       input.age ?? null,
+      input.sex?.trim() || null,
       input.height ?? null,
       input.notes?.trim() || null
     );
@@ -425,12 +471,14 @@ export class UserRepository {
         `UPDATE profiles
          SET full_name = COALESCE(?, full_name),
              age = ?,
+             sex = COALESCE(?, sex),
              height = ?,
              notes = COALESCE(?, notes),
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         input.fullName?.trim() || null,
         Number.isFinite(age) ? age : null,
+        input.sex?.trim() || null,
         Number.isFinite(height) ? height : null,
         input.notes?.trim() || null,
         existing.id
@@ -450,6 +498,7 @@ export class UserRepository {
       remoteProfileId,
       fullName: input.fullName?.trim() || 'Perfil remoto',
       age: Number.isFinite(age) ? age : null,
+      sex: input.sex ?? null,
       height: Number.isFinite(height) ? height : null,
       notes: input.notes ?? null,
     });

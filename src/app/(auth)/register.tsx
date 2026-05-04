@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
 import { AuthScreen } from '@/components/auth/auth-screen';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import type { AccountUsage } from '@/features/auth/types/auth';
 
@@ -44,6 +45,8 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pin, setPin] = useState('');
   const [useBiometric, setUseBiometric] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptedPersonalUse, setAcceptedPersonalUse] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,15 +81,18 @@ export default function RegisterScreen() {
         return;
       }
 
-      router.replace('/(tabs)');
       Alert.alert(
         'Conta criada',
-        'Para cadastrar a pessoa acompanhada, acesse Configurações e depois Acompanhados.',
+        'Para cadastrar seus acompanhados, toque no ícone de usuários na tela inicial.',
         [
           {
             text: 'OK',
+            onPress: () => router.replace('/(tabs)'),
           },
-        ]
+        ],
+        {
+          onDismiss: () => router.replace('/(tabs)'),
+        }
       );
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao criar conta.');
@@ -98,7 +104,7 @@ export default function RegisterScreen() {
   return (
     <AuthScreen
       title="Criar conta"
-      subtitle="Escolha como vai usar o SigmaMed e informe os dados principais para iniciar.">
+      subtitle="Escolha como vai usar o Meu Controle e informe os dados principais para iniciar.">
       <View style={styles.usageGrid}>
         {usageOptions.map((option) => {
           const isSelected = accountUsage === option.value;
@@ -191,7 +197,7 @@ export default function RegisterScreen() {
         ref={passwordRef}
         label="Senha da conta"
         autoCapitalize="none"
-        secureTextEntry
+        secureTextEntry={!showPassword}
         returnKeyType="next"
         textContentType="newPassword"
         autoComplete="password-new"
@@ -199,18 +205,36 @@ export default function RegisterScreen() {
         value={password}
         onChangeText={setPassword}
         onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+        rightElement={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            onPress={() => setShowPassword((current) => !current)}
+            style={styles.passwordVisibilityButton}>
+            <IconSymbol name={showPassword ? 'eye.slash.fill' : 'eye.fill'} size={22} color={Colors.light.textMuted} />
+          </Pressable>
+        }
       />
       <AuthInput
         ref={confirmPasswordRef}
         label="Confirmação da senha"
         autoCapitalize="none"
-        secureTextEntry
+        secureTextEntry={!showConfirmPassword}
         returnKeyType="next"
         textContentType="password"
         placeholder="Repita sua senha"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         onSubmitEditing={() => pinRef.current?.focus()}
+        rightElement={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+            onPress={() => setShowConfirmPassword((current) => !current)}
+            style={styles.passwordVisibilityButton}>
+            <IconSymbol name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'} size={22} color={Colors.light.textMuted} />
+          </Pressable>
+        }
       />
       <AuthInput
         ref={pinRef}
@@ -226,17 +250,24 @@ export default function RegisterScreen() {
         onSubmitEditing={() => void handleSubmit()}
       />
 
-      {biometricAvailable ? (
-        <View style={styles.preferenceRow}>
+      <View style={[styles.preferenceRow, !biometricAvailable ? styles.preferenceRowDisabled : null]}>
           <View style={styles.preferenceText}>
             <ThemedText style={styles.preferenceTitle}>Ativar biometria</ThemedText>
             <ThemedText style={styles.preferenceDescription}>
-              Use impressão digital ou reconhecimento facial quando disponível.
+              {biometricAvailable
+                ? 'Use impressão digital ou reconhecimento facial para desbloquear o app.'
+                : 'Biometria indisponível ou não cadastrada neste aparelho.'}
             </ThemedText>
           </View>
-          <Switch value={useBiometric} onValueChange={setUseBiometric} />
+          <Switch
+            value={biometricAvailable && useBiometric}
+            disabled={!biometricAvailable}
+            onValueChange={setUseBiometric}
+            trackColor={{ false: '#D7E2E6', true: '#A7E5D8' }}
+            thumbColor={biometricAvailable && useBiometric ? Colors.light.tint : Colors.light.surface}
+            ios_backgroundColor="#D7E2E6"
+          />
         </View>
-      ) : null}
 
       <Pressable
         accessibilityRole="checkbox"
@@ -249,8 +280,9 @@ export default function RegisterScreen() {
         <View style={styles.consentText}>
           <ThemedText style={styles.consentTitle}>Uso informado e privacidade</ThemedText>
           <ThemedText style={styles.consentDescription}>
-            Entendo que o SigmaMed é um apoio para registro pessoal e não substitui consulta,
-            diagnóstico, prescrição ou acompanhamento por profissional de saúde.
+            Entendo que o Meu Controle serve para registrar e armazenar informações para uso posterior.
+            Ele não medica, não gera diagnóstico, não presta atendimento médico e não substitui
+            consulta, prescrição ou acompanhamento por profissional de saúde.
           </ThemedText>
           <Pressable onPress={() => router.push('/privacy')}>
             <ThemedText style={styles.privacyLink}>Ler política de privacidade</ThemedText>
@@ -267,7 +299,7 @@ export default function RegisterScreen() {
       />
 
       <Pressable onPress={() => router.replace('/(auth)/login')}>
-        <ThemedText style={styles.link}>Ja tenho conta</ThemedText>
+        <ThemedText style={styles.link}>Já tenho conta</ThemedText>
       </Pressable>
     </AuthScreen>
   );
@@ -317,13 +349,17 @@ const styles = StyleSheet.create({
   },
   preferenceRow: {
     borderRadius: Radius.md,
-    backgroundColor: Colors.light.surfaceMuted,
+    backgroundColor: '#EAF7F4',
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
+    borderColor: Colors.light.tint,
+  },
+  preferenceRowDisabled: {
+    backgroundColor: Colors.light.surface,
     borderColor: Colors.light.border,
   },
   preferenceText: {
@@ -332,12 +368,19 @@ const styles = StyleSheet.create({
   },
   preferenceTitle: {
     color: Colors.light.text,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   preferenceDescription: {
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  passwordVisibilityButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   infoCard: {
     borderRadius: Radius.md,

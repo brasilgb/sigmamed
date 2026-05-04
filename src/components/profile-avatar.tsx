@@ -16,7 +16,7 @@ function getInitials(name: string) {
       .split(/\s+/)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || 'SM'
+      .join('') || 'MC'
   );
 }
 

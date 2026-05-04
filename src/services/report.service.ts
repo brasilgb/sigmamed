@@ -4,9 +4,10 @@ import { getDatabase } from '@/database/client';
 import { MedicationRepository } from '@/features/medications/medication.repository';
 import { UserRepository } from '@/features/auth/repositories/user.repository';
 import { getSessionUserId } from '@/features/auth/services/session-storage.service';
+import { formatGlicoseContext } from '@/features/glicose/glicose-utils';
 import { getDashboardSummary, getDashboardTrends, getRecentHistory } from '@/services/dashboard.service';
 import { getActiveLocalProfileId } from '@/services/sync-metadata.service';
-import { formatDate, formatDateTime } from '@/utils/date';
+import { formatDateTime } from '@/utils/date';
 import type {
   BloodPressureReading,
   DashboardSummary,
@@ -62,6 +63,10 @@ function describeWeight(reading: WeightReading | null) {
   }
 
   return `${reading.weight.toFixed(1)} ${reading.unit}`;
+}
+
+function describePatientWeight(reading: WeightReading | null) {
+  return reading ? `${reading.weight.toFixed(1)} ${reading.unit}` : '-';
 }
 
 function buildMetricSummary(
@@ -363,19 +368,15 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.systolic}/${item.diastolic} mmHg`,
     item.pulse ? `${item.pulse} bpm` : '-',
-    item.notes ? escapeHtml(item.notes) : '-',
   ]);
   const glicoseRows = report.glicose.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.glicoseValue} ${item.unit}`,
-    escapeHtml(item.context),
-    item.notes ? escapeHtml(item.notes) : '-',
+    escapeHtml(formatGlicoseContext(item.context)),
   ]);
   const weightRows = report.weight.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.weight.toFixed(1)} ${item.unit}`,
-    item.height ? `${Math.round(item.height * 100)} cm` : '-',
-    item.notes ? escapeHtml(item.notes) : '-',
   ]);
   const medicationRows = report.medications.items.map((item) => [
     escapeHtml(item.name),
@@ -394,6 +395,7 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
   const showWeight = includesReportKind(kind, 'weight');
   const showMedications = includesReportKind(kind, 'medications');
   const reportTitle = getReportTitle(kind);
+  const subjectName = report.patient?.name ?? 'perfil ativo';
   const totalScopedReadings =
     (showPressure ? report.pressure.summary.count : 0) +
     (showGlicose ? report.glicose.summary.count : 0) +
@@ -491,28 +493,26 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
         <section class="header">
           <div class="header-top">
             <div>
-              <div class="brand">SigmaMed</div>
+              <div class="brand">Meu Controle</div>
               <h1>${escapeHtml(reportTitle)}</h1>
+              <p><strong>Acompanhado:</strong> ${escapeHtml(subjectName)}</p>
               <p class="meta">Período: últimos ${report.periodDays} dias | Gerado em ${escapeHtml(
                 formatDateTime(report.generatedAt)
               )}</p>
             </div>
-            <div class="subtle">Uso pessoal e compartilhamento clínico</div>
+            <div class="subtle">Registro pessoal para consulta posterior</div>
           </div>
           ${
             report.patient
               ? `
               <div class="patient">
-                <h2>Identificação do paciente</h2>
+                <h2>Identificação do acompanhado</h2>
                 <p><strong>Nome:</strong> ${escapeHtml(report.patient.name)}</p>
                 <p><strong>E-mail:</strong> ${escapeHtml(report.patient.email)}</p>
                 <p><strong>Idade:</strong> ${report.patient.age ? `${report.patient.age} anos` : '-'}</p>
-                <p><strong>Nascimento:</strong> ${report.patient.birthDate ? escapeHtml(formatDate(report.patient.birthDate)) : '-'}</p>
                 <p><strong>Sexo:</strong> ${report.patient.sex ? escapeHtml(report.patient.sex) : '-'}</p>
-                <p><strong>Altura:</strong> ${report.patient.height ? `${Math.round(report.patient.height * 100)} cm` : '-'}</p>
-                <p><strong>Peso-alvo:</strong> ${report.patient.targetWeight ? `${report.patient.targetWeight.toFixed(1)} kg` : '-'}</p>
+                <p><strong>Peso:</strong> ${describePatientWeight(report.summary.latestWeight)}</p>
                 <p>${patientBadges.length > 0 ? patientBadges.map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join('') : '<span class="subtle">Sem marcadores clínicos adicionais</span>'}</p>
-                ${report.patient.notes ? `<p><strong>Observações:</strong> ${escapeHtml(report.patient.notes)}</p>` : ''}
               </div>
             `
               : ''
@@ -522,10 +522,15 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
         ${scopedSummary}
         ${trendsSection}
 
-        ${showPressure ? renderTableSection('Pressão arterial', ['Data e hora', 'Leitura', 'Pulso', 'Observações'], pressureRows) : ''}
-        ${showGlicose ? renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto', 'Observações'], glicoseRows) : ''}
-        ${showWeight ? renderTableSection('Peso', ['Data e hora', 'Peso', 'Altura', 'Observações'], weightRows) : ''}
+        ${showPressure ? renderTableSection('Pressão arterial', ['Data e hora', 'Leitura', 'Pulso'], pressureRows) : ''}
+        ${showGlicose ? renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto'], glicoseRows) : ''}
+        ${showWeight ? renderTableSection('Peso', ['Data e hora', 'Peso'], weightRows) : ''}
         ${showMedications ? renderTableSection('Medicações', ['Medicação', 'Dosagem', 'Horário', 'Status'], medicationRows) : ''}
+
+        <section class="section">
+          <h2>Finalidade do relatório</h2>
+          <p>Este relatório organiza informações registradas pelo usuário para consulta posterior. Ele não gera diagnóstico, prescrição, atendimento médico, orientação clínica ou indicação de medicação.</p>
+        </section>
 
         ${kind === 'complete' ? `<section class="section">
           <h2>Atividade recente</h2>

@@ -6,65 +6,72 @@
 import { Platform } from 'react-native';
 
 export const BrandPalette = {
-  primary: '#0E9F8C',
-  navy: '#102532',
-  navySoft: '#1D4456',
-  pressureSoft: '#DCEEFF',
-  weightSoft: '#DCF4E8',
-  medicationSoft: '#ECE5FF',
-  mist: '#F1F6F8',
+  primary: '#2563EB',
+  wellness: '#10B981',
+  cyan: '#06B6D4',
+  purple: '#8B5CF6',
+  orange: '#F59E0B',
+  pressure: '#EF4444',
+  navy: '#1E293B',
+  deepNavy: '#061B3A',
+  navySoft: '#334155',
+  neutral: '#64748B',
+  pressureSoft: '#FEE2E2',
+  weightSoft: '#D1FAE5',
+  medicationSoft: '#FFF4E0',
+  mist: '#F8FAFC',
   white: '#FFFFFF',
 } as const;
 
 export const ModulePalette = {
   pressure: {
-    base: BrandPalette.navy,
+    base: BrandPalette.pressure,
     soft: BrandPalette.pressureSoft,
   },
   glicose: {
-    base: '#284E99',
+    base: '#2563EB',
     soft: '#DCE8FF',
   },
   weight: {
-    base: '#137B62',
-    soft: BrandPalette.weightSoft,
+    base: BrandPalette.purple,
+    soft: '#F0E9FF',
   },
   medication: {
-    base: '#6146A8',
+    base: BrandPalette.orange,
     soft: BrandPalette.medicationSoft,
   },
 } as const;
 
 const semanticLight = {
-  text: BrandPalette.navy,
-  textMuted: '#2F4753',
-  textSoft: '#4E6671',
-  background: '#F3F8F9',
+  text: BrandPalette.deepNavy,
+  textMuted: BrandPalette.neutral,
+  textSoft: '#94A3B8',
+  background: '#F5F7FB',
   surface: BrandPalette.white,
-  surfaceMuted: '#EAF2F4',
-  border: '#CBDADF',
+  surfaceMuted: '#F1F6FD',
+  border: '#E2E8F0',
   tint: BrandPalette.primary,
-  icon: '#5B717B',
-  tabIconDefault: '#5B717B',
+  icon: BrandPalette.neutral,
+  tabIconDefault: BrandPalette.neutral,
   tabIconSelected: BrandPalette.primary,
-  success: '#137B62',
+  success: BrandPalette.wellness,
   warning: '#B67915',
   danger: '#B14646',
 };
 
 const semanticDark = {
-  text: '#ECEDEE',
-  textMuted: '#B8C4CA',
-  textSoft: '#90A0A8',
-  background: '#08131D',
-  surface: '#10202D',
-  surfaceMuted: '#132635',
-  border: '#223748',
+  text: '#F8FAFC',
+  textMuted: '#CBD5E1',
+  textSoft: '#94A3B8',
+  background: '#0F172A',
+  surface: '#1E293B',
+  surfaceMuted: '#334155',
+  border: '#475569',
   tint: BrandPalette.primary,
-  icon: '#8CA0AA',
-  tabIconDefault: '#8CA0AA',
+  icon: '#CBD5E1',
+  tabIconDefault: '#CBD5E1',
   tabIconSelected: BrandPalette.primary,
-  success: '#33C48A',
+  success: BrandPalette.wellness,
   warning: '#F0BE5A',
   danger: '#F08A84',
 };
@@ -75,10 +82,10 @@ export const Colors = {
 };
 
 export const Radius = {
-  sm: 12,
-  md: 18,
-  lg: 24,
-  xl: 28,
+  sm: 10,
+  md: 16,
+  lg: 20,
+  xl: 24,
   pill: 999,
 } as const;
 
@@ -91,30 +98,29 @@ export const Space = {
 } as const;
 
 export const Surface = {
-  cardBorder: '#D6E2E6',
-  cardSubtle: '#F7FAFB',
-  shadow: 'rgba(13, 27, 42, 0.08)',
+  cardBorder: '#E2E8F0',
+  cardSubtle: '#F8FAFC',
+  shadow: 'rgba(6, 27, 58, 0.08)',
 } as const;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
+    sans: 'Poppins_400Regular',
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
     /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
+    rounded: 'Poppins_600SemiBold',
     /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'Poppins_400Regular',
     serif: 'serif',
-    rounded: 'normal',
+    rounded: 'Poppins_600SemiBold',
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "Poppins_400Regular, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",

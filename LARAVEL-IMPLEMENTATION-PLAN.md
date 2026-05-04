@@ -1,8 +1,8 @@
-# LARAVEL IMPLEMENTATION PLAN — SigmaMed Tenant Backend
+# LARAVEL IMPLEMENTATION PLAN — Meu Controle Tenant Backend
 
 ## Objetivo
 
-Transformar o contexto do backend SigmaMed em um plano prático de implementação para uma API Laravel multi-tenant, começando pelo menor caminho funcional.
+Transformar o contexto do backend Meu Controle em um plano prático de implementação para uma API Laravel multi-tenant, começando pelo menor caminho funcional.
 
 Este plano assume:
 

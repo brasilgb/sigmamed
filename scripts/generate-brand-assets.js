@@ -101,7 +101,7 @@ function fillGradientBackground(png, topHex, bottomHex) {
   }
 }
 
-function drawSigmaMedMark(png, options = {}) {
+function drawMeuControleMark(png, options = {}) {
   const size = Math.min(png.width, png.height);
   const centerX = png.width / 2;
   const centerY = png.height / 2;
@@ -187,7 +187,7 @@ function createIcon() {
   fillGradientBackground(png, '#0D1B2A', '#173B55');
   fillCircle(png, 820, 205, 140, rgba('#18D1BC', 38));
   fillCircle(png, 190, 840, 170, rgba('#54A8FF', 28));
-  drawSigmaMedMark(png, {
+  drawMeuControleMark(png, {
     scale: 1,
     cardColor: '#0F2940',
     lineColor: '#FFFFFF',
@@ -202,7 +202,7 @@ function createSplash() {
   fillGradientBackground(png, '#F4F9FB', '#E8F3F6');
   fillCircle(png, 768, 240, 135, rgba('#18D1BC', 26));
   fillCircle(png, 240, 780, 155, rgba('#21438F', 18));
-  drawSigmaMedMark(png, {
+  drawMeuControleMark(png, {
     scale: 0.92,
     cardColor: '#14324A',
     lineColor: '#FFFFFF',
@@ -214,7 +214,7 @@ function createSplash() {
 
 function createAndroidForeground() {
   const png = createPng(512, 512);
-  drawSigmaMedMark(png, {
+  drawMeuControleMark(png, {
     scale: 0.78,
     transparentCard: true,
     innerCircleColor: '#14324A',
@@ -236,7 +236,7 @@ function createAndroidBackground() {
 
 function createMonochrome() {
   const png = createPng(432, 432);
-  drawSigmaMedMark(png, {
+  drawMeuControleMark(png, {
     scale: 0.78,
     transparentCard: true,
     innerCircleColor: '#0D1B2A',
@@ -251,7 +251,7 @@ function createMonochrome() {
 function createFavicon() {
   const png = createPng(48, 48);
   fillGradientBackground(png, '#0D1B2A', '#173B55');
-  drawSigmaMedMark(png, {
+  drawMeuControleMark(png, {
     scale: 0.9,
     cardColor: '#102B42',
     lineColor: '#FFFFFF',

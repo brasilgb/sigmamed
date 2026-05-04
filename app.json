@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "SigmaMed",
-    "slug": "sigmamed",
+    "name": "Meu Controle",
+    "owner": "andersonbrodrigues",
+    "slug": "meucontrole",
     "description": "Aplicativo para acompanhamento pessoal de pressão, glicose, peso e lembretes de medicamentos. Não substitui orientação, diagnóstico ou acompanhamento profissional.",
     "version": "1.0.0",
     "runtimeVersion": {
@@ -11,31 +12,30 @@
       "fallbackToCacheTimeout": 0
     },
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "sigmamed",
+    "icon": "./assets/images/logo_azul.png",
+    "scheme": "meucontrole",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.andersonrodrigues.sigmamed",
+      "bundleIdentifier": "com.andersonrodrigues.meucontrole",
       "buildNumber": "1",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Permitir que o SigmaMed use biometria para desbloquear o aplicativo com segurança."
+        "NSFaceIDUsageDescription": "Permitir que o Meu Controle use biometria para desbloquear o aplicativo com segurança."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#061B3A",
+        "foregroundImage": "./assets/images/logo_azul.png",
+        "monochromeImage": "./assets/images/logo_branco.png"
       },
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
-      "package": "com.andersonrodrigues.sigmamed"
+      "package": "com.andersonrodrigues.meucontrole"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo_azul.png"
     },
     "plugins": [
       "expo-router",
@@ -43,19 +43,20 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permitir que o SigmaMed acesse sua galeria para escolher a foto de perfil.",
-          "cameraPermission": "Permitir que o SigmaMed use a camera para tirar sua foto de perfil."
+          "photosPermission": "Permitir que o Meu Controle acesse sua galeria para escolher a foto de perfil.",
+          "cameraPermission": "Permitir que o Meu Controle use a camera para tirar sua foto de perfil."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 220,
+          "image": "./assets/images/logo_branco.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F4F9FB",
+          "backgroundColor": "#061B3A",
           "dark": {
-            "backgroundColor": "#08131D"
+            "image": "./assets/images/logo_branco.png",
+            "backgroundColor": "#061B3A"
           }
         }
       ],
@@ -71,7 +72,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "$EXPO_PUBLIC_API_BASE_URL"
+      "apiBaseUrl": "http://192.168.2.54:8000/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "831f0b4f-4d98-4481-a785-0555e2136ed1"
+      }
     }
   }
 }

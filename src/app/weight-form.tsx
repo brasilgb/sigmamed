@@ -5,11 +5,13 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { BrandPalette, Colors } from '@/constants/theme';
 import { getActiveAccountProfile } from '@/features/auth/services/auth.service';
 import { WeightRepository } from '@/features/weight/weight.repository';
 import { calculateBodyMassIndex, formatHeight, normalizeHeightInput } from '@/features/weight/weight-utils';
+import { useProfileSelection } from '@/hooks/use-profile-selection';
 
 const weightRepository = new WeightRepository();
 
@@ -25,8 +27,18 @@ export default function WeightFormScreen() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const profileSelection = useProfileSelection({ enabled: !editingId });
 
   useEffect(() => {
+    if (profileSelection.shouldSelectProfile) {
+      const selectedProfile = profileSelection.profiles.find(
+        (profile) => profile.id === profileSelection.selectedProfileId
+      );
+
+      setProfileHeight(selectedProfile?.height ?? null);
+      return;
+    }
+
     getActiveAccountProfile()
       .then((profile) => {
         setProfileHeight(profile?.height ?? null);
@@ -34,7 +46,7 @@ export default function WeightFormScreen() {
       .catch(() => {
         setProfileHeight(null);
       });
-  }, []);
+  }, [profileSelection.profiles, profileSelection.selectedProfileId, profileSelection.shouldSelectProfile]);
 
   useEffect(() => {
     if (!editingId) {
@@ -71,6 +83,7 @@ export default function WeightFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
+      await profileSelection.applySelectedProfile();
       const payload = {
         weight: numericWeight,
         height: normalizedProfileHeight,
@@ -99,6 +112,13 @@ export default function WeightFormScreen() {
           ? 'Atualize a pesagem salva e mantenha sua evolução em ordem.'
           : 'Registre o peso para acompanhar sua evolução corporal.'
       }>
+      {profileSelection.shouldSelectProfile && !editingId ? (
+        <ProfileSelector
+          profiles={profileSelection.profiles}
+          selectedProfileId={profileSelection.selectedProfileId}
+          onChange={profileSelection.setSelectedProfileId}
+        />
+      ) : null}
       <RecordInput
         label="Peso"
         keyboardType="number-pad"

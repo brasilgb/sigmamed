@@ -1,4 +1,4 @@
-# BACKEND MOBILE CONTRACT — SigmaMed
+# BACKEND MOBILE CONTRACT — Meu Controle
 
 Este documento consolida o contrato final esperado pelo app mobile para autenticação, perfil, avatar e sincronização offline-first com a API Laravel.
 
@@ -590,10 +590,10 @@ Valores suportados em `plan`:
 
 Nomes comerciais sugeridos para exibição:
 
-- `personal_monthly`: Essencial mensal.
-- `personal_annual`: Essencial anual.
-- `family_caregiver_monthly`: Cuidado Familiar mensal.
-- `family_caregiver_annual`: Cuidado Familiar anual.
+- `personal_monthly`: Pessoal mensal.
+- `personal_annual`: Pessoal anual.
+- `family_caregiver_monthly`: Familiar/acompanhante mensal.
+- `family_caregiver_annual`: Familiar/acompanhante anual.
 
 Valores sugeridos:
 
@@ -634,6 +634,179 @@ Quando o pagamento for aprovado pelo Mercado Pago ou outro provedor via webhook,
 Quando o pagamento for confirmado pelo provedor, o backend deve marcar `sync_enabled = true` para o tenant/usuário autenticado. Enquanto `sync_enabled` for `false`, endpoints de `sync/push` e `sync/pull` devem retornar erro claro de acesso não liberado.
 
 Observacao de status mobile: a tela de nuvem consulta `GET /billing/sync-access` e chama `POST /billing/sync-access/checkout` enviando `plan`. Ela exibe o Pix retornado pelo backend e espera o webhook atualizar o acesso ao sync.
+
+## Feedback do Usuário
+
+A home do app possui um card de opinião que abre um modal com nota em estrelas e comentário/sugestão. O envio deve ser uma chamada autenticada direta para o backend e nao deve entrar no fluxo de sincronizacao offline.
+
+Endpoint sugerido:
+
+```http
+POST /api/v1/feedback
+Authorization: Bearer <token>
+Accept: application/json
+Content-Type: application/json
+X-Tenant-Id: 1
+```
+
+Body:
+
+```json
+{
+  "rating": 5,
+  "comment": "Gostaria de uma tela para comparar evolução por mês.",
+  "source": "home",
+  "app_version": "1.0.0",
+  "platform": "android"
+}
+```
+
+Campos:
+
+- `rating`: inteiro opcional de 1 a 5. Pode ser `null` se o usuário enviar apenas comentário.
+- `comment`: texto opcional com comentário ou sugestão. Pode ser `null` se o usuário enviar apenas nota.
+- `source`: origem do feedback no app. Valor inicial esperado: `home`.
+- `app_version`: versão do app, quando disponível.
+- `platform`: plataforma do app, quando disponível (`ios`, `android` ou `web`).
+
+Regra de validação:
+
+- Exigir ao menos um entre `rating` e `comment`.
+- Se `rating` for enviado, aceitar apenas valores inteiros entre 1 e 5.
+- Vincular o feedback ao usuário autenticado e ao tenant atual.
+
+Response esperado:
+
+```json
+{
+  "data": {
+    "id": 123,
+    "rating": 5,
+    "comment": "Gostaria de uma tela para comparar evolução por mês.",
+    "source": "home",
+    "created_at": "2026-05-02T12:00:00Z"
+  },
+  "meta": {},
+  "message": "Feedback received."
+}
+```
+
+### Regras Mobile
+
+Chamada real esperada:
+
+- Trocar o envio visual/local do modal de opinião por chamada real para `POST /api/v1/feedback`.
+- Enviar os headers protegidos padrão: `Authorization`, `Accept`, `Content-Type` e `X-Tenant-Id` quando disponível.
+- Enviar `rating` quando o usuário selecionar estrelas e `comment` quando preencher comentário/sugestão.
+- Normalizar `comment` com `trim()` antes de enviar.
+- Enviar `source: "home"` para o card atual da home.
+- Enviar `app_version` e `platform` quando esses dados estiverem disponíveis no app.
+
+Validação local:
+
+- Bloquear o envio se `rating` estiver vazio e `comment.trim()` estiver vazio.
+- Se houver nota, aceitar apenas 1, 2, 3, 4 ou 5.
+- Permitir comentário sem nota e nota sem comentário.
+
+Estados de UI:
+
+- Exibir estado de carregamento durante o envio.
+- Desabilitar o botão enquanto o envio estiver em andamento para evitar duplo envio.
+- Em sucesso, limpar os campos e mostrar confirmação simples ao usuário.
+- Em erro de validação, informar que é necessário preencher uma nota ou comentário.
+- Em erro de rede ou servidor, manter o conteúdo digitado no modal para o usuário tentar novamente.
+
+Regra offline/sync:
+
+- Feedback nao é registro clínico e nao deve ser gravado nas tabelas sincronizáveis.
+- Feedback nao deve entrar em `sync/push`, `sync/pull`, fila offline de registros clínicos ou relatório de saúde.
+- Se estiver sem internet ou a API falhar, o app deve mostrar erro e permitir nova tentativa manual. Nao criar pendência offline neste fluxo.
+
+### Painel Admin Web
+
+Criar tela protegida para análise de feedbacks:
+
+```http
+GET /admin/feedbacks
+```
+
+Acesso:
+
+- Disponível apenas para usuários com papel `admin` ou `root`.
+- Bloquear acesso para usuários comuns, cuidadores, contas familiares/acompanhantes e contas pessoais.
+- Validar permissão no backend, nao apenas esconder links no frontend.
+
+Conteúdo esperado da tela:
+
+- Cards de resumo:
+  - total de feedbacks recebidos.
+  - nota média.
+  - quantidade de feedbacks com comentário.
+  - quantidade de feedbacks recebidos nos últimos 7 ou 30 dias.
+- Distribuição por estrelas:
+  - contagem de notas 1, 2, 3, 4 e 5.
+  - percentual por nota, quando útil para visualização.
+- Listagem dos feedbacks:
+  - data/hora de envio.
+  - usuário e e-mail, quando disponíveis.
+  - tenant, quando disponível.
+  - nota.
+  - comentário/sugestão.
+  - origem (`source`).
+  - versão do app.
+  - plataforma.
+
+Filtros recomendados:
+
+- período.
+- nota.
+- plataforma.
+- origem.
+- busca textual no comentário.
+
+Endpoint JSON opcional para o painel:
+
+```http
+GET /api/v1/admin/feedbacks
+Authorization: Bearer <token>
+Accept: application/json
+```
+
+Response sugerido:
+
+```json
+{
+  "data": [
+    {
+      "id": 123,
+      "user_id": 1,
+      "user_name": "João Silva",
+      "user_email": "joao@exemplo.com",
+      "tenant_id": 1,
+      "rating": 5,
+      "comment": "Gostaria de uma tela para comparar evolução por mês.",
+      "source": "home",
+      "app_version": "1.0.0",
+      "platform": "android",
+      "created_at": "2026-05-02T12:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 1,
+    "average_rating": 5,
+    "with_comment": 1,
+    "last_30_days": 1,
+    "rating_distribution": {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 1
+    }
+  },
+  "message": "Feedbacks loaded."
+}
+```
 
 ## SQLite Sync Readiness
 

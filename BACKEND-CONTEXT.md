@@ -1,14 +1,14 @@
-# BACKEND CONTEXT — SigmaMed Laravel Tenant API
+# BACKEND CONTEXT — Meu Controle Laravel Tenant API
 
 ## Objetivo
 
-Definir o contexto técnico para construir o backend do SigmaMed em Laravel com arquitetura multi-tenant.
+Definir o contexto técnico para construir o backend do Meu Controle em Laravel com arquitetura multi-tenant.
 
 Esse backend deve servir como camada de autenticação online, sincronização de dados, backup, notificações futuras e suporte a múltiplos dispositivos por usuário, sem quebrar o modelo atual offline first do app mobile.
 
 ## Decisão Arquitetural Obrigatória
 
-O backend do SigmaMed será implementado em **Laravel**, expondo uma **camada de API HTTP versionada** para o app mobile.
+O backend do Meu Controle será implementado em **Laravel**, expondo uma **camada de API HTTP versionada** para o app mobile.
 
 Essa API será responsável por:
 
@@ -118,9 +118,9 @@ Se houver exigência contratual forte de isolamento, o projeto pode migrar depoi
 
 Mas isso não deve ser a escolha inicial.
 
-## Conceito de Tenant no SigmaMed
+## Conceito de Tenant no Meu Controle
 
-No SigmaMed, tenant não precisa significar apenas empresa.
+No Meu Controle, tenant não precisa significar apenas empresa.
 
 Pode representar:
 
@@ -762,7 +762,7 @@ Se este documento for usado como contexto para gerar o backend, assumir:
 * multi-tenant por `tenant_id`
 * Sanctum
 * UUID público para sync
-* arquitetura offline first compatível com o app SigmaMed atual
+* arquitetura offline first compatível com o app Meu Controle atual
 * domínio inicial: pressão, glicose, peso, medicação, perfil e autenticação
 
 ## Decisões Fechadas

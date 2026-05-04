@@ -1,5 +1,5 @@
 import { getDatabase } from '@/database/client';
-import { pushSyncItems } from '@/services/sync-api.service';
+import { isSyncDisabledError, pushSyncItems } from '@/services/sync-api.service';
 import {
   createSyncUuid,
   getActiveLocalProfileId,
@@ -317,9 +317,9 @@ export class MedicationRepository {
       `SELECT medication_logs.*, medications.uuid as medication_uuid
        FROM medication_logs
        LEFT JOIN medications ON medications.id = medication_logs.medication_id
-       WHERE medication_id = ?
-         AND deleted_at IS NULL
-         AND date(scheduled_at) = date('now', 'localtime')`,
+       WHERE medication_logs.medication_id = ?
+         AND medication_logs.deleted_at IS NULL
+         AND date(medication_logs.scheduled_at) = date('now', 'localtime')`,
       medicationId
     );
 
@@ -427,6 +427,10 @@ export class MedicationRepository {
         medication.id
       );
     } catch (error) {
+      if (isSyncDisabledError(error)) {
+        return;
+      }
+
       console.warn('Medication sync failed', error);
     }
   }
@@ -461,6 +465,10 @@ export class MedicationRepository {
         log.id
       );
     } catch (error) {
+      if (isSyncDisabledError(error)) {
+        return;
+      }
+
       console.warn('Medication log sync failed', error);
     }
   }

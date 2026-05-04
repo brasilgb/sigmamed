@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
@@ -7,6 +8,7 @@ import { Screen } from '@/components/ui/screen';
 import { Colors, ModulePalette } from '@/constants/theme';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useMedications } from '@/hooks/use-medications';
+import { useProfileNames } from '@/hooks/use-profile-names';
 import { useRecordManagement } from '@/hooks/use-record-management';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -15,14 +17,21 @@ export default function MedicationsTabScreen() {
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
   const { items: activeMedications, toggleTakenStatus, refresh: refreshActive } = useMedications();
   const { medications, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
+  const { activeProfileName, getProfileName, refreshProfileNames } = useProfileNames();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleRefresh() {
-    await Promise.all([refreshDashboard(), refreshActive(), refreshRecords()]);
+    await Promise.all([refreshDashboard(), refreshActive(), refreshRecords(), refreshProfileNames()]);
   }
 
   async function handleMedicationTaken(medicationId: number, isTaken: boolean) {
-    await toggleTakenStatus(medicationId, isTaken);
-    await Promise.all([refreshDashboard(), refreshRecords()]);
+    try {
+      setActionError(null);
+      await toggleTakenStatus(medicationId, isTaken);
+      await Promise.all([refreshDashboard(), refreshRecords()]);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Falha ao atualizar medicação.');
+    }
   }
 
   return (
@@ -31,7 +40,7 @@ export default function MedicationsTabScreen() {
         <View style={styles.heroHeader}>
           <ThemedText style={[styles.eyebrow, { color: ModulePalette.medication.base }]}>Módulo de medicação</ThemedText>
           <ThemedText type="title" style={styles.heroTitle}>
-            Tratamentos ativos, rotina diaria e lembretes no mesmo lugar.
+            Registros ativos, rotina diária e lembretes no mesmo lugar.
           </ThemedText>
           <ThemedText style={styles.heroText}>
             Cadastre, edite e acompanhe a adesão com uma visualização mais direta do uso diário.
@@ -45,6 +54,9 @@ export default function MedicationsTabScreen() {
               {summary ? String(summary.activeMedications) : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>medicações em andamento</ThemedText>
+            {activeProfileName ? (
+              <ThemedText style={styles.profileMeta}>Acompanhado: {activeProfileName}</ThemedText>
+            ) : null}
           </View>
           <View style={styles.statCard}>
             <ThemedText style={styles.statLabel}>Aderência hoje</ThemedText>
@@ -52,66 +64,74 @@ export default function MedicationsTabScreen() {
               {summary ? `${summary.adherenceToday}%` : '--'}
             </ThemedText>
             <ThemedText style={styles.statMeta}>registros do dia</ThemedText>
+            {activeProfileName ? (
+              <ThemedText style={styles.profileMeta}>Acompanhado: {activeProfileName}</ThemedText>
+            ) : null}
           </View>
         </View>
-
-        <AuthButton label="Nova medicação" onPress={() => router.push('/medication-form')} />
       </View>
+
+      <AuthButton label="Adicionar medicação" onPress={() => router.push('/medication-form')} />
 
       {activeMedications.length > 0 ? (
         <View style={styles.section}>
           <ThemedText type="subtitle" style={[styles.sectionTitle, { color: Colors[colorScheme].text }]}>
             Uso diário
           </ThemedText>
+          {actionError ? <ThemedText style={styles.errorText}>{actionError}</ThemedText> : null}
 
           {activeMedications.map((medication) => {
             const isTakenToday = medication.todayStatus === 'taken';
+            const profileName = getProfileName(medication.profileId);
 
             return (
               <View key={medication.id} style={styles.medicationCard}>
-              <View style={styles.recordHeader}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.recordTitle}>
-                    {medication.name} {medication.dosage}
-                  </ThemedText>
-                  <ThemedText style={styles.recordSubtitle}>
-                    {medication.scheduledTime ? `Dose prevista as ${medication.scheduledTime}` : 'Sem horario definido'}
-                  </ThemedText>
+                <View style={styles.recordHeader}>
+                  <View style={styles.recordCopy}>
+                    <ThemedText style={styles.recordTitle}>
+                      {medication.name} {medication.dosage}
+                    </ThemedText>
+                    <ThemedText style={styles.recordSubtitle}>
+                      {medication.scheduledTime ? `Dose prevista às ${medication.scheduledTime}` : 'Sem horário definido'}
+                    </ThemedText>
+                    {profileName ? (
+                      <ThemedText style={styles.profileMeta}>Acompanhado: {profileName}</ThemedText>
+                    ) : null}
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: ModulePalette.medication.soft }]}>
+                    <ThemedText style={[styles.badgeText, { color: ModulePalette.medication.base }]}>
+                      {isTakenToday ? 'Tomado hoje' : 'Não tomado'}
+                    </ThemedText>
+                  </View>
                 </View>
-                <View style={[styles.badge, { backgroundColor: ModulePalette.medication.soft }]}>
-                  <ThemedText style={[styles.badgeText, { color: ModulePalette.medication.base }]}>
-                    {isTakenToday ? 'Tomado hoje' : 'Não tomado'}
-                  </ThemedText>
-                </View>
-              </View>
 
-              {medication.instructions ? <ThemedText style={styles.recordNotes}>{medication.instructions}</ThemedText> : null}
+                {medication.instructions ? <ThemedText style={styles.recordNotes}>{medication.instructions}</ThemedText> : null}
 
-              {medication.todayLoggedAt ? (
-                <ThemedText style={styles.recordStatus}>
-                  {isTakenToday
-                    ? `Registrado como tomado hoje às ${medication.todayLoggedAt.slice(11, 16)}`
+                {medication.todayLoggedAt ? (
+                  <ThemedText style={styles.recordStatus}>
+                    {isTakenToday
+                      ? `Registrado como tomado hoje às ${medication.todayLoggedAt.slice(11, 16)}`
                       : null}
-                </ThemedText>
-              ) : null}
+                  </ThemedText>
+                ) : null}
 
-              <View style={styles.actionRow}>
-                <AuthButton
-                  label="Tomado"
-                  variant="secondary"
-                  selected={isTakenToday}
-                  selectedBackgroundColor={ModulePalette.medication.base}
-                  selectedBorderColor={ModulePalette.medication.base}
-                  onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
-                  style={styles.actionButton}
-                />
-                <AuthButton
-                  label="Editar"
-                  variant="secondary"
-                  onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
-                  style={styles.actionButton}
-                />
-              </View>
+                <View style={styles.actionRow}>
+                  <AuthButton
+                    label="Tomado"
+                    variant="secondary"
+                    selected={isTakenToday}
+                    selectedBackgroundColor={ModulePalette.medication.base}
+                    selectedBorderColor={ModulePalette.medication.base}
+                    onPress={() => void handleMedicationTaken(medication.id, medication.todayStatus === 'taken')}
+                    style={styles.actionButton}
+                  />
+                  <AuthButton
+                    label="Editar"
+                    variant="secondary"
+                    onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}
+                    style={styles.actionButton}
+                  />
+                </View>
               </View>
             );
           })}
@@ -120,7 +140,7 @@ export default function MedicationsTabScreen() {
         <View style={styles.emptyCard}>
           <ThemedText style={styles.emptyTitle}>Nenhuma medicação ativa no momento.</ThemedText>
           <ThemedText style={styles.emptyText}>
-            Cadastre um tratamento para acompanhar horário, lembrete e adesão.
+            Cadastre uma medicação já orientada por profissional para acompanhar horário, lembrete e adesão.
           </ThemedText>
         </View>
       )}
@@ -133,17 +153,24 @@ export default function MedicationsTabScreen() {
           {medications
             .filter((item) => !item.active)
             .slice(0, 3)
-            .map((medication) => (
-              <Pressable
-                key={medication.id}
-                style={styles.inactiveCard}
-                onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}>
-                <ThemedText style={styles.inactiveTitle}>
-                  {medication.name} {medication.dosage}
-                </ThemedText>
-                <ThemedText style={styles.inactiveMeta}>Toque para revisar ou reativar</ThemedText>
-              </Pressable>
-            ))}
+            .map((medication) => {
+              const profileName = getProfileName(medication.profileId);
+
+              return (
+                <Pressable
+                  key={medication.id}
+                  style={styles.inactiveCard}
+                  onPress={() => router.push({ pathname: '/medication-form', params: { id: String(medication.id) } })}>
+                  <ThemedText style={styles.inactiveTitle}>
+                    {medication.name} {medication.dosage}
+                  </ThemedText>
+                  {profileName ? (
+                    <ThemedText style={styles.profileMeta}>Acompanhado: {profileName}</ThemedText>
+                  ) : null}
+                  <ThemedText style={styles.inactiveMeta}>Toque para revisar ou reativar</ThemedText>
+                </Pressable>
+              );
+            })}
         </View>
       ) : null}
 
@@ -203,11 +230,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  profileMeta: {
+    color: ModulePalette.medication.base,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
   section: {
     gap: 14,
   },
   sectionTitle: {
     fontWeight: '800',
+  },
+  errorText: {
+    color: Colors.light.danger,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   medicationCard: {
     borderRadius: 24,
@@ -222,6 +260,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  recordCopy: {
+    flex: 1,
+    gap: 4,
   },
   recordTitle: {
     color: Colors.light.text,

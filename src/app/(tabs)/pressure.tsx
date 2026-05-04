@@ -8,18 +8,21 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { Screen } from '@/components/ui/screen';
 import { Colors, ModulePalette, Radius, Space } from '@/constants/theme';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useProfileNames } from '@/hooks/use-profile-names';
 import { useRecordManagement } from '@/hooks/use-record-management';
 import { formatDateTime } from '@/utils/date';
 
 export default function PressureTabScreen() {
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
   const { pressureReadings, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
+  const { getProfileName, refreshProfileNames } = useProfileNames();
 
   async function handleRefresh() {
-    await Promise.all([refreshDashboard(), refreshRecords()]);
+    await Promise.all([refreshDashboard(), refreshRecords(), refreshProfileNames()]);
   }
 
   const latest = pressureReadings[0];
+  const latestProfileName = getProfileName(latest?.profileId);
 
   return (
     <Screen isRefreshing={dashboardLoading || recordsLoading} onRefresh={handleRefresh}>
@@ -43,6 +46,9 @@ export default function PressureTabScreen() {
             <ThemedText style={styles.statMeta}>
               {latest ? formatDateTime(latest.measuredAt) : 'Nenhum registro ainda'}
             </ThemedText>
+            {latestProfileName ? (
+              <ThemedText style={styles.profileMeta}>Acompanhado: {latestProfileName}</ThemedText>
+            ) : null}
           </Card>
           <Card style={styles.statCard}>
             <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
@@ -53,36 +59,44 @@ export default function PressureTabScreen() {
           </Card>
         </View>
 
-        <View style={styles.actionRow}>
-          <AuthButton label="Nova leitura" onPress={() => router.push('/pressure-form')} style={styles.actionButton} />
-        </View>
       </View>
 
       <View style={styles.section}>
         <SectionHeader title="Recentes" hint="Últimas 5 medições" />
+        <AuthButton label="Adicionar nova leitura" onPress={() => router.push('/pressure-form')} />
 
         {pressureReadings.length > 0 ? (
-          pressureReadings.map((item) => (
-            <Card key={item.id} style={styles.recordCard}>
-              <Pressable
-                style={styles.recordPressable}
-                onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}>
-                <View style={styles.recordHeader}>
-                  <View>
+          pressureReadings.map((item) => {
+            const profileName = getProfileName(item.profileId);
+
+            return (
+              <Card key={item.id} style={styles.recordCard}>
+                <Pressable
+                  style={styles.recordPressable}
+                  onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}>
+                  <View style={styles.recordHeader}>
+                    <View style={styles.recordCopy}>
                     <ThemedText style={styles.recordTitle}>{item.systolic}/{item.diastolic} mmHg</ThemedText>
                     <ThemedText style={styles.recordSubtitle}>
                       {item.pulse ? `Pulso ${item.pulse} bpm` : 'Pulso não informado'}
                     </ThemedText>
+                    {profileName ? (
+                      <ThemedText style={styles.profileMeta}>Acompanhado: {profileName}</ThemedText>
+                    ) : null}
+                    </View>
+                    <AuthButton
+                      label="Editar"
+                      variant="secondary"
+                      onPress={() => router.push({ pathname: '/pressure-form', params: { id: String(item.id) } })}
+                      style={styles.editButton}
+                    />
                   </View>
-                  <View style={[styles.badge, { backgroundColor: ModulePalette.pressure.soft }]}>
-                    <ThemedText style={[styles.badgeText, { color: ModulePalette.pressure.base }]}>Manual</ThemedText>
-                  </View>
-                </View>
-                <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
-                {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
-              </Pressable>
-            </Card>
-          ))
+                  <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                  {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
+                </Pressable>
+              </Card>
+            );
+          })
         ) : (
           <Card style={styles.emptyCard}>
             <ThemedText style={styles.emptyTitle}>Nenhuma leitura de pressão ainda.</ThemedText>
@@ -143,13 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-  },
   section: {
     gap: 14,
   },
@@ -165,6 +172,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  recordCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  editButton: {
+    minWidth: 84,
   },
   recordTitle: {
     color: Colors.light.text,
@@ -182,20 +196,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  profileMeta: {
+    color: ModulePalette.pressure.base,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
   recordNotes: {
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
-  },
-  badge: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
   },
   emptyCard: {
     gap: 8,

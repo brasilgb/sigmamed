@@ -9,12 +9,12 @@ import { AuthInput } from '@/components/auth/auth-input';
 import { AuthScreen } from '@/components/auth/auth-screen';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useBillingSyncAccess } from '@/hooks/use-billing-sync-access';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   getBillingCycleLabel,
   getBillingPlanLabel,
-  getBillingSyncAccess,
-  type BillingSyncAccess,
+  isBillingSyncEnabled,
 } from '@/services/billing.service';
 
 export default function UnlockScreen() {
@@ -22,8 +22,7 @@ export default function UnlockScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
-  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [isPinBusy, setIsPinBusy] = useState(false);
   const [isBiometricBusy, setIsBiometricBusy] = useState(false);
   const autoBiometricAttemptedRef = useRef(false);
@@ -62,41 +61,6 @@ export default function UnlockScreen() {
     autoBiometricAttemptedRef.current = true;
     void handleBiometricUnlock({ silent: true });
   }, [biometricAvailable, handleBiometricUnlock, user?.useBiometric]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadPlan() {
-      if (!user) {
-        setSyncAccess(null);
-        return;
-      }
-
-      setIsLoadingPlan(true);
-
-      try {
-        const access = await getBillingSyncAccess();
-
-        if (isMounted) {
-          setSyncAccess(access);
-        }
-      } catch {
-        if (isMounted) {
-          setSyncAccess(null);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingPlan(false);
-        }
-      }
-    }
-
-    void loadPlan();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
 
   if (!user) {
     return <Redirect href="/(auth)/welcome" />;
@@ -148,8 +112,9 @@ export default function UnlockScreen() {
       ? 'Biometria não disponível ou não cadastrada neste aparelho.'
       : null;
   const planCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
-  const planText = syncAccess?.sync_enabled
-    ? `${getBillingPlanLabel(syncAccess.plan)}${planCycle ? ` - ${planCycle}` : ''}`
+  const isCloudActive = isBillingSyncEnabled(syncAccess);
+  const planText = isCloudActive
+    ? `${syncAccess?.plan ? getBillingPlanLabel(syncAccess.plan) : 'Nuvem ativa'}${planCycle ? ` - ${planCycle}` : ''}`
     : isLoadingPlan
       ? 'Carregando plano...'
       : 'Nuvem não ativada';
@@ -175,9 +140,9 @@ export default function UnlockScreen() {
             style={[
               styles.planBadge,
               {
-                backgroundColor: syncAccess?.sync_enabled ? '#DDF1EC' : Colors[colorScheme].surface,
+                backgroundColor: isCloudActive ? '#DDF1EC' : Colors[colorScheme].surface,
                 borderColor: Colors[colorScheme].border,
-                color: syncAccess?.sync_enabled ? '#0E9F8C' : Colors[colorScheme].textMuted,
+                color: isCloudActive ? '#0E9F8C' : Colors[colorScheme].textMuted,
               },
             ]}>
             {planText}

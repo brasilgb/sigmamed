@@ -8,15 +8,15 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useBillingSyncAccess } from '@/hooks/use-billing-sync-access';
 import {
   createBillingCheckout,
   getBillingCycleLabel,
   getBillingPlanLabel,
   getBillingPlanPriceLabel,
-  getBillingSyncAccess,
+  isBillingSyncEnabled,
   type BillingCheckout,
   type BillingPlan,
-  type BillingSyncAccess,
 } from '@/services/billing.service';
 
 const benefits = [
@@ -47,28 +47,28 @@ const planOptions: {
   {
     plan: 'personal_monthly',
     account: 'personal',
-    title: 'Essencial mensal',
+    title: 'Pessoal mensal',
     cycle: 'Mensal',
-    description: 'Para uso individual com backup e sincronizacao em nuvem.',
+    description: 'Para uso individual com backup e sincronização em nuvem.',
   },
   {
     plan: 'personal_annual',
     account: 'personal',
-    title: 'Essencial anual',
+    title: 'Pessoal anual',
     cycle: 'Anual',
     description: 'Mesmo acesso pessoal com ciclo anual.',
   },
   {
     plan: 'family_caregiver_monthly',
     account: 'family',
-    title: 'Cuidado Familiar mensal',
+    title: 'Familiar/acompanhante mensal',
     cycle: 'Mensal',
     description: 'Para conta que acompanha outra pessoa ou perfis de cuidado.',
   },
   {
     plan: 'family_caregiver_annual',
     account: 'family',
-    title: 'Cuidado Familiar anual',
+    title: 'Familiar/acompanhante anual',
     cycle: 'Anual',
     description: 'Mesmo acesso familiar/cuidador com ciclo anual.',
   },
@@ -83,11 +83,10 @@ function formatAmount(value: number) {
 
 export default function CloudSyncScreen() {
   const { user } = useAuth();
-  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
+  const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [selectedPlan, setSelectedPlan] = useState<BillingPlan | null>(null);
   const [checkout, setCheckout] = useState<BillingCheckout | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const accountPlanType = user?.accountUsage === 'personal' ? 'personal' : 'family';
@@ -95,40 +94,11 @@ export default function CloudSyncScreen() {
     () => planOptions.filter((option) => option.account === accountPlanType),
     [accountPlanType]
   );
+  const isCloudActive = isBillingSyncEnabled(syncAccess);
 
   useEffect(() => {
     setSelectedPlan(visiblePlans[0]?.plan ?? null);
   }, [visiblePlans]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadAccess() {
-      setIsLoading(true);
-
-      try {
-        const access = await getBillingSyncAccess();
-
-        if (isMounted) {
-          setSyncAccess(access);
-        }
-      } catch {
-        if (isMounted) {
-          setError('Nao foi possivel carregar o status da assinatura.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadAccess();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   async function handleCheckout() {
     if (!selectedPlan) {
@@ -161,7 +131,7 @@ export default function CloudSyncScreen() {
             Salvar meus dados na nuvem
           </ThemedText>
           <ThemedText style={styles.description}>
-            A nuvem protege seu histórico fora do aparelho e mantém o SigmaMed funcionando em dois modos:
+            A nuvem protege seu histórico fora do aparelho e mantém o Meu Controle funcionando em dois modos:
             local primeiro, sincronização depois.
           </ThemedText>
         </View>
@@ -206,7 +176,7 @@ export default function CloudSyncScreen() {
         <View style={styles.statusCard}>
           <ThemedText style={styles.statusLabel}>Status</ThemedText>
           <ThemedText style={styles.statusValue}>
-            {syncAccess?.sync_enabled ? 'Sincronizando na nuvem' : isLoading ? 'Carregando...' : 'Nuvem não ativada'}
+            {isCloudActive ? 'Sincronizando na nuvem' : isLoadingPlan ? 'Carregando...' : 'Nuvem não ativada'}
           </ThemedText>
         </View>
         <View style={styles.planList}>
@@ -413,19 +383,21 @@ const styles = StyleSheet.create({
     borderColor: BrandPalette.primary,
   },
   planHeader: {
-    gap: 10,
+    gap: 8,
   },
   planTitle: {
-    flex: 1,
     color: Colors.light.text,
     fontWeight: '800',
+    lineHeight: 22,
   },
   planBadges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    alignItems: 'flex-start',
   },
   planPrice: {
+    alignSelf: 'flex-start',
     borderRadius: Radius.pill,
     backgroundColor: '#F4E8C8',
     borderWidth: 1,
@@ -443,6 +415,7 @@ const styles = StyleSheet.create({
     color: BrandPalette.primary,
   },
   planCycle: {
+    alignSelf: 'flex-start',
     borderRadius: Radius.pill,
     backgroundColor: Colors.light.surface,
     borderWidth: 1,

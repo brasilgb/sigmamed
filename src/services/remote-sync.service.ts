@@ -93,6 +93,7 @@ async function pullRemoteProfiles() {
       userId,
       remoteProfileId: profile.id,
       fullName: profile.name ?? profile.full_name ?? null,
+      sex: profile.sex ?? null,
       height: profile.height ?? null,
       notes: profile.notes ?? null,
     });

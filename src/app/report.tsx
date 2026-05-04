@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
+import { formatGlicoseContext } from '@/features/glicose/glicose-utils';
 import { buildScopedReportHtml, getReportData } from '@/services/report.service';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { formatDateTime } from '@/utils/date';
@@ -22,6 +23,16 @@ const reportKinds: { label: string; value: ReportKind }[] = [
   { label: 'Peso', value: 'weight' },
   { label: 'Medicação', value: 'medications' },
 ];
+
+function formatPatientWeight(data: ReportData) {
+  const latestWeight = data.summary.latestWeight;
+
+  return latestWeight ? `${latestWeight.weight.toFixed(1)} ${latestWeight.unit}` : 'Sem pesagem no período';
+}
+
+function getReportSubjectName(data: ReportData | null) {
+  return data?.patient?.name ?? 'perfil ativo';
+}
 
 export default function ReportScreen() {
   const { resumeAutoLock, suspendAutoLock } = useAuth();
@@ -86,10 +97,10 @@ export default function ReportScreen() {
             <ThemedText style={styles.kicker}>Relatório</ThemedText>
           </View>
           <ThemedText type="title" style={styles.title}>
-            Resumo por período, pronto para compartilhar.
+            Relatório de {getReportSubjectName(data)}.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Consolide leituras, adesão e tendências do SigmaMed em uma visão única e exporte em PDF.
+            Consolide leituras, adesão e tendências do Meu Controle em uma visão única e exporte em PDF.
           </ThemedText>
         </View>
       </View>
@@ -141,6 +152,40 @@ export default function ReportScreen() {
 
       {data ? (
         <>
+          {data.patient ? (
+            <Card style={styles.patientCard}>
+              <ThemedText style={styles.summaryLabel}>Acompanhado</ThemedText>
+              <ThemedText style={styles.patientName}>{data.patient.name}</ThemedText>
+              <ThemedText style={styles.patientMeta}>{data.patient.email}</ThemedText>
+              <View style={styles.patientInfoGrid}>
+                <View style={styles.patientInfoItem}>
+                  <ThemedText style={styles.patientInfoLabel}>Idade</ThemedText>
+                  <ThemedText style={styles.patientInfoValue}>
+                    {data.patient.age ? `${data.patient.age} anos` : '-'}
+                  </ThemedText>
+                </View>
+                <View style={styles.patientInfoItem}>
+                  <ThemedText style={styles.patientInfoLabel}>Sexo</ThemedText>
+                  <ThemedText style={styles.patientInfoValue}>{data.patient.sex ?? '-'}</ThemedText>
+                </View>
+                <View style={styles.patientInfoItem}>
+                  <ThemedText style={styles.patientInfoLabel}>Peso</ThemedText>
+                  <ThemedText style={styles.patientInfoValue}>{formatPatientWeight(data)}</ThemedText>
+                </View>
+              </View>
+              {data.patient.hasHypertension || data.patient.hasDiabetes ? (
+                <View style={styles.patientBadgeRow}>
+                  {data.patient.hasHypertension ? (
+                    <ThemedText style={styles.patientBadge}>Hipertensão</ThemedText>
+                  ) : null}
+                  {data.patient.hasDiabetes ? (
+                    <ThemedText style={styles.patientBadge}>Diabetes</ThemedText>
+                  ) : null}
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
           {reportKind === 'complete' ? (
             <View style={styles.summaryGrid}>
               <Card style={styles.summaryCard}>
@@ -227,7 +272,9 @@ export default function ReportScreen() {
               {data.glicose.readings.length > 0 ? (
                 data.glicose.readings.map((item) => (
                   <View key={`glicose-${item.id}`} style={styles.listRow}>
-                    <ThemedText style={styles.listTitle}>{item.glicoseValue} {item.unit} ({item.context})</ThemedText>
+                    <ThemedText style={styles.listTitle}>
+                      {item.glicoseValue} {item.unit} ({formatGlicoseContext(item.context)})
+                    </ThemedText>
                     <ThemedText style={styles.listMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
                   </View>
                 ))
@@ -370,6 +417,62 @@ const styles = StyleSheet.create({
   summaryHint: {
     color: Colors.light.textSoft,
     lineHeight: 20,
+  },
+  patientCard: {
+    gap: 8,
+  },
+  patientName: {
+    color: Colors.light.text,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '800',
+  },
+  patientMeta: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
+  patientInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingTop: 6,
+  },
+  patientInfoItem: {
+    flexGrow: 1,
+    minWidth: '30%',
+    borderRadius: Radius.md,
+    backgroundColor: Colors.light.surfaceMuted,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    padding: 12,
+    gap: 4,
+  },
+  patientInfoLabel: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  patientInfoValue: {
+    color: Colors.light.text,
+    fontWeight: '800',
+  },
+  patientBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 4,
+  },
+  patientBadge: {
+    borderRadius: Radius.pill,
+    backgroundColor: '#DDF1EC',
+    color: BrandPalette.navy,
+    fontSize: 12,
+    fontWeight: '800',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   latestRow: {
     color: Colors.light.text,

@@ -1,6 +1,6 @@
-# CONNECT EXAMPLES — SigmaMed API
+# CONNECT EXAMPLES — Meu Controle API
 
-Este documento apresenta exemplos práticos de requests e responses para o app conectar ao backend Laravel do SigmaMed.
+Este documento apresenta exemplos práticos de requests e responses para o app conectar ao backend Laravel do Meu Controle.
 
 ## 1) Login
 

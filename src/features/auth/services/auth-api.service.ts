@@ -22,6 +22,7 @@ type AuthApiProfile = {
   name?: string | null;
   full_name?: string | null;
   age?: number | string | null;
+  sex?: string | null;
   height?: number | string | null;
   notes?: string | null;
 };
@@ -329,6 +330,7 @@ export async function getRemoteProfileId() {
 export async function createRemoteProfile(input: {
   fullName: string;
   age?: number | null;
+  sex?: string | null;
   height?: number | null;
   notes?: string | null;
 }) {
@@ -338,6 +340,7 @@ export async function createRemoteProfile(input: {
     body: {
       name: input.fullName,
       age: input.age ?? null,
+      sex: input.sex ?? null,
       height: input.height ?? null,
       notes: input.notes?.trim() || null,
     },

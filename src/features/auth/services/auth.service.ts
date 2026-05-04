@@ -327,6 +327,10 @@ export async function getAccountProfiles(userId: number): Promise<AuthProfile[]>
   return userRepository.getProfilesByUserId(userId);
 }
 
+export async function getAccountProfileById(profileId: number): Promise<AuthProfile | null> {
+  return userRepository.getProfileById(profileId);
+}
+
 export async function getActiveAccountProfileId() {
   return getActiveLocalProfileId();
 }
@@ -346,11 +350,55 @@ export async function setActiveAccountProfile(profileId: number) {
   await setActiveLocalProfileId(profileId);
 }
 
+export async function updateActiveAccountProfile(input: {
+  sex?: string | null;
+  height?: number | null;
+}): Promise<AuthProfile | null> {
+  const profileId = await getActiveLocalProfileId();
+
+  if (!profileId) {
+    return null;
+  }
+
+  if (input.height !== null && input.height !== undefined && (input.height < 30 || input.height > 250)) {
+    throw new Error('Informe uma altura valida em centimetros.');
+  }
+
+  return userRepository.updateProfile(profileId, input);
+}
+
+export async function updateAccountProfile(profileId: number, input: {
+  fullName: string;
+  age: number;
+  sex: string;
+  height: number;
+  notes?: string | null;
+}): Promise<AuthProfile> {
+  if (!input.fullName.trim()) {
+    throw new Error('Informe o nome do acompanhado.');
+  }
+
+  if (input.age < 1 || input.age > 130) {
+    throw new Error('Informe uma idade valida.');
+  }
+
+  if (!input.sex.trim()) {
+    throw new Error('Informe o sexo.');
+  }
+
+  if (input.height < 30 || input.height > 250) {
+    throw new Error('Informe uma altura valida em centimetros.');
+  }
+
+  return userRepository.updateProfile(profileId, input);
+}
+
 export async function createAccountProfile(input: {
   userId: number;
   fullName: string;
-  age?: number | null;
-  height?: number | null;
+  age: number;
+  sex: string;
+  height: number;
   notes?: string | null;
 }): Promise<AuthProfile> {
   const user = await userRepository.getById(input.userId);
@@ -363,11 +411,15 @@ export async function createAccountProfile(input: {
     throw new Error('Contas pessoais usam somente o perfil da propria conta.');
   }
 
-  if (input.age !== null && input.age !== undefined && (input.age < 1 || input.age > 130)) {
+  if (input.age < 1 || input.age > 130) {
     throw new Error('Informe uma idade valida.');
   }
 
-  if (input.height !== null && input.height !== undefined && (input.height < 30 || input.height > 250)) {
+  if (!input.sex.trim()) {
+    throw new Error('Informe o sexo.');
+  }
+
+  if (input.height < 30 || input.height > 250) {
     throw new Error('Informe uma altura valida em centimetros.');
   }
 

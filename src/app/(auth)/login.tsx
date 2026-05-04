@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
 import { AuthScreen } from '@/components/auth/auth-screen';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function LoginScreen() {
@@ -16,6 +17,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,13 +54,22 @@ export default function LoginScreen() {
         ref={passwordRef}
         label="Senha"
         autoCapitalize="none"
-        secureTextEntry
+        secureTextEntry={!showPassword}
         returnKeyType="done"
         textContentType="password"
         autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
         onSubmitEditing={() => pinRef.current?.focus()}
+        rightElement={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+            onPress={() => setShowPassword((current) => !current)}
+            style={styles.passwordVisibilityButton}>
+            <IconSymbol name={showPassword ? 'eye.slash.fill' : 'eye.fill'} size={22} color={Colors.light.textMuted} />
+          </Pressable>
+        }
       />
       <AuthInput
         ref={pinRef}
@@ -94,5 +105,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.light.tint,
     fontWeight: '700',
+  },
+  passwordVisibilityButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -16,11 +16,21 @@ import {
 } from '@/features/auth/services/profile-photo.service';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
+  getActiveAccountProfile,
+  updateActiveAccountProfile,
+} from '@/features/auth/services/auth.service';
+import { useBillingSyncAccess } from '@/hooks/use-billing-sync-access';
+import {
   getBillingCycleLabel,
   getBillingPlanLabel,
-  getBillingSyncAccess,
-  type BillingSyncAccess,
+  isBillingSyncEnabled,
 } from '@/services/billing.service';
+
+const sexOptions = [
+  { label: 'Feminino', value: 'Feminino' },
+  { label: 'Masculino', value: 'Masculino' },
+  { label: 'Outro', value: 'Outro' },
+];
 
 function formatDate(value: string | null | undefined) {
   if (!value) {
@@ -36,6 +46,17 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('pt-BR').format(date);
 }
 
+function parseOptionalNumber(value: string) {
+  const normalized = value.replace(',', '.').trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
 export default function SettingsScreen() {
   const {
     biometricAvailable,
@@ -47,19 +68,22 @@ export default function SettingsScreen() {
     user,
   } = useAuth();
   const emailRef = useRef<TextInput>(null);
+  const profileHeightRef = useRef<TextInput>(null);
   const currentPasswordRef = useRef<TextInput>(null);
   const newPasswordRef = useRef<TextInput>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [activeProfileName, setActiveProfileName] = useState('');
+  const [profileHeight, setProfileHeight] = useState('');
+  const [profileSex, setProfileSex] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [syncAccess, setSyncAccess] = useState<BillingSyncAccess | null>(null);
+  const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -74,32 +98,23 @@ export default function SettingsScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadSyncAccess() {
+    async function loadProfileData() {
       if (!user) {
-        setSyncAccess(null);
         return;
       }
 
-      setIsLoadingPlan(true);
+      const profile = await getActiveAccountProfile();
 
-      try {
-        const access = await getBillingSyncAccess();
-
-        if (isMounted) {
-          setSyncAccess(access);
-        }
-      } catch {
-        if (isMounted) {
-          setSyncAccess(null);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingPlan(false);
-        }
+      if (!isMounted) {
+        return;
       }
+
+      setActiveProfileName(profile?.fullName ?? user.name);
+      setProfileHeight(profile?.height ? String(profile.height) : '');
+      setProfileSex(profile?.sex ?? '');
     }
 
-    void loadSyncAccess();
+    void loadProfileData();
 
     return () => {
       isMounted = false;
@@ -111,14 +126,26 @@ export default function SettingsScreen() {
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('') || 'SM';
+    .join('') || 'MC';
   const planCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
   const planExpiresAt = formatDate(syncAccess?.expires_at);
-  const planStatusText = syncAccess?.sync_enabled
-    ? `${getBillingPlanLabel(syncAccess.plan)}${planCycle ? ` - ${planCycle}` : ''}`
+  const isCloudActive = isBillingSyncEnabled(syncAccess);
+  const planStatusText = isCloudActive
+    ? `${syncAccess?.plan ? getBillingPlanLabel(syncAccess.plan) : 'Nuvem ativa'}${planCycle ? ` - ${planCycle}` : ''}`
     : isLoadingPlan
       ? 'Carregando plano...'
       : 'Nuvem não ativada';
+  const planBadgeText = isCloudActive
+    ? syncAccess?.plan?.startsWith('family')
+      ? 'Familiar/Cuidador'
+      : 'Pessoal'
+    : 'Inativo';
+  const planSummaryText = isCloudActive
+    ? planExpiresAt
+      ? `Vigente até ${planExpiresAt}.`
+      : 'Backup e sincronização estão liberados para esta conta.'
+    : 'Seus dados ainda não estão sincronizados na nuvem. Escolha um plano para liberar backup e sincronização.';
+  const showPersonalProfileCard = user?.accountUsage === 'personal';
 
   async function handleTakePhoto() {
     if (!user) {
@@ -203,6 +230,12 @@ export default function SettingsScreen() {
       setIsSubmitting(true);
       setError(null);
       setSuccessMessage(null);
+      const numericHeight = parseOptionalNumber(profileHeight);
+
+      if (Number.isNaN(numericHeight)) {
+        throw new Error('Informe uma altura válida em centímetros.');
+      }
+
       await updateAccount({
         name,
         email,
@@ -210,6 +243,11 @@ export default function SettingsScreen() {
         currentPassword,
         newPassword,
       });
+      await updateActiveAccountProfile({
+        sex: profileSex || null,
+        height: numericHeight,
+      });
+
       setCurrentPassword('');
       setNewPassword('');
       setSuccessMessage('Configurações atualizadas com sucesso.');
@@ -332,9 +370,51 @@ export default function SettingsScreen() {
           returnKeyType="next"
           textContentType="emailAddress"
           autoComplete="email"
-          onSubmitEditing={() => currentPasswordRef.current?.focus()}
+          onSubmitEditing={() => {
+            if (showPersonalProfileCard) {
+              profileHeightRef.current?.focus();
+              return;
+            }
+
+            currentPasswordRef.current?.focus();
+          }}
         />
       </View>
+
+      {showPersonalProfileCard ? <View style={styles.sectionCard}>
+        <ThemedText style={styles.sectionEyebrow}>Perfil ativo</ThemedText>
+        <ThemedText style={styles.sectionTitle}>
+          {activeProfileName ? `Dados de ${activeProfileName}` : 'Dados do acompanhado'}
+        </ThemedText>
+        <View style={styles.optionGroup}>
+          <ThemedText style={styles.optionLabel}>Sexo</ThemedText>
+          <View style={styles.optionRow}>
+            {sexOptions.map((option) => (
+              <AuthButton
+                key={option.value}
+                label={option.label}
+                variant="secondary"
+                selected={profileSex === option.value}
+                selectedBackgroundColor={BrandPalette.navy}
+                selectedTextColor={BrandPalette.white}
+                style={styles.optionButton}
+                onPress={() => setProfileSex((currentSex) => currentSex === option.value ? '' : option.value)}
+              />
+            ))}
+          </View>
+        </View>
+        <RecordInput
+          ref={profileHeightRef}
+          label="Altura em cm"
+          value={profileHeight}
+          onChangeText={(value) => setProfileHeight(value.replace(/\D/g, ''))}
+          placeholder="Ex.: 170"
+          keyboardType="number-pad"
+          maxLength={3}
+          returnKeyType="done"
+          onSubmitEditing={() => currentPasswordRef.current?.focus()}
+        />
+      </View> : null}
 
       <View style={styles.sectionCard}>
         <ThemedText style={styles.sectionEyebrow}>Seguranca</ThemedText>
@@ -391,25 +471,6 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      {user && user.accountUsage !== 'personal' ? (
-        <View style={styles.sectionCard}>
-          <ThemedText style={styles.sectionEyebrow}>Acompanhados</ThemedText>
-          <ThemedText style={styles.sectionTitle}>Pessoas que acompanho</ThemedText>
-          <View style={styles.peopleCard}>
-            <View style={styles.peopleIcon}>
-              <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
-            </View>
-            <View style={styles.peopleCopy}>
-              <ThemedText style={styles.peopleTitle}>Gerenciar acompanhados</ThemedText>
-              <ThemedText style={styles.peopleText}>
-                Cadastre perfis dentro desta conta principal para organizar quem recebe os registros.
-              </ThemedText>
-            </View>
-          </View>
-          <AuthButton label="Abrir acompanhados" variant="secondary" onPress={() => router.push('/profiles' as never)} />
-        </View>
-      ) : null}
-
       <View style={styles.sectionCard}>
         <ThemedText style={styles.sectionEyebrow}>Nuvem</ThemedText>
         <ThemedText style={styles.sectionTitle}>Backup e sincronização</ThemedText>
@@ -430,17 +491,13 @@ export default function SettingsScreen() {
             <ThemedText
               style={[
                 styles.planStatusBadge,
-                syncAccess?.sync_enabled ? styles.planStatusBadgeActive : null,
+                isCloudActive ? styles.planStatusBadgeActive : null,
               ]}>
-              {syncAccess?.sync_enabled ? 'Ativo' : 'Inativo'}
+              {planBadgeText}
             </ThemedText>
           </View>
           <ThemedText style={styles.planSummaryTitle}>{planStatusText}</ThemedText>
-          <ThemedText style={styles.planSummaryText}>
-            {syncAccess?.sync_enabled && planExpiresAt
-              ? `Vigente ate ${planExpiresAt}.`
-              : 'Seus dados ainda não estão sincronizados na nuvem. Escolha um plano para liberar backup e sincronizacao.'}
-          </ThemedText>
+          <ThemedText style={styles.planSummaryText}>{planSummaryText}</ThemedText>
         </View>
         <AuthButton label="Entender nuvem" variant="secondary" onPress={() => router.push('/cloud-sync' as never)} />
       </View>
@@ -459,7 +516,7 @@ export default function SettingsScreen() {
         <ThemedText style={styles.dangerTitle}>Excluir conta definitivamente</ThemedText>
         <ThemedText style={styles.dangerText}>
           Remove a conta principal, perfis acompanhados e registros no banco da nuvem e neste aparelho.
-          Não ha retorno depois da confirmação.
+          Não há retorno depois da confirmação.
         </ThemedText>
         <AuthButton
           label={isDeleting ? 'Excluindo...' : 'Excluir conta'}
@@ -477,8 +534,10 @@ export default function SettingsScreen() {
         <ThemedText style={styles.sectionEyebrow}>Privacidade</ThemedText>
         <ThemedText style={styles.sectionTitle}>Uso pessoal dos dados</ThemedText>
         <ThemedText style={styles.privacyText}>
-          O SigmaMed guarda registros para acompanhamento pessoal e não realiza diagnóstico,
-          prescrição ou orientação clínica automatizada.
+          O Meu Controle guarda registros para acompanhamento pessoal no aparelho e, se contratado,
+          também pode sincronizar uma cópia na nuvem. Ele serve para armazenar informações para
+          uso posterior e não realiza atendimento médico, diagnóstico, prescrição, orientação
+          clínica ou indicação de medicação.
         </ThemedText>
         <AuthButton label="Ver política de privacidade" variant="secondary" onPress={() => router.push('/privacy')} />
       </View>
@@ -608,6 +667,23 @@ const styles = StyleSheet.create({
   },
   profileActions: {
     gap: 10,
+  },
+  optionGroup: {
+    gap: 8,
+  },
+  optionLabel: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  optionButton: {
+    minHeight: 44,
+    minWidth: '30%',
+    flexGrow: 1,
   },
   biometricCard: {
     borderRadius: 20,

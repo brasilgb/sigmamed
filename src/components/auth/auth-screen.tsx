@@ -1,10 +1,12 @@
 import { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandPalette, Colors, Radius, Surface } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
+
+const logoBranco = require('../../../assets/images/logo_branco.png');
 
 type AuthScreenProps = {
   title: string;
@@ -28,9 +30,7 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
                 styles.kickerWrap,
                 { backgroundColor: isDark ? 'rgba(14, 159, 140, 0.18)' : '#D8F1EC' },
               ]}>
-              <ThemedText style={[styles.kicker, { color: isDark ? '#D9FFF7' : BrandPalette.navy }]}>
-                SigmaMed
-              </ThemedText>
+              <Image source={logoBranco} style={styles.logo} resizeMode="contain" />
             </View>
             <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme].text }]}>
               {title}
@@ -75,16 +75,12 @@ const styles = StyleSheet.create({
   },
   kickerWrap: {
     alignSelf: 'flex-start',
-    borderRadius: Radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: Radius.md,
+    padding: 6,
   },
-  kicker: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+  logo: {
+    width: 58,
+    height: 58,
   },
   title: {
     lineHeight: 38,

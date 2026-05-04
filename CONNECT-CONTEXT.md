@@ -1,8 +1,8 @@
-# CONNECT CONTEXT — SigmaMed Laravel API
+# CONNECT CONTEXT — Meu Controle Laravel API
 
 ## Objetivo
 
-Documentar como o app deve se conectar ao backend Laravel do SigmaMed.
+Documentar como o app deve se conectar ao backend Laravel do Meu Controle.
 
 O foco é oferecer:
 

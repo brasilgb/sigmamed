@@ -1,38 +1,29 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
-import { RecordInput } from '@/components/forms/record-input';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
-  createAccountProfile,
   getAccountProfiles,
   getActiveAccountProfileId,
-  setActiveAccountProfile,
 } from '@/features/auth/services/auth.service';
 import type { AuthProfile } from '@/features/auth/types/auth';
 
 export default function ProfilesScreen() {
   const { user } = useAuth();
   const canCreateProfiles = user?.accountUsage !== 'personal';
-  const ageRef = useRef<TextInput>(null);
-  const heightRef = useRef<TextInput>(null);
-  const notesRef = useRef<TextInput>(null);
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
-  const [fullName, setFullName] = useState('');
-  const [age, setAge] = useState('');
-  const [height, setHeight] = useState('');
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const visibleProfiles =
+    user?.accountUsage === 'personal'
+      ? profiles
+      : profiles.filter((profile) => (profile.fullName ?? '').trim() !== user?.name.trim());
 
   const loadProfiles = useCallback(async () => {
     if (!user) {
@@ -57,44 +48,8 @@ export default function ProfilesScreen() {
     void loadProfiles();
   }, [loadProfiles]);
 
-  async function handleCreateProfile() {
-    if (!user) {
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      setSuccessMessage(null);
-      await createAccountProfile({
-        userId: user.id,
-        fullName,
-        age: age.trim() ? Number(age) : null,
-        height: height.trim() ? Number(height) : null,
-        notes,
-      });
-      setFullName('');
-      setAge('');
-      setHeight('');
-      setNotes('');
-      setSuccessMessage('Acompanhado cadastrado.');
-      await loadProfiles();
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Falha ao cadastrar acompanhado.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleSelectProfile(profileId: number) {
-    await setActiveAccountProfile(profileId);
-    setActiveProfileId(profileId);
-    setSuccessMessage('Perfil ativo atualizado.');
-    setError(null);
-  }
-
   return (
-    <Screen isRefreshing={isLoading} onRefresh={loadProfiles} keyboardShouldPersistTaps="handled">
+    <Screen isRefreshing={isLoading} onRefresh={loadProfiles}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={styles.backText}>Voltar</ThemedText>
@@ -108,103 +63,69 @@ export default function ProfilesScreen() {
             Acompanhados
           </ThemedText>
           <ThemedText style={styles.description}>
-            Esta conta principal organiza os perfis de cuidado do aparelho. Depois, os registros de saude
-            podem ser vinculados ao perfil selecionado.
+            Gerencie as pessoas acompanhadas nesta conta e mantenha cada histórico de saúde separado.
           </ThemedText>
         </View>
       </View>
 
       {canCreateProfiles ? (
-        <View style={styles.sectionCard}>
-          <ThemedText style={styles.sectionEyebrow}>Novo perfil</ThemedText>
-          <ThemedText style={styles.sectionTitle}>Pessoa acompanhada</ThemedText>
-          <RecordInput
-            label="Nome"
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Nome completo"
-            returnKeyType="next"
-            textContentType="name"
-            autoComplete="name"
-            onSubmitEditing={() => ageRef.current?.focus()}
-          />
-          <RecordInput
-            ref={ageRef}
-            label="Idade em anos"
-            value={age}
-            onChangeText={(value) => setAge(value.replace(/\D/g, ''))}
-            placeholder="Opcional"
-            keyboardType="number-pad"
-            maxLength={3}
-            returnKeyType="next"
-            onSubmitEditing={() => heightRef.current?.focus()}
-          />
-          <RecordInput
-            ref={heightRef}
-            label="Altura em cm"
-            value={height}
-            onChangeText={(value) => setHeight(value.replace(/\D/g, ''))}
-            placeholder="Opcional"
-            keyboardType="number-pad"
-            maxLength={3}
-            returnKeyType="next"
-            onSubmitEditing={() => notesRef.current?.focus()}
-          />
-          <RecordInput
-            ref={notesRef}
-            label="Observações"
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Opcional"
-            multiline
-            returnKeyType="done"
-            onSubmitEditing={() => void handleCreateProfile()}
-          />
-          {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
-          {successMessage ? <ThemedText style={styles.successText}>{successMessage}</ThemedText> : null}
-          <AuthButton
-            label={isSubmitting ? 'Cadastrando...' : 'Cadastrar acompanhado'}
-            disabled={isSubmitting}
-            onPress={handleCreateProfile}
-          />
-        </View>
+        <Pressable style={styles.addCard} onPress={() => router.push('/profile-form' as never)}>
+          <View style={styles.addIcon}>
+            <IconSymbol name="person.crop.circle.fill.badge.plus" size={24} color={BrandPalette.primary} />
+          </View>
+          <View style={styles.addCopy}>
+            <ThemedText style={styles.addTitle}>Adicionar acompanhado</ThemedText>
+            <ThemedText style={styles.addText}>Cadastre uma pessoa para selecionar nas próximas leituras.</ThemedText>
+          </View>
+        </Pressable>
       ) : (
         <View style={styles.sectionCard}>
           <ThemedText style={styles.sectionEyebrow}>Perfil pessoal</ThemedText>
           <ThemedText style={styles.sectionTitle}>Uso individual</ThemedText>
           <ThemedText style={styles.readOnlyText}>
-            Contas pessoais usam somente o perfil da propria conta.
+            Contas pessoais usam somente o perfil da própria conta.
           </ThemedText>
         </View>
       )}
 
       <View style={styles.section}>
         <ThemedText style={styles.sectionTitle}>Perfis cadastrados</ThemedText>
-        {profiles.map((profile) => (
+        {visibleProfiles.map((profile) => (
           <View key={profile.id} style={styles.profileCard}>
             <View style={styles.profileIcon}>
               <IconSymbol name="person.crop.circle.fill.badge.plus" size={22} color={BrandPalette.primary} />
             </View>
             <View style={styles.profileCopy}>
-              <ThemedText style={styles.profileName}>{profile.fullName ?? 'Sem nome'}</ThemedText>
+              <View style={styles.profileTitleRow}>
+                <ThemedText style={styles.profileName}>{profile.fullName ?? 'Sem nome'}</ThemedText>
+                {activeProfileId === profile.id ? (
+                  <View style={styles.activeBadge}>
+                    <ThemedText style={styles.activeBadgeText}>Ativo</ThemedText>
+                  </View>
+                ) : null}
+              </View>
               <ThemedText style={styles.profileMeta}>
                 {[
                   profile.age ? `${profile.age} anos` : null,
+                  profile.sex,
                   profile.height ? `${profile.height} cm` : null,
-                ].filter(Boolean).join(' · ') || 'Idade e altura nao informadas'}
+                ].filter(Boolean).join(' · ') || 'Dados não informados'}
               </ThemedText>
               {profile.notes ? <ThemedText style={styles.profileNotes}>{profile.notes}</ThemedText> : null}
             </View>
-            <AuthButton
-              label={activeProfileId === profile.id ? 'Ativo' : 'Usar'}
-              variant="secondary"
-              disabled={activeProfileId === profile.id}
-              onPress={() => void handleSelectProfile(profile.id)}
-              style={styles.profileAction}
-            />
+            {canCreateProfiles ? (
+              <AuthButton
+                label="Editar"
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/profile-form', params: { id: String(profile.id) } } as never)
+                }
+                style={styles.profileAction}
+              />
+            ) : null}
           </View>
         ))}
-        {profiles.length === 0 && !isLoading ? (
+        {visibleProfiles.length === 0 && !isLoading ? (
           <View style={styles.emptyCard}>
             <ThemedText style={styles.emptyText}>Nenhum acompanhado cadastrado ainda.</ThemedText>
           </View>
@@ -255,6 +176,38 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     lineHeight: 22,
   },
+  addCard: {
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.light.surface,
+    borderWidth: 1,
+    borderColor: '#DDEBED',
+    padding: Space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  addIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    backgroundColor: '#DDF1EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  addTitle: {
+    color: Colors.light.text,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  addText: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
   section: {
     gap: 12,
   },
@@ -301,11 +254,30 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  profileTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   profileName: {
     color: Colors.light.text,
     fontSize: 17,
     lineHeight: 23,
     fontWeight: '800',
+  },
+  activeBadge: {
+    borderRadius: Radius.pill,
+    backgroundColor: '#E6F6EF',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  activeBadgeText: {
+    color: Colors.light.success,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   profileMeta: {
     color: Colors.light.textMuted,
@@ -330,15 +302,6 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     lineHeight: 20,
     textAlign: 'center',
-  },
-  errorText: {
-    color: Colors.light.danger,
-    lineHeight: 20,
-  },
-  successText: {
-    color: Colors.light.success,
-    lineHeight: 20,
-    fontWeight: '700',
   },
   readOnlyText: {
     color: Colors.light.textMuted,

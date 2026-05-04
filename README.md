@@ -1,4 +1,4 @@
-# SigmaMed
+# Meu Controle
 
 Aplicativo mobile em Expo/React Native para monitoramento domestico de saude com foco em:
 

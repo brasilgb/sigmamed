@@ -9,7 +9,7 @@ import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 const privacySections = [
   {
     title: 'Finalidade do app',
-    text: 'O SigmaMed é uma ferramenta de acompanhamento pessoal para registrar pressão, glicose, peso, medicamentos e lembretes. Ele não realiza diagnóstico, prescrição, triagem, interpretação médica automatizada ou substituição de acompanhamento profissional.',
+    text: 'O Meu Controle é uma ferramenta para registrar e armazenar informações pessoais de saúde para consulta posterior. Ele não medica, não realiza diagnóstico, não presta atendimento médico, não prescreve condutas e não substitui acompanhamento por profissional de saúde.',
   },
   {
     title: 'Dados tratados',
@@ -17,15 +17,15 @@ const privacySections = [
   },
   {
     title: 'Armazenamento',
-    text: 'Os registros do app são mantidos no dispositivo usado. Ao desinstalar o app, limpar os dados do aplicativo ou trocar de aparelho sem exportação prévia, o histórico pode ser perdido.',
+    text: 'Os registros do app são mantidos no dispositivo usado. Você também pode contratar o armazenamento em nuvem para backup e sincronização dos dados, quando disponível. Sem esse recurso, ao desinstalar o app, limpar os dados do aplicativo ou trocar de aparelho sem exportação prévia, o histórico pode ser perdido.',
   },
   {
     title: 'Biometria',
-    text: 'Quando ativada, a biometria é usada somente para desbloqueio do app. A verificação ocorre pelos recursos de segurança do próprio sistema operacional; o SigmaMed não recebe nem armazena sua impressão digital ou face.',
+    text: 'Quando ativada, a biometria é usada somente para desbloqueio do app. A verificação ocorre pelos recursos de segurança do próprio sistema operacional; o Meu Controle não recebe nem armazena sua impressão digital ou face.',
   },
   {
     title: 'Compartilhamento',
-    text: 'O SigmaMed não compartilha seus registros de saúde automaticamente. Quando você gerar ou compartilhar relatórios, a decisão de envio é responsabilidade sua.',
+    text: 'O Meu Controle não compartilha seus registros de saúde automaticamente. Quando você gerar ou compartilhar relatórios, a decisão de envio é responsabilidade sua.',
   },
   {
     title: 'Cuidados importantes',
@@ -47,7 +47,7 @@ export default function PrivacyScreen() {
             Acompanhamento pessoal, com limites claros.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Esta política resume como o SigmaMed trata seus dados no app e reforça que ele não substitui avaliação médica.
+            Esta política resume como o Meu Controle trata seus dados no app e reforça que ele apenas organiza informações para uso posterior.
           </ThemedText>
         </View>
       </View>
@@ -60,10 +60,10 @@ export default function PrivacyScreen() {
       ))}
 
       <Card muted style={styles.noticeCard}>
-        <ThemedText style={styles.noticeTitle}>Resumo pratico</ThemedText>
+        <ThemedText style={styles.noticeTitle}>Resumo prático</ThemedText>
         <ThemedText style={styles.noticeText}>
-          Use o SigmaMed para organizar informações pessoais de saúde. Para decisões clínicas,
-          diagnósticos, ajustes de dose ou condutas, procure atendimento profissional.
+          Use o Meu Controle para armazenar e consultar informações pessoais de saúde. Para atendimento,
+          diagnóstico, medicação, ajustes de dose ou condutas, procure um profissional de saúde.
         </ThemedText>
       </Card>
     </Screen>

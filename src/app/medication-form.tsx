@@ -5,10 +5,12 @@ import { StyleSheet, Switch, TextInput, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
 import { MedicationRepository } from '@/features/medications/medication.repository';
 import { MedicationService } from '@/features/medications/services/medication.service';
+import { useProfileSelection } from '@/hooks/use-profile-selection';
 
 const medicationRepository = new MedicationRepository();
 const medicationService = new MedicationService();
@@ -28,6 +30,7 @@ export default function MedicationFormScreen() {
   const [repeatReminderEveryFiveMinutes, setRepeatReminderEveryFiveMinutes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const profileSelection = useProfileSelection({ enabled: !editingId });
 
   useEffect(() => {
     if (!editingId) {
@@ -77,6 +80,7 @@ export default function MedicationFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
+      await profileSelection.applySelectedProfile();
       const payload = {
         name: name.trim(),
         dosage: dosage.trim(),
@@ -105,9 +109,16 @@ export default function MedicationFormScreen() {
       title="Cadastrar medicação"
       description={
         editingId
-          ? 'Atualize o tratamento salvo e ajuste seus dados de uso.'
-          : 'Cadastre a medicação para acompanhar uso diário, horário e adesão.'
+          ? 'Atualize o registro salvo e ajuste os dados informados por você.'
+          : 'Registre uma medicação já orientada por profissional de saúde para acompanhar uso diário, horário e adesão.'
       }>
+      {profileSelection.shouldSelectProfile && !editingId ? (
+        <ProfileSelector
+          profiles={profileSelection.profiles}
+          selectedProfileId={profileSelection.selectedProfileId}
+          onChange={profileSelection.setSelectedProfileId}
+        />
+      ) : null}
       <RecordInput
         label="Nome"
         placeholder="Ex.: Losartana"

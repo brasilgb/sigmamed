@@ -7,6 +7,7 @@ import { Screen } from '@/components/ui/screen';
 import { Colors, ModulePalette } from '@/constants/theme';
 import { formatBodyMassIndex, formatHeight } from '@/features/weight/weight-utils';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useProfileNames } from '@/hooks/use-profile-names';
 import { useRecordManagement } from '@/hooks/use-record-management';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatDateTime } from '@/utils/date';
@@ -15,12 +16,14 @@ export default function WeightTabScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
   const { weightReadings, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
+  const { getProfileName, refreshProfileNames } = useProfileNames();
 
   async function handleRefresh() {
-    await Promise.all([refreshDashboard(), refreshRecords()]);
+    await Promise.all([refreshDashboard(), refreshRecords(), refreshProfileNames()]);
   }
 
   const latest = weightReadings[0];
+  const latestProfileName = getProfileName(latest?.profileId);
 
   return (
     <Screen isRefreshing={dashboardLoading || recordsLoading} onRefresh={handleRefresh}>
@@ -51,6 +54,9 @@ export default function WeightTabScreen() {
                     .join(' • ')
                 : 'Nenhum registro ainda'}
             </ThemedText>
+            {latestProfileName ? (
+              <ThemedText style={styles.profileMeta}>Acompanhado: {latestProfileName}</ThemedText>
+            ) : null}
           </View>
           <View style={styles.statCard}>
             <ThemedText style={styles.statLabel}>Nos últimos 7 dias</ThemedText>
@@ -60,8 +66,6 @@ export default function WeightTabScreen() {
             <ThemedText style={styles.statMeta}>pesagens salvas</ThemedText>
           </View>
         </View>
-
-        <AuthButton label="Nova pesagem" onPress={() => router.push('/weight-form')} />
       </View>
 
       <View style={styles.section}>
@@ -73,23 +77,41 @@ export default function WeightTabScreen() {
             Ultimas 5 pesagens
           </ThemedText>
         </View>
+        <AuthButton label="Adicionar nova pesagem" onPress={() => router.push('/weight-form')} />
 
         {weightReadings.length > 0 ? (
-          weightReadings.map((item) => (
-            <Pressable
-              key={item.id}
-              style={styles.recordCard}
-              onPress={() => router.push({ pathname: '/weight-form', params: { id: String(item.id) } })}>
-              <ThemedText style={styles.recordTitle}>{item.weight} {item.unit}</ThemedText>
-              <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
-              {item.height ? (
-                <ThemedText style={styles.recordMeta}>
-                  {`Altura ${formatHeight(item.height)} m • IMC ${formatBodyMassIndex(item.weight, item.height)}`}
-                </ThemedText>
-              ) : null}
-              {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
-            </Pressable>
-          ))
+          weightReadings.map((item) => {
+            const profileName = getProfileName(item.profileId);
+
+            return (
+              <Pressable
+                key={item.id}
+                style={styles.recordCard}
+                onPress={() => router.push({ pathname: '/weight-form', params: { id: String(item.id) } })}>
+                <View style={styles.recordHeader}>
+                  <View style={styles.recordCopy}>
+                    <ThemedText style={styles.recordTitle}>{item.weight} {item.unit}</ThemedText>
+                    {profileName ? (
+                      <ThemedText style={styles.profileMeta}>Acompanhado: {profileName}</ThemedText>
+                    ) : null}
+                    <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                    {item.height ? (
+                      <ThemedText style={styles.recordMeta}>
+                        {`Altura ${formatHeight(item.height)} m • IMC ${formatBodyMassIndex(item.weight, item.height)}`}
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                  <AuthButton
+                    label="Editar"
+                    variant="secondary"
+                    onPress={() => router.push({ pathname: '/weight-form', params: { id: String(item.id) } })}
+                    style={styles.editButton}
+                  />
+                </View>
+                {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
+              </Pressable>
+            );
+          })
         ) : (
           <View style={styles.emptyCard}>
             <ThemedText style={styles.emptyTitle}>Nenhuma pesagem registrada.</ThemedText>
@@ -180,6 +202,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2ECEF',
   },
+  recordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  recordCopy: {
+    flex: 1,
+    gap: 8,
+  },
+  editButton: {
+    minWidth: 84,
+  },
   recordTitle: {
     color: Colors.light.text,
     fontSize: 20,
@@ -190,6 +225,12 @@ const styles = StyleSheet.create({
     color: Colors.light.textSoft,
     fontSize: 13,
     lineHeight: 18,
+  },
+  profileMeta: {
+    color: ModulePalette.weight.base,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   recordNotes: {
     color: Colors.light.textMuted,

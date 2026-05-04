@@ -35,6 +35,12 @@ const MAPPING = {
   'arrow.triangle.2.circlepath': 'sync',
   'person.2.fill': 'group',
   'person.crop.circle.fill.badge.plus': 'person-add',
+  'eye.fill': 'visibility',
+  'eye.slash.fill': 'visibility-off',
+  'chart.line.uptrend.xyaxis': 'show-chart',
+  'star.fill': 'star',
+  'star': 'star-border',
+  'checkmark.circle.fill': 'check-circle',
 } satisfies Record<string, MaterialIconName>;
 
 /**

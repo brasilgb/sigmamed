@@ -4,7 +4,7 @@ import {
   getActiveLocalProfileId,
   getRemoteProfileIdForLocalProfile,
 } from '@/services/sync-metadata.service';
-import { pushSyncItems } from '@/services/sync-api.service';
+import { isSyncDisabledError, pushSyncItems } from '@/services/sync-api.service';
 import type { BloodPressureReading, NewBloodPressureReading } from '@/types/health';
 
 type BloodPressureRow = {
@@ -215,6 +215,10 @@ export class PressureRepository {
         reading.id
       );
     } catch (error) {
+      if (isSyncDisabledError(error)) {
+        return;
+      }
+
       console.warn('Pressure sync failed', error);
     }
   }

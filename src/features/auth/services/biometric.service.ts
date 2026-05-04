@@ -36,7 +36,7 @@ export async function authenticateWithBiometrics() {
 
   const result = await withBiometricTimeout(
     LocalAuthentication.authenticateAsync({
-      promptMessage: 'Desbloquear SigmaMed',
+      promptMessage: 'Desbloquear Meu Controle',
       fallbackLabel: 'Usar PIN',
       cancelLabel: 'Cancelar',
       disableDeviceFallback: true,

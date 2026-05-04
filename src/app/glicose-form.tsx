@@ -6,9 +6,11 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { OptionSelector } from '@/components/forms/option-selector';
+import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
 import { GlicoseRepository } from '@/features/glicose/glicose.repository';
+import { useProfileSelection } from '@/hooks/use-profile-selection';
 import type { GlicoseContext } from '@/types/health';
 
 const glicoseRepository = new GlicoseRepository();
@@ -25,6 +27,7 @@ export default function GlicoseFormScreen() {
   const [context, setContext] = useState<GlicoseContext>('fasting');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const profileSelection = useProfileSelection({ enabled: !editingId });
 
   useEffect(() => {
     if (!editingId) {
@@ -53,6 +56,7 @@ export default function GlicoseFormScreen() {
     try {
       setIsSubmitting(true);
       setError(null);
+      await profileSelection.applySelectedProfile();
       const payload = {
         glicoseValue: numericValue,
         unit: 'mg/dL' as const,
@@ -82,6 +86,13 @@ export default function GlicoseFormScreen() {
           ? 'Atualize o valor salvo e ajuste o contexto da medição.'
           : 'Registre a glicose com contexto para facilitar a leitura do histórico.'
       }>
+      {profileSelection.shouldSelectProfile && !editingId ? (
+        <ProfileSelector
+          profiles={profileSelection.profiles}
+          selectedProfileId={profileSelection.selectedProfileId}
+          onChange={profileSelection.setSelectedProfileId}
+        />
+      ) : null}
       <RecordInput
         label="Glicose"
         keyboardType="number-pad"

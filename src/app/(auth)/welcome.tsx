@@ -12,17 +12,17 @@ export default function WelcomeScreen() {
 
   return (
     <AuthScreen
-      title="Acompanhe seus registros pessoais de saúde com mais clareza."
-      subtitle="Crie sua conta para registrar pressão, glicose, peso e medicações em um único lugar. O SigmaMed não substitui avaliação, diagnóstico ou acompanhamento profissional.">
+      title="Acompanhe seus registros de saúde e de seus acompanhados com mais clareza."
+      subtitle="Crie sua conta para registrar e armazenar pressão, glicose, peso e medicações em um único lugar, para uso pessoal ou cuidado de outra pessoa. O Meu Controle não medica, não diagnostica e não presta atendimento médico.">
       <View style={styles.featureList}>
-        <ThemedText style={styles.feature}>Registros organizados por módulo para facilitar o acompanhamento</ThemedText>
+        <ThemedText style={styles.feature}>Registros organizados por módulo e por acompanhado</ThemedText>
         <ThemedText style={styles.feature}>Acesso protegido com senha, PIN e biometria opcional</ThemedText>
-        <ThemedText style={styles.feature}>Dados mantidos no dispositivo para uso pessoal e controle do histórico</ThemedText>
+        <ThemedText style={styles.feature}>Dados mantidos para consulta posterior e controle do histórico</ThemedText>
       </View>
 
       <AuthButton label="Criar conta" onPress={() => router.push('/(auth)/register')} />
       <AuthButton
-        label={hasAccount ? 'Entrar com e-mail e senha' : 'Ja tenho conta na nuvem'}
+        label={hasAccount ? 'Entrar com e-mail e senha' : 'Já tenho conta na nuvem'}
         variant="secondary"
         onPress={() => router.push('/(auth)/login')}
       />
