@@ -37,7 +37,6 @@ async function ensureMedicationReminderChannel() {
       name: 'Lembretes de medicação',
       description: 'Alertas sonoros e vibração para horários de medicação.',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
       enableVibrate: true,
       vibrationPattern: REMINDER_VIBRATION_PATTERN,
       showBadge: false,
@@ -90,7 +89,7 @@ function buildReminderContent(medication: Medication, repeating = false): Notifi
   return {
     title: repeating ? 'Lembrete recorrente de medicamento' : 'Lembrete de medicamento',
     body: repeating ? `${medication.name} ${medication.dosage}`.trim() : buildReminderBody(medication),
-    sound: 'default',
+    sound: true,
     vibrate: REMINDER_VIBRATION_PATTERN,
     priority: Notifications.AndroidNotificationPriority.HIGH,
     data: {

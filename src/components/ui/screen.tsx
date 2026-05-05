@@ -30,7 +30,11 @@ export function Screen({
   const colorScheme = useColorScheme() ?? 'light';
   const insets = useSafeAreaInsets();
   const tabBarHeight = useContext(BottomTabBarHeightContext);
-  const bottomPadding = (tabBarHeight ?? insets.bottom) + 24;
+  const tabBarClearance = Platform.select({
+    android: Math.max(insets.bottom + 48, 56),
+    default: Math.max(insets.bottom + 28, 42),
+  });
+  const bottomPadding = tabBarHeight ? tabBarHeight + tabBarClearance : insets.bottom + 24;
 
   return (
     <SafeAreaView

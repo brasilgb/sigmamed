@@ -16,7 +16,10 @@ export default function TabLayout() {
   const colorScheme = selectedColorScheme === 'dark' ? 'dark' : 'light';
   const insets = useSafeAreaInsets();
   const tabBarHorizontalInset = 22;
-  const tabBarBottomOffset = Math.max(insets.bottom - 16, 10);
+  const tabBarBottomOffset = Platform.select({
+    android: Math.max(insets.bottom + 14, 24),
+    default: Math.max(insets.bottom - 16, 10),
+  });
   const { isLoading, isUnlocked, user } = useAuth();
 
   useBillingSyncAccess({ enabled: Boolean(user && isUnlocked) });
