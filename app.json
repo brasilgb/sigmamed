@@ -72,7 +72,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.2.54:8000/api/v1",
+      "apiBaseUrl": "https://controle.sigmaos.com.br/api/v1",
       "router": {},
       "eas": {
         "projectId": "831f0b4f-4d98-4481-a785-0555e2136ed1"
