@@ -125,6 +125,7 @@ export async function registerRemoteUser(input: {
   name: string;
   email: string;
   age: number | null;
+  sex: string | null;
   height: number | null;
   password: string;
 }): Promise<RemoteAuthResult> {
@@ -135,6 +136,7 @@ export async function registerRemoteUser(input: {
       name: input.name,
       email: input.email,
       age: input.age,
+      sex: input.sex,
       height: input.height,
       password: input.password,
       password_confirmation: input.password,

@@ -71,6 +71,10 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     throw new Error('Informe uma idade valida.');
   }
 
+  if (accountUsage === 'personal' && !input.sex?.trim()) {
+    throw new Error('Informe o sexo.');
+  }
+
   if (accountUsage === 'personal' && (!input.height || input.height < 30 || input.height > 250)) {
     throw new Error('Informe uma altura valida em centimetros.');
   }
@@ -94,6 +98,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     name,
     email,
     age: input.age,
+    sex: accountUsage === 'personal' ? input.sex : null,
     height: input.height,
     password: input.password,
   });
@@ -108,6 +113,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     useBiometric: input.useBiometric,
     age: getRemoteUserAge(remoteAuth?.user ?? null) ?? input.age,
     profileFullName: name,
+    profileSex: accountUsage === 'personal' ? input.sex : null,
     profileHeight: accountUsage === 'personal' ? input.height : null,
     remoteProfileId: initialRemoteProfileId,
     createInitialProfile: accountUsage === 'personal',

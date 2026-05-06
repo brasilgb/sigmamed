@@ -12,8 +12,14 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, ModulePalette, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useBillingSyncAccess } from '@/hooks/use-billing-sync-access';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useProfileNames } from '@/hooks/use-profile-names';
+import {
+  getBillingCycleLabel,
+  getBillingPlanLabel,
+  isBillingSyncEnabled,
+} from '@/services/billing.service';
 import { sendFeedback } from '@/services/feedback.service';
 import type { DashboardSummary } from '@/types/health';
 
@@ -62,6 +68,12 @@ const cloudBenefits = [
   'Perfis da família protegidos',
 ];
 
+const activeCloudBenefits = [
+  'Backup e sincronização liberados',
+  'Registros enviados quando houver internet',
+  'Acesso mantido pela assinatura ativa',
+];
+
 function formatPressure(summary: DashboardSummary | null) {
   return summary?.latestPressure
     ? `${summary.latestPressure.systolic}/${summary.latestPressure.diastolic}`
@@ -78,6 +90,7 @@ function formatWeight(summary: DashboardSummary | null) {
 
 export default function HomeTabScreen() {
   const { lock, logout, user } = useAuth();
+  const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const { history, isLoading, refresh, summary, trends } = useDashboardData(7);
   const {
     activeProfileId,
@@ -104,6 +117,9 @@ export default function HomeTabScreen() {
     return profiles.filter((profile) => (profile.fullName ?? '').trim() !== user.name.trim());
   }, [canManageProfiles, profiles, user]);
   const selectedProfile = selectableProfiles.find((profile) => profile.id === activeProfileId) ?? null;
+  const isCloudActive = isBillingSyncEnabled(syncAccess);
+  const cloudPlanLabel = syncAccess?.plan ? getBillingPlanLabel(syncAccess.plan) : 'Plano na nuvem';
+  const cloudPlanCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
   const shouldShowTrends = Boolean(trends && (!canManageProfiles || selectedProfile));
   const trendsHint = 'Últimos 7 dias';
   const canShowOverview = Boolean(summary && (!canManageProfiles || selectedProfile));
@@ -366,15 +382,42 @@ export default function HomeTabScreen() {
         <Pressable style={styles.cloudPressable} onPress={() => router.push('/cloud-sync' as never)}>
           <View style={styles.cloudHeader}>
             <View style={styles.cloudIconWrap}>
-              <IconSymbol name="cloud.fill" size={24} color={BrandPalette.wellness} />
+              <IconSymbol
+                name={isCloudActive ? 'checkmark.circle.fill' : 'cloud.fill'}
+                size={24}
+                color={BrandPalette.wellness}
+              />
             </View>
             <View style={styles.cloudTextWrap}>
-              <ThemedText style={styles.cloudEyebrow}>Premium Nuvem</ThemedText>
-              <ThemedText style={styles.cloudTitle}>Seus dados protegidos e sempre com você.</ThemedText>
+              <View style={styles.cloudTitleRow}>
+                <ThemedText style={styles.cloudEyebrow}>
+                  {isCloudActive ? 'Plano na nuvem ativo' : 'Premium Nuvem'}
+                </ThemedText>
+                {isCloudActive ? (
+                  <View style={styles.cloudActiveBadge}>
+                    <ThemedText style={styles.cloudActiveBadgeText}>Ativo</ThemedText>
+                  </View>
+                ) : null}
+              </View>
+              <ThemedText style={styles.cloudTitle}>
+                {isCloudActive
+                  ? `${cloudPlanLabel}${cloudPlanCycle ? ` - ${cloudPlanCycle}` : ''}`
+                  : isLoadingPlan
+                    ? 'Verificando status do plano...'
+                    : 'Seus dados protegidos e sempre com você.'}
+              </ThemedText>
             </View>
           </View>
+          {isCloudActive ? (
+            <View style={styles.cloudActiveSummary}>
+              <ThemedText style={styles.cloudActiveSummaryTitle}>Sua sincronização está liberada.</ThemedText>
+              <ThemedText style={styles.cloudActiveSummaryText}>
+                Você pode continuar usando o app offline; os registros são sincronizados com a nuvem quando a conexão estiver disponível.
+              </ThemedText>
+            </View>
+          ) : null}
           <View style={styles.cloudBenefits}>
-            {cloudBenefits.map((benefit) => (
+            {(isCloudActive ? activeCloudBenefits : cloudBenefits).map((benefit) => (
               <View key={benefit} style={styles.cloudBenefitRow}>
                 <IconSymbol name="checkmark.circle.fill" size={18} color={BrandPalette.wellness} />
                 <ThemedText style={styles.cloudBenefitText}>{benefit}</ThemedText>
@@ -384,7 +427,9 @@ export default function HomeTabScreen() {
           <View style={styles.cloudFooter}>
             <View style={styles.cloudFooterCopy}>
               <ThemedText style={styles.cloudText}>
-                Mantenha o app offline e sincronize quando a internet voltar.
+                {isCloudActive
+                  ? 'Ver detalhes do plano e como a sincronização funciona.'
+                  : 'Mantenha o app offline e sincronize quando a internet voltar.'}
               </ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={24} color={BrandPalette.white} />
@@ -890,10 +935,30 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  cloudTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   cloudEyebrow: {
     color: BrandPalette.white,
     fontSize: 15,
     lineHeight: 21,
+    fontWeight: '800',
+  },
+  cloudActiveBadge: {
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.42)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  cloudActiveBadgeText: {
+    color: BrandPalette.wellness,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '800',
   },
   cloudTitle: {
@@ -908,6 +973,24 @@ const styles = StyleSheet.create({
   },
   cloudBenefits: {
     gap: 8,
+  },
+  cloudActiveSummary: {
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    padding: 12,
+    gap: 4,
+  },
+  cloudActiveSummaryTitle: {
+    color: BrandPalette.white,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '800',
+  },
+  cloudActiveSummaryText: {
+    color: '#D9E7F7',
+    lineHeight: 20,
   },
   cloudBenefitRow: {
     flexDirection: 'row',

@@ -22,8 +22,11 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors[colorScheme].background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <View
               style={[

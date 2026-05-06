@@ -28,6 +28,12 @@ const usageOptions: {
   },
 ];
 
+const sexOptions = [
+  { label: 'Feminino', value: 'Feminino' },
+  { label: 'Masculino', value: 'Masculino' },
+  { label: 'Outro', value: 'Outro' },
+];
+
 export default function RegisterScreen() {
   const { biometricAvailable, biometricHardwareAvailable, register } = useAuth();
   const emailRef = useRef<TextInput>(null);
@@ -40,6 +46,7 @@ export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [age, setAge] = useState('');
+  const [sex, setSex] = useState('');
   const [height, setHeight] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -70,6 +77,7 @@ export default function RegisterScreen() {
         name,
         email,
         age: accountUsage === 'personal' && age.trim() ? Number(age) : null,
+        sex: accountUsage === 'personal' ? sex : null,
         height: accountUsage === 'personal' && height.trim() ? Number(height) : null,
         password,
         pin,
@@ -172,6 +180,23 @@ export default function RegisterScreen() {
             onChangeText={(value) => setAge(value.replace(/\D/g, ''))}
             onSubmitEditing={() => heightRef.current?.focus()}
           />
+          <View style={styles.optionGroup}>
+            <ThemedText style={styles.optionLabel}>Sexo</ThemedText>
+            <View style={styles.optionRow}>
+              {sexOptions.map((option) => (
+                <AuthButton
+                  key={option.value}
+                  label={option.label}
+                  variant="secondary"
+                  selected={sex === option.value}
+                  selectedBackgroundColor={Colors.light.tint}
+                  selectedTextColor={Colors.light.surface}
+                  style={styles.optionButton}
+                  onPress={() => setSex((currentSex) => (currentSex === option.value ? '' : option.value))}
+                />
+              ))}
+            </View>
+          </View>
           <AuthInput
             ref={heightRef}
             label="Altura em cm"
@@ -398,6 +423,23 @@ const styles = StyleSheet.create({
     color: Colors.light.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  optionGroup: {
+    gap: 8,
+  },
+  optionLabel: {
+    color: Colors.light.text,
+    fontWeight: '700',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  optionButton: {
+    minHeight: 44,
+    minWidth: '30%',
+    flexGrow: 1,
   },
   consentCard: {
     borderRadius: Radius.md,

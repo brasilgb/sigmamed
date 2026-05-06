@@ -42,7 +42,7 @@ export function Screen({
       edges={['top']}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }, contentContainerStyle]}
           refreshControl={

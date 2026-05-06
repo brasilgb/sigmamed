@@ -34,6 +34,7 @@ export type RegisterInput = {
   name: string;
   email: string;
   age: number | null;
+  sex: string | null;
   height: number | null;
   password: string;
   pin: string;

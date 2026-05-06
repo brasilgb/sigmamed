@@ -42,6 +42,7 @@ type CreateUserInput = {
   photoUri?: string | null;
   age?: number | null;
   profileFullName?: string | null;
+  profileSex?: string | null;
   profileHeight?: number | null;
   remoteProfileId?: number | string | null;
   createInitialProfile?: boolean;
@@ -176,11 +177,12 @@ export class UserRepository {
       if (input.createInitialProfile !== false) {
         await database.runAsync(
           `INSERT INTO profiles
-            (user_id, remote_profile_id, full_name, height, updated_at)
-           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            (user_id, remote_profile_id, full_name, sex, height, updated_at)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
           userResult.lastInsertRowId,
           input.remoteProfileId ? Number(input.remoteProfileId) : null,
           input.profileFullName ?? input.name,
+          input.profileSex?.trim() || null,
           input.profileHeight ?? null
         );
       }

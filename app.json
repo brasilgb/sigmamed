@@ -29,6 +29,7 @@
         "foregroundImage": "./assets/images/logo_azul.png",
         "monochromeImage": "./assets/images/logo_branco.png"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
       "package": "com.andersonrodrigues.meucontrole"
