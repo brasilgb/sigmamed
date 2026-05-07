@@ -1,6 +1,7 @@
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +19,7 @@ import {
   type BillingCheckout,
   type BillingPlan,
 } from '@/services/billing.service';
+import { formatDate } from '@/utils/date';
 
 const benefits = [
   {
@@ -83,11 +85,19 @@ function formatAmount(value: number) {
 
 export default function CloudSyncScreen() {
   const { user } = useAuth();
-  const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
+  const {
+    isLoading: isLoadingPlan,
+    refreshSyncAccess,
+    syncAccess,
+  } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [selectedPlan, setSelectedPlan] = useState<BillingPlan | null>(null);
   const [checkout, setCheckout] = useState<BillingCheckout | null>(null);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [didCopyPixCode, setDidCopyPixCode] = useState(false);
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   const accountPlanType = user?.accountUsage === 'personal' ? 'personal' : 'family';
   const visiblePlans = useMemo(
@@ -95,10 +105,44 @@ export default function CloudSyncScreen() {
     [accountPlanType]
   );
   const isCloudActive = isBillingSyncEnabled(syncAccess);
+  const activePlanLabel = syncAccess?.plan ? getBillingPlanLabel(syncAccess.plan) : 'Plano na nuvem';
+  const activeCycleLabel = getBillingCycleLabel(syncAccess?.cycle ?? null);
+  const activePlanSummary = `${activePlanLabel}${activeCycleLabel ? ` - ${activeCycleLabel}` : ''}`;
+  const activePlanExpiresAt = syncAccess?.expires_at ? formatDate(syncAccess.expires_at) : null;
 
   useEffect(() => {
     setSelectedPlan(visiblePlans[0]?.plan ?? null);
   }, [visiblePlans]);
+
+  const verifyPaymentStatus = useCallback(async (options: { silent?: boolean } = {}) => {
+    if (!options.silent) {
+      setIsVerifyingPayment(true);
+    }
+
+    const access = await refreshSyncAccess();
+
+    if (isBillingSyncEnabled(access)) {
+      setIsPaymentConfirmed(true);
+    }
+
+    if (!options.silent) {
+      setIsVerifyingPayment(false);
+    }
+  }, [refreshSyncAccess]);
+
+  useEffect(() => {
+    if (!checkout || !isCheckoutModalOpen || isPaymentConfirmed) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      void verifyPaymentStatus({ silent: true });
+    }, 6000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [checkout, isCheckoutModalOpen, isPaymentConfirmed, verifyPaymentStatus]);
 
   async function handleCheckout() {
     if (!selectedPlan) {
@@ -108,7 +152,11 @@ export default function CloudSyncScreen() {
     try {
       setIsCheckingOut(true);
       setError(null);
-      setCheckout(await createBillingCheckout(selectedPlan));
+      const nextCheckout = await createBillingCheckout(selectedPlan);
+      setCheckout(nextCheckout);
+      setDidCopyPixCode(false);
+      setIsPaymentConfirmed(false);
+      setIsCheckoutModalOpen(true);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : 'Falha ao gerar Pix.');
     } finally {
@@ -166,10 +214,13 @@ export default function CloudSyncScreen() {
             <IconSymbol name="qrcode" size={22} color={BrandPalette.navy} />
           </View>
           <View style={styles.paymentCopy}>
-            <ThemedText style={styles.paymentTitle}>Planos com Pix</ThemedText>
+            <ThemedText style={styles.paymentTitle}>
+              {isCloudActive ? 'Plano ativo' : 'Planos com Pix'}
+            </ThemedText>
             <ThemedText style={styles.paymentText}>
-              A conta principal fica cadastrada no SaaS mesmo sem plano ativo. Ao escolher um plano, o
-              backend gera o Pix e libera a sincronização depois da confirmação do pagamento.
+              {isCloudActive
+                ? 'Sua conta já está com backup e sincronização liberados. A cobrança só aparece novamente quando o plano vencer.'
+                : 'A conta principal fica cadastrada no SaaS mesmo sem plano ativo. Ao escolher um plano, o backend gera o Pix e libera a sincronização depois da confirmação do pagamento.'}
             </ThemedText>
           </View>
         </View>
@@ -178,64 +229,141 @@ export default function CloudSyncScreen() {
           <ThemedText style={styles.statusValue}>
             {isCloudActive ? 'Sincronizando na nuvem' : isLoadingPlan ? 'Carregando...' : 'Nuvem não ativada'}
           </ThemedText>
+          {isCloudActive ? (
+            <>
+              <ThemedText style={styles.statusDetail}>{activePlanSummary}</ThemedText>
+              <ThemedText style={styles.statusDetail}>
+                {activePlanExpiresAt ? `Válido até ${activePlanExpiresAt}` : 'Plano ativo sem data de vencimento informada.'}
+              </ThemedText>
+            </>
+          ) : null}
         </View>
-        <View style={styles.planList}>
-          {visiblePlans.map((option) => {
-            const isSelected = selectedPlan === option.plan;
+        {!isCloudActive ? (
+          <>
+            <View style={styles.planList}>
+              {visiblePlans.map((option) => {
+                const isSelected = selectedPlan === option.plan;
 
-            return (
-              <Pressable
-                key={option.plan}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: isSelected }}
-                onPress={() => {
-                  setSelectedPlan(option.plan);
-                  setCheckout(null);
-                  setError(null);
-                }}
-                style={[styles.planCard, isSelected ? styles.planCardSelected : null]}>
-                <View style={styles.planHeader}>
-                  <ThemedText style={styles.planTitle}>{option.title}</ThemedText>
-                  <View style={styles.planBadges}>
-                    <ThemedText style={[styles.planPrice, isSelected ? styles.planPriceSelected : null]}>
-                      {getBillingPlanPriceLabel(option.plan)}
-                    </ThemedText>
-                    <ThemedText style={[styles.planCycle, isSelected ? styles.planCycleSelected : null]}>
-                      {getBillingCycleLabel(option.plan.endsWith('_annual') ? 'annual' : 'monthly')}
-                    </ThemedText>
-                  </View>
-                </View>
-                <ThemedText style={styles.planDescription}>{option.description}</ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-        {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
-        <AuthButton
-          label={isCheckingOut ? 'Gerando Pix...' : 'Gerar Pix'}
-          disabled={isCheckingOut || !selectedPlan}
-          onPress={handleCheckout}
-        />
-        {checkout ? (
-          <View style={styles.checkoutCard}>
-            <ThemedText style={styles.checkoutTitle}>
-              {getBillingPlanLabel(checkout.plan)}: {formatAmount(checkout.amount)}
-            </ThemedText>
-            {checkout.qr_code_base64 ? (
-              <Image
-                source={{ uri: `data:image/png;base64,${checkout.qr_code_base64}` }}
-                style={styles.qrImage}
-              />
-            ) : null}
-            <ThemedText selectable style={styles.pixCode}>
-              {checkout.qr_code}
-            </ThemedText>
-            <ThemedText style={styles.paymentHint}>
-              Depois da aprovação do pagamento, o backend deve marcar a sincronização como ativa.
-            </ThemedText>
-          </View>
+                return (
+                  <Pressable
+                    key={option.plan}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: isSelected }}
+                    onPress={() => {
+                      setSelectedPlan(option.plan);
+                      setCheckout(null);
+                      setIsCheckoutModalOpen(false);
+                      setDidCopyPixCode(false);
+                      setIsPaymentConfirmed(false);
+                      setError(null);
+                    }}
+                    style={[styles.planCard, isSelected ? styles.planCardSelected : null]}>
+                    <View style={styles.planHeader}>
+                      <ThemedText style={styles.planTitle}>{option.title}</ThemedText>
+                      <View style={styles.planBadges}>
+                        <ThemedText style={[styles.planPrice, isSelected ? styles.planPriceSelected : null]}>
+                          {getBillingPlanPriceLabel(option.plan)}
+                        </ThemedText>
+                        <ThemedText style={[styles.planCycle, isSelected ? styles.planCycleSelected : null]}>
+                          {getBillingCycleLabel(option.plan.endsWith('_annual') ? 'annual' : 'monthly')}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <ThemedText style={styles.planDescription}>{option.description}</ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+            <AuthButton
+              label={isCheckingOut ? 'Gerando Pix...' : checkout ? 'Ver Pix gerado' : 'Gerar Pix'}
+              disabled={isCheckingOut || !selectedPlan}
+              onPress={() => {
+                if (checkout) {
+                  setIsCheckoutModalOpen(true);
+                  return;
+                }
+
+                void handleCheckout();
+              }}
+            />
+          </>
         ) : null}
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={Boolean(checkout && isCheckoutModalOpen)}
+        onRequestClose={() => setIsCheckoutModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.pixModalCard}>
+            <View style={styles.pixModalHeader}>
+              <View>
+                <ThemedText style={styles.checkoutTitle}>
+                  {checkout ? getBillingPlanLabel(checkout.plan) : 'Pix'}
+                </ThemedText>
+                <ThemedText style={styles.checkoutAmount}>
+                  {checkout ? formatAmount(checkout.amount) : ''}
+                </ThemedText>
+              </View>
+              <Pressable style={styles.modalCloseButton} onPress={() => setIsCheckoutModalOpen(false)}>
+                <ThemedText style={styles.modalCloseText}>Fechar</ThemedText>
+              </Pressable>
+            </View>
+
+            {checkout ? (
+              <ScrollView contentContainerStyle={styles.pixModalContent} showsVerticalScrollIndicator={false}>
+                {isPaymentConfirmed ? (
+                  <View style={styles.paymentConfirmedCard}>
+                    <View style={styles.paymentConfirmedIcon}>
+                      <IconSymbol name="checkmark.circle.fill" size={34} color={BrandPalette.wellness} />
+                    </View>
+                    <ThemedText style={styles.paymentConfirmedTitle}>Pagamento confirmado</ThemedText>
+                    <ThemedText style={styles.paymentConfirmedText}>
+                      Sua sincronização foi liberada. Os registros pendentes serão enviados para a nuvem quando houver internet.
+                    </ThemedText>
+                    <AuthButton label="Entendi" onPress={() => setIsCheckoutModalOpen(false)} />
+                  </View>
+                ) : (
+                  <>
+                    {checkout.qr_code_base64 ? (
+                      <Image
+                        source={{ uri: `data:image/png;base64,${checkout.qr_code_base64}` }}
+                        style={styles.qrImage}
+                      />
+                    ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Copiar código Pix"
+                      style={styles.pixCodeButton}
+                      onPress={() => {
+                        void Clipboard.setStringAsync(checkout.qr_code).then(() => setDidCopyPixCode(true));
+                      }}>
+                      <ThemedText selectable style={styles.pixCode}>
+                        {checkout.qr_code}
+                      </ThemedText>
+                    </Pressable>
+                    <ThemedText style={styles.copyHint}>
+                      {didCopyPixCode ? 'Código Pix copiado.' : 'Toque no código para copiar.'}
+                    </ThemedText>
+                    <AuthButton
+                      label={isVerifyingPayment ? 'Verificando...' : 'Já paguei, verificar status'}
+                      disabled={isVerifyingPayment}
+                      onPress={() => {
+                        void verifyPaymentStatus();
+                      }}
+                    />
+                    <ThemedText style={styles.paymentHint}>
+                      Após a aprovação do Mercado Pago, a nuvem é liberada automaticamente.
+                    </ThemedText>
+                  </>
+                )}
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -367,6 +495,10 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     fontWeight: '800',
   },
+  statusDetail: {
+    color: Colors.light.textMuted,
+    lineHeight: 20,
+  },
   planList: {
     gap: 10,
   },
@@ -440,33 +572,103 @@ const styles = StyleSheet.create({
     color: Colors.light.danger,
     fontWeight: '700',
   },
-  checkoutCard: {
-    borderRadius: Radius.md,
-    backgroundColor: '#F7FAFB',
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    padding: Space.md,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(6, 27, 58, 0.58)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  pixModalCard: {
+    maxHeight: '86%',
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.light.surface,
+    padding: Space.lg,
+    gap: 16,
+  },
+  pixModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 12,
+  },
+  pixModalContent: {
+    gap: 14,
+    paddingBottom: 4,
   },
   checkoutTitle: {
     color: Colors.light.text,
     fontWeight: '800',
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  checkoutAmount: {
+    color: BrandPalette.primary,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '800',
+  },
+  modalCloseButton: {
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.light.surfaceMuted,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalCloseText: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    fontSize: 13,
   },
   qrImage: {
-    width: 180,
-    height: 180,
+    width: 220,
+    height: 220,
     alignSelf: 'center',
     borderRadius: Radius.sm,
   },
-  pixCode: {
+  pixCodeButton: {
     borderRadius: Radius.sm,
     backgroundColor: Colors.light.surface,
     borderWidth: 1,
     borderColor: Colors.light.border,
+  },
+  pixCode: {
     color: Colors.light.text,
     fontSize: 12,
     lineHeight: 18,
     padding: 10,
+  },
+  copyHint: {
+    color: BrandPalette.primary,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  paymentConfirmedCard: {
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  paymentConfirmedIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E6F6EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentConfirmedTitle: {
+    color: Colors.light.text,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  paymentConfirmedText: {
+    color: Colors.light.textMuted,
+    lineHeight: 21,
+    textAlign: 'center',
   },
   paymentHeader: {
     flexDirection: 'row',

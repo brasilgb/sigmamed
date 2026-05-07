@@ -61,11 +61,11 @@ const modules = [
 ];
 
 const cloudBenefits = [
-  'Backup automático',
-  'Recupere ao trocar de celular',
-  'Histórico protegido',
-  'Relatórios completos',
-  'Perfis da família protegidos',
+  'Backup automático dos registros',
+  'Recuperação ao trocar de celular',
+  'Sincronização quando a internet voltar',
+  'Histórico protegido fora do aparelho',
+  'Perfis da família no plano familiar',
 ];
 
 const activeCloudBenefits = [
@@ -391,7 +391,7 @@ export default function HomeTabScreen() {
             <View style={styles.cloudTextWrap}>
               <View style={styles.cloudTitleRow}>
                 <ThemedText style={styles.cloudEyebrow}>
-                  {isCloudActive ? 'Plano na nuvem ativo' : 'Premium Nuvem'}
+                  {isCloudActive ? 'Plano na nuvem ativo' : 'Assine o Premium Nuvem'}
                 </ThemedText>
                 {isCloudActive ? (
                   <View style={styles.cloudActiveBadge}>
@@ -404,7 +404,7 @@ export default function HomeTabScreen() {
                   ? `${cloudPlanLabel}${cloudPlanCycle ? ` - ${cloudPlanCycle}` : ''}`
                   : isLoadingPlan
                     ? 'Verificando status do plano...'
-                    : 'Seus dados protegidos e sempre com você.'}
+                    : 'Backup, recuperação e sincronização dos seus registros de saúde.'}
               </ThemedText>
             </View>
           </View>
@@ -429,7 +429,7 @@ export default function HomeTabScreen() {
               <ThemedText style={styles.cloudText}>
                 {isCloudActive
                   ? 'Ver detalhes do plano e como a sincronização funciona.'
-                  : 'Mantenha o app offline e sincronize quando a internet voltar.'}
+                  : 'Escolha um plano, gere Pix e libere a nuvem para sua conta.'}
               </ThemedText>
             </View>
             <IconSymbol name="chevron.right" size={24} color={BrandPalette.white} />

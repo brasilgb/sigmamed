@@ -9,23 +9,32 @@ import {
   getCloudReminderPending,
   setCloudReminderPending,
 } from '@/features/auth/services/session-storage.service';
-import { getBillingSyncAccess, isBillingSyncEnabled } from '@/services/billing.service';
+import { getBillingSyncAccess, isBillingSyncEnabled, type BillingSyncAccess } from '@/services/billing.service';
 
 type CloudReminderModalProps = {
   enabled: boolean;
 };
 
+type ReminderKind = 'initial' | 'expired';
+
+function isExpiredAccess(access: BillingSyncAccess | null) {
+  return access?.status === 'expired' || access?.status === 'canceled';
+}
+
 export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [reminderKind, setReminderKind] = useState<ReminderKind>('initial');
   const didCheckRef = useRef(false);
   const isClosingRef = useRef(false);
   const didDismissRef = useRef(false);
+  const didDismissExpiredRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) {
       didCheckRef.current = false;
       isClosingRef.current = false;
       didDismissRef.current = false;
+      didDismissExpiredRef.current = false;
       setIsVisible(false);
       return;
     }
@@ -38,15 +47,26 @@ export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
     didCheckRef.current = true;
 
     async function checkCloudAccess() {
+      if (isClosingRef.current) {
+        return;
+      }
+
+      const access = await getBillingSyncAccess().catch(() => null);
+
+      if (isMounted && isExpiredAccess(access) && !didDismissExpiredRef.current && !isClosingRef.current) {
+        setReminderKind('expired');
+        setIsVisible(true);
+        return;
+      }
+
       const isPending = await getCloudReminderPending();
 
       if (!isPending || didDismissRef.current || isClosingRef.current) {
         return;
       }
 
-      const access = await getBillingSyncAccess().catch(() => null);
-
       if (isMounted && !isBillingSyncEnabled(access) && !didDismissRef.current && !isClosingRef.current) {
+        setReminderKind('initial');
         setIsVisible(true);
         return;
       }
@@ -64,17 +84,32 @@ export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
   }, [enabled]);
 
   async function close() {
-    didDismissRef.current = true;
+    if (reminderKind === 'expired') {
+      didDismissExpiredRef.current = true;
+    } else {
+      didDismissRef.current = true;
+    }
+
     isClosingRef.current = true;
     setIsVisible(false);
-    await setCloudReminderPending(false);
+
+    if (reminderKind === 'initial') {
+      await setCloudReminderPending(false);
+    }
   }
 
   function openCloudSync() {
-    didDismissRef.current = true;
+    if (reminderKind === 'expired') {
+      didDismissExpiredRef.current = true;
+    } else {
+      didDismissRef.current = true;
+    }
+
     isClosingRef.current = true;
     setIsVisible(false);
-    void setCloudReminderPending(false);
+    if (reminderKind === 'initial') {
+      void setCloudReminderPending(false);
+    }
     router.push('/cloud-sync' as never);
   }
 
@@ -85,16 +120,22 @@ export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
           <View style={styles.cloudReminderIcon}>
             <IconSymbol name="cloud.fill" size={28} color={BrandPalette.primary} />
           </View>
-          <ThemedText style={styles.cloudReminderTitle}>Salvar seus dados na nuvem</ThemedText>
+          <ThemedText style={styles.cloudReminderTitle}>
+            {reminderKind === 'expired' ? 'Seu plano expirou' : 'Salvar seus dados na nuvem'}
+          </ThemedText>
           <ThemedText style={styles.cloudReminderText}>
-            Ative backup e sincronização para recuperar seus registros ao trocar de aparelho ou reinstalar o app.
+            {reminderKind === 'expired'
+              ? 'Renove o plano para reativar backup e sincronização dos seus registros na nuvem.'
+              : 'Ative backup e sincronização para recuperar seus registros ao trocar de aparelho ou reinstalar o app.'}
           </ThemedText>
           <View style={styles.cloudReminderActions}>
             <Pressable style={styles.cloudReminderSecondary} onPress={() => void close()}>
               <ThemedText style={styles.cloudReminderSecondaryText}>Fechar</ThemedText>
             </Pressable>
             <Pressable style={styles.cloudReminderPrimary} onPress={openCloudSync}>
-              <ThemedText style={styles.cloudReminderPrimaryText}>Veja como</ThemedText>
+              <ThemedText style={styles.cloudReminderPrimaryText}>
+                {reminderKind === 'expired' ? 'Renovar' : 'Veja como'}
+              </ThemedText>
             </Pressable>
           </View>
         </View>

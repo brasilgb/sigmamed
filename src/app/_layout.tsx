@@ -17,7 +17,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
+import { BrandPalette, Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/features/auth/hooks/use-auth';
 import { MedicationService } from '@/features/medications/services/medication.service';
@@ -76,10 +76,10 @@ export default function RootLayout() {
   if (!isReady || !fontsLoaded) {
     return (
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
-        <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
-        <ThemedText style={[styles.stateMessage, { color: Colors[activeTheme].textMuted }]}>
-          Preparando seu histórico local...
-        </ThemedText>
+        <View style={[styles.loadingCard, { backgroundColor: Colors[activeTheme].surface }]}>
+          <View style={styles.loadingMark} />
+          <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
+        </View>
       </View>
     );
   }
@@ -118,6 +118,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stateTitle: {},
+  loadingCard: {
+    width: 104,
+    height: 104,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: BrandPalette.deepNavy,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    elevation: 4,
+  },
+  loadingMark: {
+    width: 28,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: BrandPalette.primary,
+  },
   stateMessage: {
     textAlign: 'center',
   },

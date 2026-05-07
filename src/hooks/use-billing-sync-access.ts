@@ -29,15 +29,18 @@ export function useBillingSyncAccess({ enabled }: UseBillingSyncAccessOptions) {
     if (!enabled) {
       setSyncAccess(null);
       setIsLoading(false);
-      return;
+      return null;
     }
 
     setIsLoading(true);
 
     try {
-      applySyncAccess(await getBillingSyncAccess());
+      const access = await getBillingSyncAccess();
+      applySyncAccess(access);
+      return access;
     } catch {
       setSyncAccess(null);
+      return null;
     } finally {
       setIsLoading(false);
     }
