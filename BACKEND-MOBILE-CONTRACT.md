@@ -1,4 +1,4 @@
-# BACKEND MOBILE CONTRACT — Meu Controle
+# BACKEND MOBILE CONTRACT — SigmaMed
 
 Este documento consolida o contrato final esperado pelo app mobile para autenticação, perfil, avatar e sincronização offline-first com a API Laravel.
 
@@ -46,10 +46,12 @@ Payload de registro esperado:
   "email": "joao@exemplo.com",
   "age": 35,
   "height": 170,
-  "password": "secret123",
-  "password_confirmation": "secret123"
+  "password": "123456",
+  "password_confirmation": "123456"
 }
 ```
+
+Senha deve ter no mínimo 6 caracteres.
 
 Para `family`, `age` e `height` podem ser `null` no cadastro da conta. O backend deve criar a conta principal, tenant e cliente SaaS, mas nao precisa criar pessoa acompanhada nesse endpoint. Depois do cadastro, o app apenas informa que os acompanhados devem ser cadastrados em Configurações > Acompanhados, tela que chama `POST /profiles`.
 No app atual, se ja existir uma conta principal local, cadastro de outro usuario e login que criaria outro usuario local devem ser bloqueados.
@@ -130,7 +132,10 @@ Response esperado:
 
 ```json
 {
-  "data": {},
+  "data": {
+    "deleted": true,
+    "clear_local_data": true
+  },
   "meta": {},
   "message": "Conta excluída."
 }
@@ -454,7 +459,7 @@ O backend deve retornar os itens persistidos.
 ```json
 {
   "success": true,
-  "message": "Sincronização de pressão enviada com sucesso.",
+  "message": "Envio de pressão arterial concluído.",
   "meta": {},
   "data": [
     {
@@ -500,7 +505,7 @@ Response:
 ```json
 {
   "success": true,
-  "message": "Sincronização de pressão baixada com sucesso.",
+  "message": "Recebimento de pressão arterial concluído.",
   "meta": {},
   "data": [
     {
@@ -534,7 +539,7 @@ Valores aceitos em `resource`:
 
 ## Assinatura e Sincronização na Nuvem
 
-O app pode funcionar apenas localmente. A sincronização com a nuvem deve ser liberada pelo backend somente para contas com assinatura ativa.
+O app pode funcionar apenas localmente. A sincronização com a nuvem deve ser liberada pelo backend somente para contas com `sync_enabled = true`.
 
 Status da assinatura/sync:
 
@@ -562,6 +567,13 @@ Response esperado:
   "message": "Acesso à sincronização carregado."
 }
 ```
+
+Regra de status do sync: `status` reflete somente `tenant.sync_enabled`.
+
+- `active`: sync na nuvem liberado.
+- `inactive`: sync na nuvem nao liberado.
+
+`expires_at` nessa resposta deve ser `null`. O tenant/acesso local nao expira por data; a conta e gratuita sem nuvem ou tem sync habilitado. O app nao deve exibir popup de "plano expirado" com base em `GET /billing/sync-access`.
 
 Criar cobrança Pix:
 
@@ -614,6 +626,7 @@ Response esperado:
   "data": {
     "payment_id": "123456789",
     "status": "pending",
+    "raw_status": "pending",
     "plan": "family_caregiver_monthly",
     "amount": 19.9,
     "currency": "BRL",
@@ -627,17 +640,37 @@ Response esperado:
 }
 ```
 
-Quando o checkout Pix for criado, o backend deve registrar a tentativa de pagamento vinculada ao tenant/cliente, com `plan`, `cycle`, `provider`, `payment_id`, `amount`, `status = pending` e vencimento do Pix.
+`status` no retorno do checkout e o status de exibicao do Pix/pagamento. Valores esperados:
 
-Quando o pagamento for aprovado pelo Mercado Pago ou outro provedor via webhook, o backend ativa `sync_enabled = true`, preenche `paid_at`, define `plan`, `cycle`, `expires_at` e atualiza o status da assinatura para `active`.
+- `pending`: Pix pendente e ainda dentro do vencimento.
+- `expired`: Pix pendente com `expires_at` vencido.
+- `approved`: pagamento aprovado.
+- `rejected`: pagamento rejeitado.
+- `cancelled`: pagamento cancelado.
+- `inactive`: pagamento/assinatura inicial inativa.
+
+`raw_status` e o status persistido pelo backend/provedor. Exemplo: um Pix vencido pode retornar `status = expired` e `raw_status = pending`.
+
+`expires_at` no checkout representa apenas o vencimento do QR Code Pix. Nao representa vencimento do tenant nem vencimento do acesso local.
+
+Quando o checkout Pix for criado, o backend deve registrar a tentativa de pagamento vinculada ao tenant/cliente, com `plan_type`, `payment_id`, `amount`, `status = pending` e vencimento do Pix em `expires_at`.
+
+Se ja existir um Pix `pending` para o mesmo plano, com `expires_at` futuro e QR Code salvo, o backend deve reutilizar esse pagamento e retornar o mesmo QR Code em vez de criar outra cobranca no Mercado Pago. Se o Pix estiver vencido, aprovado, rejeitado, cancelado ou for de outro plano, o backend pode criar uma nova cobranca.
+
+Descricao enviada ao Mercado Pago:
+
+- Planos pessoais: `Assinatura Meu Controle - Plano Pessoal`.
+- Planos familiares/cuidador: `Assinatura Meu Controle - Plano Familiar/Acompanhante`.
+
+Quando o pagamento for aprovado pelo Mercado Pago ou outro provedor, o backend ativa `sync_enabled = true`, preenche `paid_at` no pagamento e atualiza o status do pagamento para `approved`. Essa atualizacao pode ocorrer via webhook ou por reconciliacao quando o app consultar `GET /billing/sync-access` ou quando o admin abrir a tela de pagamentos.
 
 Quando o pagamento for confirmado pelo provedor, o backend deve marcar `sync_enabled = true` para o tenant/usuário autenticado. Enquanto `sync_enabled` for `false`, endpoints de `sync/push` e `sync/pull` devem retornar erro claro de acesso não liberado.
 
-Observacao de status mobile: a tela de nuvem consulta `GET /billing/sync-access` e chama `POST /billing/sync-access/checkout` enviando `plan`. Ela exibe o Pix retornado pelo backend e espera o webhook atualizar o acesso ao sync.
+Observacao de status mobile: a tela de nuvem consulta `GET /billing/sync-access` para decidir se a nuvem esta ativa/inativa. Ela chama `POST /billing/sync-access/checkout` enviando `plan` para exibir Pix e status de pagamento. O app deve tratar `status = expired` no retorno do checkout como Pix vencido e oferecer gerar/reabrir nova cobranca, mas nao como plano/tenant expirado.
 
 ## Feedback do Usuário
 
-A home do app possui um card de opinião que abre um modal com nota em estrelas e comentário/sugestão. O envio deve ser uma chamada autenticada direta para o backend e nao deve entrar no fluxo de sincronizacao offline.
+A home do app possui um card de opinião que abre um modal com nota em estrelas e comentário/sugestão. No mobile atual, o envio é apenas visual/local até existir endpoint no backend.
 
 Endpoint sugerido:
 
@@ -691,122 +724,30 @@ Response esperado:
 }
 ```
 
-### Regras Mobile
+### Ajustes Necessários no Front
 
-Chamada real esperada:
+Mobile:
 
 - Trocar o envio visual/local do modal de opinião por chamada real para `POST /api/v1/feedback`.
-- Enviar os headers protegidos padrão: `Authorization`, `Accept`, `Content-Type` e `X-Tenant-Id` quando disponível.
+- Enviar `Authorization`, `Accept`, `Content-Type` e, quando disponível, `X-Tenant-Id`.
 - Enviar `rating` quando o usuário selecionar estrelas e `comment` quando preencher comentário/sugestão.
-- Normalizar `comment` com `trim()` antes de enviar.
 - Enviar `source: "home"` para o card atual da home.
 - Enviar `app_version` e `platform` quando esses dados estiverem disponíveis no app.
-
-Validação local:
-
-- Bloquear o envio se `rating` estiver vazio e `comment.trim()` estiver vazio.
-- Se houver nota, aceitar apenas 1, 2, 3, 4 ou 5.
-- Permitir comentário sem nota e nota sem comentário.
-
-Estados de UI:
-
+- Bloquear o envio se `rating` e `comment` estiverem vazios.
 - Exibir estado de carregamento durante o envio.
-- Desabilitar o botão enquanto o envio estiver em andamento para evitar duplo envio.
-- Em sucesso, limpar os campos e mostrar confirmação simples ao usuário.
+- Em sucesso, fechar o modal, limpar os campos e mostrar confirmação simples ao usuário.
 - Em erro de validação, informar que é necessário preencher uma nota ou comentário.
 - Em erro de rede ou servidor, manter o conteúdo digitado no modal para o usuário tentar novamente.
+- Não incluir feedback no fluxo de sincronização offline genérico. Feedback é envio online autenticado e vinculado ao tenant atual.
 
-Regra offline/sync:
+Painel admin web:
 
-- Feedback nao é registro clínico e nao deve ser gravado nas tabelas sincronizáveis.
-- Feedback nao deve entrar em `sync/push`, `sync/pull`, fila offline de registros clínicos ou relatório de saúde.
-- Se estiver sem internet ou a API falhar, o app deve mostrar erro e permitir nova tentativa manual. Nao criar pendência offline neste fluxo.
-
-### Painel Admin Web
-
-Criar tela protegida para análise de feedbacks:
-
-```http
-GET /admin/feedbacks
-```
-
-Acesso:
-
-- Disponível apenas para usuários com papel `admin` ou `root`.
-- Bloquear acesso para usuários comuns, cuidadores, contas familiares/acompanhantes e contas pessoais.
-- Validar permissão no backend, nao apenas esconder links no frontend.
-
-Conteúdo esperado da tela:
-
-- Cards de resumo:
-  - total de feedbacks recebidos.
-  - nota média.
-  - quantidade de feedbacks com comentário.
-  - quantidade de feedbacks recebidos nos últimos 7 ou 30 dias.
-- Distribuição por estrelas:
-  - contagem de notas 1, 2, 3, 4 e 5.
-  - percentual por nota, quando útil para visualização.
-- Listagem dos feedbacks:
-  - data/hora de envio.
-  - usuário e e-mail, quando disponíveis.
-  - tenant, quando disponível.
-  - nota.
-  - comentário/sugestão.
-  - origem (`source`).
-  - versão do app.
-  - plataforma.
-
-Filtros recomendados:
-
-- período.
-- nota.
-- plataforma.
-- origem.
-- busca textual no comentário.
-
-Endpoint JSON opcional para o painel:
-
-```http
-GET /api/v1/admin/feedbacks
-Authorization: Bearer <token>
-Accept: application/json
-```
-
-Response sugerido:
-
-```json
-{
-  "data": [
-    {
-      "id": 123,
-      "user_id": 1,
-      "user_name": "João Silva",
-      "user_email": "joao@exemplo.com",
-      "tenant_id": 1,
-      "rating": 5,
-      "comment": "Gostaria de uma tela para comparar evolução por mês.",
-      "source": "home",
-      "app_version": "1.0.0",
-      "platform": "android",
-      "created_at": "2026-05-02T12:00:00Z"
-    }
-  ],
-  "meta": {
-    "total": 1,
-    "average_rating": 5,
-    "with_comment": 1,
-    "last_30_days": 1,
-    "rating_distribution": {
-      "1": 0,
-      "2": 0,
-      "3": 0,
-      "4": 0,
-      "5": 1
-    }
-  },
-  "message": "Feedbacks carregados."
-}
-```
+- Criar tela protegida para análise de feedbacks em `/admin/feedbacks`.
+- Exibir cards de resumo com total de feedbacks, nota média, quantidade com comentário e último envio.
+- Exibir distribuição por nota de 1 a 5 estrelas.
+- Listar feedbacks recentes com usuário, email, tenant, nota, comentário, origem, versão do app, plataforma e data de criação.
+- Adicionar navegação para Feedbacks no dashboard admin e nas telas administrativas relacionadas.
+- A tela deve ser somente para usuários admin/root e não deve ficar disponível para usuários comuns do app.
 
 ## SQLite Sync Readiness
 

@@ -8,7 +8,7 @@ export type BillingPlan =
 
 export type BillingSyncAccess = {
   sync_enabled: boolean;
-  status: 'inactive' | 'pending' | 'active' | 'expired' | 'canceled';
+  status: 'inactive' | 'active';
   plan: BillingPlan | null;
   cycle: 'monthly' | 'annual' | null;
   expires_at: string | null;
@@ -18,7 +18,8 @@ export type BillingSyncAccess = {
 
 export type BillingCheckout = {
   payment_id: string;
-  status: string;
+  status: 'pending' | 'expired' | 'approved' | 'rejected' | 'cancelled' | 'canceled' | 'inactive' | string;
+  raw_status?: string | null;
   plan: BillingPlan;
   amount: number;
   currency: 'BRL';
@@ -105,12 +106,7 @@ function asBillingCycle(value: unknown): BillingSyncAccess['cycle'] {
 }
 
 function asBillingStatus(value: unknown): BillingSyncAccess['status'] {
-  return value === 'pending' ||
-    value === 'active' ||
-    value === 'expired' ||
-    value === 'canceled'
-    ? value
-    : 'inactive';
+  return value === 'active' ? 'active' : 'inactive';
 }
 
 function asNullableString(value: unknown) {

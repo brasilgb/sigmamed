@@ -109,6 +109,9 @@ export default function CloudSyncScreen() {
   const activeCycleLabel = getBillingCycleLabel(syncAccess?.cycle ?? null);
   const activePlanSummary = `${activePlanLabel}${activeCycleLabel ? ` - ${activeCycleLabel}` : ''}`;
   const activePlanExpiresAt = syncAccess?.expires_at ? formatDate(syncAccess.expires_at) : null;
+  const isCheckoutUnavailable = checkout
+    ? ['expired', 'rejected', 'cancelled', 'canceled', 'inactive'].includes(checkout.status)
+    : false;
 
   useEffect(() => {
     setSelectedPlan(visiblePlans[0]?.plan ?? null);
@@ -131,7 +134,7 @@ export default function CloudSyncScreen() {
   }, [refreshSyncAccess]);
 
   useEffect(() => {
-    if (!checkout || !isCheckoutModalOpen || isPaymentConfirmed) {
+    if (!checkout || isCheckoutUnavailable || !isCheckoutModalOpen || isPaymentConfirmed) {
       return;
     }
 
@@ -142,7 +145,7 @@ export default function CloudSyncScreen() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [checkout, isCheckoutModalOpen, isPaymentConfirmed, verifyPaymentStatus]);
+  }, [checkout, isCheckoutUnavailable, isCheckoutModalOpen, isPaymentConfirmed, verifyPaymentStatus]);
 
   async function handleCheckout() {
     if (!selectedPlan) {
@@ -155,7 +158,7 @@ export default function CloudSyncScreen() {
       const nextCheckout = await createBillingCheckout(selectedPlan);
       setCheckout(nextCheckout);
       setDidCopyPixCode(false);
-      setIsPaymentConfirmed(false);
+      setIsPaymentConfirmed(isBillingSyncEnabled(syncAccess) || nextCheckout.status === 'approved' || nextCheckout.status === 'active');
       setIsCheckoutModalOpen(true);
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : 'Falha ao gerar Pix.');
@@ -276,10 +279,10 @@ export default function CloudSyncScreen() {
             </View>
             {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
             <AuthButton
-              label={isCheckingOut ? 'Gerando Pix...' : checkout ? 'Ver Pix gerado' : 'Gerar Pix'}
+              label={isCheckingOut ? 'Gerando Pix...' : checkout && !isCheckoutUnavailable ? 'Ver Pix gerado' : 'Gerar Pix'}
               disabled={isCheckingOut || !selectedPlan}
               onPress={() => {
-                if (checkout) {
+                if (checkout && !isCheckoutUnavailable) {
                   setIsCheckoutModalOpen(true);
                   return;
                 }
@@ -324,6 +327,28 @@ export default function CloudSyncScreen() {
                       Sua sincronização foi liberada. Os registros pendentes serão enviados para a nuvem quando houver internet.
                     </ThemedText>
                     <AuthButton label="Entendi" onPress={() => setIsCheckoutModalOpen(false)} />
+                  </View>
+                ) : isCheckoutUnavailable ? (
+                  <View style={styles.paymentConfirmedCard}>
+                    <View style={styles.paymentExpiredIcon}>
+                      <IconSymbol name="qrcode" size={32} color={Colors.light.warning} />
+                    </View>
+                    <ThemedText style={styles.paymentConfirmedTitle}>
+                      {checkout.status === 'expired' ? 'Pix expirado' : 'Pix indisponível'}
+                    </ThemedText>
+                    <ThemedText style={styles.paymentConfirmedText}>
+                      Este código Pix não está disponível para pagamento. Gere um novo Pix para liberar a sincronização.
+                    </ThemedText>
+                    {checkout.raw_status ? (
+                      <ThemedText style={styles.paymentRawStatus}>Status do provedor: {checkout.raw_status}</ThemedText>
+                    ) : null}
+                    <AuthButton
+                      label={isCheckingOut ? 'Gerando...' : 'Gerar novo Pix'}
+                      disabled={isCheckingOut}
+                      onPress={() => {
+                        void handleCheckout();
+                      }}
+                    />
                   </View>
                 ) : (
                   <>
@@ -658,6 +683,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  paymentExpiredIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFF7E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   paymentConfirmedTitle: {
     color: Colors.light.text,
     fontSize: 22,
@@ -668,6 +701,13 @@ const styles = StyleSheet.create({
   paymentConfirmedText: {
     color: Colors.light.textMuted,
     lineHeight: 21,
+    textAlign: 'center',
+  },
+  paymentRawStatus: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
     textAlign: 'center',
   },
   paymentHeader: {
