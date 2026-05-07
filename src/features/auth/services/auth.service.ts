@@ -399,6 +399,20 @@ export async function updateAccountProfile(profileId: number, input: {
   return userRepository.updateProfile(profileId, input);
 }
 
+export async function deleteAccountProfile(userId: number, profileId: number): Promise<void> {
+  const user = await userRepository.getById(userId);
+
+  if (!user) {
+    throw new Error('Conta não encontrada.');
+  }
+
+  if (user.accountUsage === 'personal') {
+    throw new Error('Contas pessoais não podem excluir o perfil principal.');
+  }
+
+  await userRepository.deleteProfile(profileId, userId);
+}
+
 export async function createAccountProfile(input: {
   userId: number;
   fullName: string;

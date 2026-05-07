@@ -419,6 +419,37 @@ export class UserRepository {
     return mapProfile(row);
   }
 
+  async deleteProfile(profileId: number, userId: number): Promise<void> {
+    const database = await getDatabase();
+
+    await database.withTransactionAsync(async () => {
+      const existing = await database.getFirstAsync<ProfileRow>(
+        'SELECT * FROM profiles WHERE id = ? AND user_id = ?',
+        profileId,
+        userId
+      );
+
+      if (!existing) {
+        throw new Error('Acompanhado não encontrado.');
+      }
+
+      await database.runAsync(
+        `DELETE FROM medication_logs
+         WHERE profile_id = ?
+            OR medication_id IN (
+              SELECT id FROM medications WHERE profile_id = ?
+            )`,
+        profileId,
+        profileId
+      );
+      await database.runAsync('DELETE FROM medications WHERE profile_id = ?', profileId);
+      await database.runAsync('DELETE FROM blood_pressure_readings WHERE profile_id = ?', profileId);
+      await database.runAsync('DELETE FROM glicose_readings WHERE profile_id = ?', profileId);
+      await database.runAsync('DELETE FROM weight_readings WHERE profile_id = ?', profileId);
+      await database.runAsync('DELETE FROM profiles WHERE id = ? AND user_id = ?', profileId, userId);
+    });
+  }
+
   async createProfile(input: CreateProfileInput): Promise<AuthProfile> {
     const database = await getDatabase();
     const fullName = input.fullName.trim();

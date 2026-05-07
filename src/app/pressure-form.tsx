@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { MeasurementDatePicker } from '@/components/forms/measurement-date-picker';
 import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { Colors } from '@/constants/theme';
@@ -26,6 +27,7 @@ export default function PressureFormScreen() {
   const [diastolic, setDiastolic] = useState(params.diastolic ?? '');
   const [pulse, setPulse] = useState(params.pulse ?? '');
   const [notes, setNotes] = useState(params.rawText ?? '');
+  const [measuredAt, setMeasuredAt] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const profileSelection = useProfileSelection({ enabled: !editingId });
@@ -44,6 +46,7 @@ export default function PressureFormScreen() {
       setDiastolic(String(record.diastolic));
       setPulse(record.pulse ? String(record.pulse) : '');
       setNotes(record.notes ?? '');
+      setMeasuredAt(new Date(record.measuredAt));
     });
   }, [editingId]);
 
@@ -65,7 +68,7 @@ export default function PressureFormScreen() {
         systolic: systolicValue,
         diastolic: diastolicValue,
         pulse: pulseValue,
-        measuredAt: new Date().toISOString(),
+        measuredAt: measuredAt.toISOString(),
         source: 'manual' as const,
         notes: notes.trim() || null,
       };
@@ -125,6 +128,7 @@ export default function PressureFormScreen() {
         value={pulse}
         onChangeText={setPulse}
       />
+      <MeasurementDatePicker value={measuredAt} onChange={setMeasuredAt} />
       <RecordInput
         label="Observações"
         placeholder="Ex.: medição realizada pela manhã"

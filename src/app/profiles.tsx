@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
@@ -9,8 +9,8 @@ import { Screen } from '@/components/ui/screen';
 import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
+  deleteAccountProfile,
   getAccountProfiles,
-  getActiveAccountProfileId,
 } from '@/features/auth/services/auth.service';
 import type { AuthProfile } from '@/features/auth/types/auth';
 
@@ -18,8 +18,8 @@ export default function ProfilesScreen() {
   const { user } = useAuth();
   const canCreateProfiles = user?.accountUsage !== 'personal';
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
-  const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingProfileId, setDeletingProfileId] = useState<number | null>(null);
   const visibleProfiles =
     user?.accountUsage === 'personal'
       ? profiles
@@ -33,20 +33,54 @@ export default function ProfilesScreen() {
     setIsLoading(true);
 
     try {
-      const [profileRows, currentProfileId] = await Promise.all([
-        getAccountProfiles(user.id),
-        getActiveAccountProfileId(),
-      ]);
+      const profileRows = await getAccountProfiles(user.id);
       setProfiles(profileRows);
-      setActiveProfileId(currentProfileId);
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
-  useEffect(() => {
-    void loadProfiles();
-  }, [loadProfiles]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfiles();
+    }, [loadProfiles])
+  );
+
+  async function handleDeleteProfile(profile: AuthProfile) {
+    if (!user) {
+      return;
+    }
+
+    try {
+      setDeletingProfileId(profile.id);
+      await deleteAccountProfile(user.id, profile.id);
+      await loadProfiles();
+    } catch (deleteError) {
+      Alert.alert(
+        'Não foi possível excluir',
+        deleteError instanceof Error ? deleteError.message : 'Falha ao excluir acompanhado.'
+      );
+    } finally {
+      setDeletingProfileId(null);
+    }
+  }
+
+  function confirmDeleteProfile(profile: AuthProfile) {
+    Alert.alert(
+      'Excluir acompanhado',
+      `Deseja excluir ${profile.fullName ?? 'este acompanhado'}? Os registros de saúde vinculados a ele também serão removidos deste dispositivo.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            void handleDeleteProfile(profile);
+          },
+        },
+      ]
+    );
+  }
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={loadProfiles}>
@@ -98,11 +132,6 @@ export default function ProfilesScreen() {
             <View style={styles.profileCopy}>
               <View style={styles.profileTitleRow}>
                 <ThemedText style={styles.profileName}>{profile.fullName ?? 'Sem nome'}</ThemedText>
-                {activeProfileId === profile.id ? (
-                  <View style={styles.activeBadge}>
-                    <ThemedText style={styles.activeBadgeText}>Ativo</ThemedText>
-                  </View>
-                ) : null}
               </View>
               <ThemedText style={styles.profileMeta}>
                 {[
@@ -114,14 +143,27 @@ export default function ProfilesScreen() {
               {profile.notes ? <ThemedText style={styles.profileNotes}>{profile.notes}</ThemedText> : null}
             </View>
             {canCreateProfiles ? (
-              <AuthButton
-                label="Editar"
-                variant="secondary"
-                onPress={() =>
-                  router.push({ pathname: '/profile-form', params: { id: String(profile.id) } } as never)
-                }
-                style={styles.profileAction}
-              />
+              <View style={styles.profileActions}>
+                <AuthButton
+                  label="Editar"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({ pathname: '/profile-form', params: { id: String(profile.id) } } as never)
+                  }
+                  style={styles.profileAction}
+                />
+                <AuthButton
+                  label={deletingProfileId === profile.id ? 'Excluindo...' : 'Excluir'}
+                  variant="secondary"
+                  disabled={deletingProfileId === profile.id}
+                  selected
+                  selectedBackgroundColor="#FFF1F2"
+                  selectedBorderColor="#FECACA"
+                  selectedTextColor={Colors.light.danger}
+                  onPress={() => confirmDeleteProfile(profile)}
+                  style={styles.profileAction}
+                />
+              </View>
             ) : null}
           </View>
         ))}
@@ -266,19 +308,6 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     fontWeight: '800',
   },
-  activeBadge: {
-    borderRadius: Radius.pill,
-    backgroundColor: '#E6F6EF',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
-  activeBadgeText: {
-    color: Colors.light.success,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
   profileMeta: {
     color: Colors.light.textMuted,
     lineHeight: 20,
@@ -288,8 +317,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  profileActions: {
+    gap: 8,
+  },
   profileAction: {
     minWidth: 84,
+    minHeight: 44,
+    borderRadius: Radius.md,
   },
   emptyCard: {
     borderRadius: Radius.lg,

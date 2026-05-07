@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { MeasurementDatePicker } from '@/components/forms/measurement-date-picker';
 import { OptionSelector } from '@/components/forms/option-selector';
 import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
@@ -25,6 +26,7 @@ export default function GlicoseFormScreen() {
   const [glicoseValue, setGlicoseValue] = useState(params.glicoseValue ?? '');
   const [notes, setNotes] = useState(params.rawText ?? '');
   const [context, setContext] = useState<GlicoseContext>('fasting');
+  const [measuredAt, setMeasuredAt] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const profileSelection = useProfileSelection({ enabled: !editingId });
@@ -42,6 +44,7 @@ export default function GlicoseFormScreen() {
       setGlicoseValue(String(record.glicoseValue));
       setNotes(record.notes ?? '');
       setContext(record.context);
+      setMeasuredAt(new Date(record.measuredAt));
     });
   }, [editingId]);
 
@@ -61,7 +64,7 @@ export default function GlicoseFormScreen() {
         glicoseValue: numericValue,
         unit: 'mg/dL' as const,
         context,
-        measuredAt: new Date().toISOString(),
+        measuredAt: measuredAt.toISOString(),
         source: 'manual' as const,
         notes: notes.trim() || null,
       };
@@ -111,6 +114,7 @@ export default function GlicoseFormScreen() {
           { label: 'Aleatória', value: 'random' },
         ]}
       />
+      <MeasurementDatePicker value={measuredAt} onChange={setMeasuredAt} />
       <RecordInput
         label="Observações"
         placeholder="Ex.: medição realizada 2h após o almoço"

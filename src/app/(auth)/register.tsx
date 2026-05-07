@@ -102,6 +102,7 @@ export default function RegisterScreen() {
           onDismiss: () => router.replace('/(tabs)'),
         }
       );
+      return;
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao criar conta.');
     } finally {

@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
+import { MeasurementDatePicker } from '@/components/forms/measurement-date-picker';
 import { ProfileSelector } from '@/components/forms/profile-selector';
 import { RecordInput } from '@/components/forms/record-input';
 import { BrandPalette, Colors } from '@/constants/theme';
@@ -25,6 +26,7 @@ export default function WeightFormScreen() {
   const [weight, setWeight] = useState('');
   const [profileHeight, setProfileHeight] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const [measuredAt, setMeasuredAt] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const profileSelection = useProfileSelection({ enabled: !editingId });
@@ -61,6 +63,7 @@ export default function WeightFormScreen() {
       setWeight(String(Math.round(record.weight)));
       setProfileHeight((currentHeight) => currentHeight ?? record.height);
       setNotes(record.notes ?? '');
+      setMeasuredAt(new Date(record.measuredAt));
     });
   }, [editingId]);
 
@@ -88,7 +91,7 @@ export default function WeightFormScreen() {
         weight: numericWeight,
         height: normalizedProfileHeight,
         unit: 'kg' as const,
-        measuredAt: new Date().toISOString(),
+        measuredAt: measuredAt.toISOString(),
         notes: notes.trim() || null,
       };
       if (editingId) {
@@ -137,6 +140,7 @@ export default function WeightFormScreen() {
           </ThemedText>
         </View>
       ) : null}
+      <MeasurementDatePicker value={measuredAt} onChange={setMeasuredAt} />
       <RecordInput
         label="Observações"
         placeholder="Ex.: pesagem matinal"
