@@ -41,6 +41,7 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+       ["expo-adi-registration"],
       [
         "expo-image-picker",
         {
