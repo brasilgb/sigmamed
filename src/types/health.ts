@@ -3,6 +3,7 @@ export type EntrySource = 'manual';
 export type ReportPeriodDays = 7 | 30 | 90;
 
 export type ReportKind = 'complete' | 'pressure' | 'glicose' | 'weight' | 'medications';
+export type ReportModule = Exclude<ReportKind, 'complete'>;
 
 export type GlicoseContext = 'fasting' | 'post_meal' | 'random';
 

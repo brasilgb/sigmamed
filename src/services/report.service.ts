@@ -14,6 +14,7 @@ import type {
   GlicoseReading,
   ReportData,
   ReportKind,
+  ReportModule,
   ReportMetricSummary,
   ReportPeriodDays,
   WeightReading,
@@ -21,6 +22,9 @@ import type {
 
 const userRepository = new UserRepository();
 const medicationRepository = new MedicationRepository();
+const allReportModules: ReportModule[] = ['pressure', 'glicose', 'weight', 'medications'];
+
+type ReportScope = ReportKind | ReportModule[];
 
 type CountRow = { count: number };
 
@@ -341,11 +345,28 @@ function renderTableSection(title: string, headers: string[], rows: string[][]) 
 }
 
 export function buildReportHtml(report: ReportData) {
-  return buildScopedReportHtml(report, 'complete');
+  return buildScopedReportHtml(report, allReportModules);
 }
 
-function getReportTitle(kind: ReportKind) {
-  switch (kind) {
+function normalizeReportScope(scope: ReportScope = allReportModules) {
+  if (Array.isArray(scope)) {
+    const selected = allReportModules.filter((module) => scope.includes(module));
+    return selected.length > 0 ? selected : allReportModules;
+  }
+
+  return scope === 'complete' ? allReportModules : [scope];
+}
+
+function getReportTitle(scope: ReportScope) {
+  const modules = normalizeReportScope(scope);
+
+  if (modules.length > 1) {
+    return modules.length === allReportModules.length
+      ? 'Relatório de acompanhamento'
+      : 'Relatório personalizado';
+  }
+
+  switch (modules[0]) {
     case 'pressure':
       return 'Relatório de pressão arterial';
     case 'glicose':
@@ -354,16 +375,14 @@ function getReportTitle(kind: ReportKind) {
       return 'Relatório de peso';
     case 'medications':
       return 'Relatório de medicação';
-    default:
-      return 'Relatório de acompanhamento';
   }
 }
 
-function includesReportKind(current: ReportKind, target: Exclude<ReportKind, 'complete'>) {
-  return current === 'complete' || current === target;
+function includesReportKind(scope: ReportScope, target: ReportModule) {
+  return normalizeReportScope(scope).includes(target);
 }
 
-export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'complete') {
+export function buildScopedReportHtml(report: ReportData, scope: ReportScope = allReportModules) {
   const pressureRows = report.pressure.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.systolic}/${item.diastolic} mmHg`,
@@ -390,18 +409,21 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
         report.patient.hasDiabetes ? 'Diabetes' : null,
       ].filter(Boolean) as string[]
     : [];
-  const showPressure = includesReportKind(kind, 'pressure');
-  const showGlicose = includesReportKind(kind, 'glicose');
-  const showWeight = includesReportKind(kind, 'weight');
-  const showMedications = includesReportKind(kind, 'medications');
-  const reportTitle = getReportTitle(kind);
+  const selectedModules = normalizeReportScope(scope);
+  const isCompleteReport = selectedModules.length === allReportModules.length;
+  const onlyMedications = selectedModules.length === 1 && selectedModules[0] === 'medications';
+  const showPressure = includesReportKind(scope, 'pressure');
+  const showGlicose = includesReportKind(scope, 'glicose');
+  const showWeight = includesReportKind(scope, 'weight');
+  const showMedications = includesReportKind(scope, 'medications');
+  const reportTitle = getReportTitle(scope);
   const subjectName = report.patient?.name ?? 'perfil ativo';
   const totalScopedReadings =
     (showPressure ? report.pressure.summary.count : 0) +
     (showGlicose ? report.glicose.summary.count : 0) +
     (showWeight ? report.weight.summary.count : 0);
   const scopedSummary =
-    kind === 'complete'
+    isCompleteReport
       ? `
         <div class="grid">
           <div class="cell">
@@ -428,13 +450,13 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
       : `
         <div class="grid">
           <div class="cell">
-            <div class="kicker">${kind === 'medications' ? 'Medicações ativas' : 'Registros'}</div>
-            <div class="value">${kind === 'medications' ? report.medications.summary.activeCount : totalScopedReadings}</div>
-            <p>${kind === 'medications' ? 'tratamentos ativos no momento' : 'leituras no período selecionado'}</p>
+            <div class="kicker">${onlyMedications ? 'Medicações ativas' : 'Registros'}</div>
+            <div class="value">${onlyMedications ? report.medications.summary.activeCount : totalScopedReadings}</div>
+            <p>${onlyMedications ? 'tratamentos ativos no momento' : 'leituras no período selecionado'}</p>
           </div>
           <div class="cell">
-            <div class="kicker">${kind === 'medications' ? 'Aderência' : 'Última leitura'}</div>
-            <div class="value">${kind === 'medications' ? `${report.medications.summary.adherenceRate}%` : ''}</div>
+            <div class="kicker">${onlyMedications ? 'Aderência' : 'Última leitura'}</div>
+            <div class="value">${onlyMedications ? `${report.medications.summary.adherenceRate}%` : ''}</div>
             ${showPressure ? `<p>${escapeHtml(report.pressure.summary.latestLabel)}</p>` : ''}
             ${showGlicose ? `<p>${escapeHtml(report.glicose.summary.latestLabel)}</p>` : ''}
             ${showWeight ? `<p>${escapeHtml(report.weight.summary.latestLabel)}</p>` : ''}
@@ -532,7 +554,7 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
           <p>Este relatório organiza informações registradas pelo usuário para consulta posterior. Ele não gera diagnóstico, prescrição, atendimento médico, orientação clínica ou indicação de medicação.</p>
         </section>
 
-        ${kind === 'complete' ? `<section class="section">
+        ${isCompleteReport ? `<section class="section">
           <h2>Atividade recente</h2>
           ${
             report.history.length > 0
@@ -553,8 +575,8 @@ export function buildScopedReportHtml(report: ReportData, kind: ReportKind = 'co
   `;
 }
 
-export async function exportReportPdf(report: ReportData, kind: ReportKind = 'complete') {
-  const html = buildScopedReportHtml(report, kind);
+export async function exportReportPdf(report: ReportData, scope: ReportScope = allReportModules) {
+  const html = buildScopedReportHtml(report, scope);
   return Print.printToFileAsync({
     html,
     base64: false,
