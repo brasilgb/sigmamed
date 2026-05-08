@@ -336,6 +336,7 @@ Regra geral:
 - `updated_at` resolve conflito: o mais recente vence.
 - `deleted_at` indica soft delete.
 - `profile_id` deve pertencer ao tenant e usuário autenticados.
+- Nas medições (`blood-pressure`, `glicose`, `weight`), `measured_at` é sempre um timestamp completo com data e hora. O app exibe a data como `DD/MM/AAAA` e permite editar a hora separadamente, mas sincroniza tudo neste mesmo campo ISO.
 
 ### Blood Pressure
 

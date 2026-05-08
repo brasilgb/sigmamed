@@ -36,7 +36,22 @@ export function formatDate(value: string) {
   }
 
   return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'medium',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+export function formatTime(value: string) {
+  const date = parseDate(value);
+
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(date);
 }
 
