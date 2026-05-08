@@ -350,8 +350,7 @@ export function buildReportHtml(report: ReportData) {
 
 function normalizeReportScope(scope: ReportScope = allReportModules) {
   if (Array.isArray(scope)) {
-    const selected = allReportModules.filter((module) => scope.includes(module));
-    return selected.length > 0 ? selected : allReportModules;
+    return allReportModules.filter((module) => scope.includes(module));
   }
 
   return scope === 'complete' ? allReportModules : [scope];
@@ -359,6 +358,10 @@ function normalizeReportScope(scope: ReportScope = allReportModules) {
 
 function getReportTitle(scope: ReportScope) {
   const modules = normalizeReportScope(scope);
+
+  if (modules.length === 0) {
+    return 'Relatório personalizado';
+  }
 
   if (modules.length > 1) {
     return modules.length === allReportModules.length

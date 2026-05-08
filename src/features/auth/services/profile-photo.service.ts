@@ -14,6 +14,7 @@ import {
 import { getApiUrl, translateApiMessage } from '@/services/api-client';
 
 const PROFILE_PHOTO_DIR = `${FileSystem.documentDirectory ?? ''}profile-photos/`;
+const AVATAR_REQUEST_TIMEOUT_MS = 30000;
 
 type AvatarUploadResponse = {
   data?: {
@@ -59,6 +60,26 @@ async function getAvatarHeaders() {
   }
 
   return headers;
+}
+
+async function fetchAvatarEndpoint(path: string, init: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AVATAR_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(getApiUrl(path), {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Tempo esgotado ao salvar a foto. Tente novamente.');
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export function isManagedProfilePhotoUri(uri: string | null | undefined) {
@@ -109,7 +130,7 @@ export async function uploadRemoteAvatar(uri: string) {
     type: getMimeType(uri),
   } as unknown as Blob);
 
-  const response = await fetch(getApiUrl('/auth/me/avatar'), {
+  const response = await fetchAvatarEndpoint('/auth/me/avatar', {
     method: 'POST',
     headers: await getAvatarHeaders(),
     body: formData,
@@ -134,7 +155,7 @@ export async function uploadRemoteAvatar(uri: string) {
 }
 
 export async function deleteRemoteAvatar() {
-  const response = await fetch(getApiUrl('/auth/me/avatar'), {
+  const response = await fetchAvatarEndpoint('/auth/me/avatar', {
     method: 'DELETE',
     headers: await getAvatarHeaders(),
   });

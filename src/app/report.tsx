@@ -39,7 +39,7 @@ function getReportSubjectName(data: ReportData | null) {
 export default function ReportScreen() {
   const { resumeAutoLock, suspendAutoLock } = useAuth();
   const [periodDays, setPeriodDays] = useState<ReportPeriodDays>(30);
-  const [selectedReportModules, setSelectedReportModules] = useState<ReportModule[]>(allReportModules);
+  const [selectedReportModules, setSelectedReportModules] = useState<ReportModule[]>([]);
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -120,20 +120,21 @@ export default function ReportScreen() {
   function toggleReportModule(module: ReportModule) {
     setSelectedReportModules((current) => {
       if (current.includes(module)) {
-        return current.length === 1 ? current : current.filter((item) => item !== module);
+        return current.filter((item) => item !== module);
       }
 
       return allReportModules.filter((item) => [...current, module].includes(item));
     });
   }
 
+  const hasSelectedReportModules = selectedReportModules.length > 0;
   const isCompleteReport = selectedReportModules.length === allReportModules.length;
   const showPressure = selectedReportModules.includes('pressure');
   const showGlicose = selectedReportModules.includes('glicose');
   const showWeight = selectedReportModules.includes('weight');
   const showMedications = selectedReportModules.includes('medications');
   const showReadingModules = showPressure || showGlicose || showWeight;
-  const actionsDisabled = !data || isExporting || isSharing;
+  const actionsDisabled = !data || !hasSelectedReportModules || isExporting || isSharing;
 
   return (
     <Screen isRefreshing={isLoading} onRefresh={load}>
@@ -187,7 +188,7 @@ export default function ReportScreen() {
             selectedBackgroundColor={BrandPalette.navy}
             selectedTextColor={BrandPalette.white}
             style={styles.kindButton}
-            onPress={() => setSelectedReportModules(allReportModules)}
+            onPress={() => setSelectedReportModules(isCompleteReport ? [] : allReportModules)}
           />
           {reportModules.map((module) => (
             <AuthButton
@@ -283,6 +284,13 @@ export default function ReportScreen() {
             </Card>
           ) : null}
 
+          {!hasSelectedReportModules ? (
+            <Card style={styles.summaryCardSingle}>
+              <ThemedText style={styles.summaryLabel}>Conteúdo do relatório</ThemedText>
+              <ThemedText style={styles.latestRow}>Selecione um ou mais módulos para gerar o PDF.</ThemedText>
+            </Card>
+          ) : null}
+
           {isCompleteReport ? (
             <View style={styles.summaryGrid}>
               <Card style={styles.summaryCard}>
@@ -302,7 +310,7 @@ export default function ReportScreen() {
             </View>
           ) : null}
 
-          {!isCompleteReport ? (
+          {hasSelectedReportModules && !isCompleteReport ? (
             <Card style={styles.summaryCardSingle}>
               <ThemedText style={styles.summaryLabel}>Resumo selecionado</ThemedText>
               {showPressure ? <ThemedText style={styles.latestRow}>Pressão: {data.pressure.summary.latestLabel}</ThemedText> : null}
@@ -311,14 +319,14 @@ export default function ReportScreen() {
               {showMedications ? <ThemedText style={styles.latestRow}>Medicações ativas: {data.medications.summary.activeCount}</ThemedText> : null}
               {showMedications ? <ThemedText style={styles.latestRow}>Adesão no período: {data.medications.summary.adherenceRate}%</ThemedText> : null}
             </Card>
-          ) : (
+          ) : hasSelectedReportModules ? (
             <Card style={styles.summaryCardSingle}>
               <ThemedText style={styles.summaryLabel}>Últimas leituras</ThemedText>
               <ThemedText style={styles.latestRow}>Pressão: {data.pressure.summary.latestLabel}</ThemedText>
               <ThemedText style={styles.latestRow}>Glicose: {data.glicose.summary.latestLabel}</ThemedText>
               <ThemedText style={styles.latestRow}>Peso: {data.weight.summary.latestLabel}</ThemedText>
             </Card>
-          )}
+          ) : null}
 
           {showReadingModules ? <View style={styles.section}>
             <SectionHeader title="Tendências" hint={`Últimos ${periodDays} dias`} />
@@ -351,7 +359,7 @@ export default function ReportScreen() {
             </Card> : null}
           </View> : null}
 
-          <View style={styles.section}>
+          {hasSelectedReportModules ? <View style={styles.section}>
             <SectionHeader
               title="Detalhamento"
               hint={showReadingModules ? 'Leituras recentes do período' : 'Medicações cadastradas'}
@@ -415,7 +423,7 @@ export default function ReportScreen() {
                 <ThemedText style={styles.emptyText}>Sem medicações cadastradas.</ThemedText>
               )}
             </Card> : null}
-          </View>
+          </View> : null}
         </>
       ) : null}
     </Screen>

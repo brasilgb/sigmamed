@@ -32,7 +32,7 @@ Registro deve retornar `token`, `user`, `tenant` e, se disponivel, `profile` ou 
 Login deve retornar `token` e `user` dentro de `data`; `tenant`, `profile` ou `profile_id` tambem podem ser retornados para evitar chamadas extras.
 No cadastro, o app envia também o tipo de uso escolhido:
 
-- `personal`: uso pessoal. `age` e `height` representam o próprio usuário e o perfil inicial usa o nome da conta.
+- `personal`: uso pessoal. `age`, `sex` e `height` representam o próprio usuário e o backend deve criar tambem um registro em `profiles` para esse usuario.
 - `family`: uso familiar/cuidador. A conta é do responsável/cuidador. Pessoas acompanhadas são cadastradas depois, em `/profiles`.
 
 `professional` pode ser mantido pelo backend apenas como compatibilidade com contas antigas, mas o cadastro mobile atual nao oferece essa opcao separada porque `family` e cuidador usam o mesmo fluxo.
@@ -45,6 +45,7 @@ Payload de registro esperado:
   "name": "João Silva",
   "email": "joao@exemplo.com",
   "age": 35,
+  "sex": "Masculino",
   "height": 170,
   "password": "123456",
   "password_confirmation": "123456"
@@ -53,7 +54,17 @@ Payload de registro esperado:
 
 Senha deve ter no mínimo 6 caracteres.
 
-Para `family`, `age` e `height` podem ser `null` no cadastro da conta. O backend deve criar a conta principal, tenant e cliente SaaS, mas nao precisa criar pessoa acompanhada nesse endpoint. Depois do cadastro, o app apenas informa que os acompanhados devem ser cadastrados em Configurações > Acompanhados, tela que chama `POST /profiles`.
+Para `personal`, o backend deve criar `users` e `profiles` no mesmo cadastro, mesmo sem plano de nuvem/sincronizacao ativo. O `profiles` inicial deve usar:
+
+- `name`: mesmo nome enviado no cadastro.
+- `age`: idade enviada no cadastro.
+- `sex`: sexo enviado no cadastro.
+- `height`: altura enviada no cadastro.
+- `user_id` e `tenant_id`: vinculados ao usuario/tenant criados.
+
+Esse perfil inicial deve ser retornado preferencialmente em `data.profile` ou como `data.profile_id`, porque o app usa esse ID remoto como `profiles.remote_profile_id` local.
+
+Para `family`, `age`, `sex` e `height` podem ser `null` no cadastro da conta. O backend deve criar a conta principal, tenant e cliente SaaS, mas nao precisa criar pessoa acompanhada nesse endpoint. Depois do cadastro, o app apenas informa que os acompanhados devem ser cadastrados em Configurações > Acompanhados, tela que chama `POST /profiles`.
 No app atual, se ja existir uma conta principal local, cadastro de outro usuario e login que criaria outro usuario local devem ser bloqueados.
 O tenant atual pode ser obtido em:
 
@@ -99,7 +110,7 @@ O app usa:
 - `GET /api/v1/profile` para obter `profile_id` nos payloads de sync
 - `data.avatar_url` do upload de avatar para foto de perfil remota
 
-Regra SaaS: o backend deve persistir o cliente principal no cadastro mesmo sem plano ativo. Esse cadastro precisa criar `user`, `tenant`, perfil inicial e um registro de cliente/assinatura em status `inactive` ou equivalente. Isso permite gerenciar no SaaS quem se cadastrou, qual `account_usage` foi escolhido e se a conta ja aderiu ou nao a algum plano. A falta de plano ativo bloqueia apenas sincronizacao em nuvem e recursos pagos, nao o cadastro da conta.
+Regra SaaS: o backend deve persistir o cliente principal no cadastro mesmo sem plano ativo. Esse cadastro precisa criar `user`, `tenant`, perfil inicial para `personal` e um registro de cliente/assinatura em status `inactive` ou equivalente. Isso permite gerenciar no SaaS quem se cadastrou, qual `account_usage` foi escolhido e se a conta ja aderiu ou nao a algum plano. A falta de plano ativo bloqueia apenas sincronizacao em nuvem e recursos pagos, nao o cadastro da conta nem o cadastro do perfil principal.
 O app atual exige sucesso em `POST /auth/register` para concluir o cadastro. Se a API estiver indisponivel ou retornar erro, a conta local nao e criada, para evitar cadastro apenas no aparelho sem registro no SaaS.
 
 Compatibilidade atual do app:

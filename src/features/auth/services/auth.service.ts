@@ -113,6 +113,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     useBiometric: input.useBiometric,
     age: getRemoteUserAge(remoteAuth?.user ?? null) ?? input.age,
     profileFullName: name,
+    profileAge: accountUsage === 'personal' ? input.age : null,
     profileSex: accountUsage === 'personal' ? input.sex : null,
     profileHeight: accountUsage === 'personal' ? input.height : null,
     remoteProfileId: initialRemoteProfileId,
@@ -132,8 +133,18 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     await setSessionTenantId(remoteTenantId);
   }
 
-  const remoteProfileId =
+  let remoteProfileId =
     remoteAuth.profileId ?? remoteContext?.profileId ?? (await getRemoteProfileId().catch(() => null));
+
+  if (!remoteProfileId && accountUsage === 'personal') {
+    remoteProfileId = await createRemoteProfile({
+      fullName: name,
+      age: input.age,
+      sex: input.sex,
+      height: input.height,
+      notes: null,
+    }).catch(() => null);
+  }
 
   if (remoteProfileId) {
     await setSessionProfileId(remoteProfileId);
@@ -310,10 +321,10 @@ export async function updateAccount(userId: number, input: UpdateAccountInput): 
     }
   }
 
-  let photoUri = input.photoUri;
+  const photoUri = input.photoUri;
 
   if (photoUri && photoUri !== record.photo_uri) {
-    photoUri = await uploadRemoteAvatar(photoUri);
+    await uploadRemoteAvatar(photoUri);
   }
 
   if (!photoUri && record.photo_uri) {
