@@ -9,7 +9,7 @@ type UserRow = {
   age: number | null;
   photo_uri: string | null;
   password_hash: string;
-  pin_hash: string;
+  pin_hash: string | null;
   use_biometric: number;
   created_at: string;
   updated_at: string;
@@ -37,7 +37,7 @@ type CreateUserInput = {
   name: string;
   email: string;
   passwordHash: string;
-  pinHash: string;
+  pinHash?: string | null;
   useBiometric: boolean;
   photoUri?: string | null;
   age?: number | null;
@@ -94,6 +94,7 @@ function mapUser(row: UserRow): AuthUser {
     age: row.age,
     photoUri: row.photo_uri,
     useBiometric: Boolean(row.use_biometric),
+    hasPin: Boolean(row.pin_hash),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -128,6 +129,18 @@ export class UserRepository {
   async getByEmail(email: string): Promise<AuthUser | null> {
     const database = await getDatabase();
     const row = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE lower(email) = lower(?)', email);
+    return row ? mapUser(row) : null;
+  }
+
+  async getFirstUser(): Promise<AuthUser | null> {
+    const database = await getDatabase();
+    const row = await database.getFirstAsync<UserRow>(
+      `SELECT *
+       FROM users
+       ORDER BY updated_at DESC, id DESC
+       LIMIT 1`
+    );
+
     return row ? mapUser(row) : null;
   }
 
@@ -170,7 +183,7 @@ export class UserRepository {
         input.age ?? null,
         input.accountUsage,
         input.passwordHash,
-        input.pinHash,
+        input.pinHash ?? null,
         input.useBiometric ? 1 : 0,
         input.photoUri ?? null
       );
@@ -217,6 +230,43 @@ export class UserRepository {
       enabled ? 1 : 0,
       userId
     );
+  }
+
+  async updatePinHash(userId: number, pinHash: string): Promise<AuthUser> {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE users
+       SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      pinHash,
+      userId
+    );
+
+    const row = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE id = ?', userId);
+
+    if (!row) {
+      throw new Error('Conta não encontrada.');
+    }
+
+    return mapUser(row);
+  }
+
+  async clearPinHash(userId: number): Promise<AuthUser> {
+    const database = await getDatabase();
+    await database.runAsync(
+      `UPDATE users
+       SET pin_hash = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      userId
+    );
+
+    const row = await database.getFirstAsync<UserRow>('SELECT * FROM users WHERE id = ?', userId);
+
+    if (!row) {
+      throw new Error('Conta não encontrada.');
+    }
+
+    return mapUser(row);
   }
 
   async updateUserAccount(userId: number, input: UpdateUserInput): Promise<AuthUser> {

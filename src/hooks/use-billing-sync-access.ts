@@ -8,6 +8,7 @@ import {
   type BillingSyncAccess,
 } from '@/services/billing.service';
 import { syncCloudRecordsAfterActivation } from '@/services/cloud-sync-orchestrator.service';
+import { setCachedCloudSyncEnabled } from '@/services/sync-api.service';
 
 type UseBillingSyncAccessOptions = {
   enabled: boolean;
@@ -19,6 +20,7 @@ export function useBillingSyncAccess({ enabled }: UseBillingSyncAccessOptions) {
 
   function applySyncAccess(access: BillingSyncAccess) {
     setSyncAccess(access);
+    setCachedCloudSyncEnabled(isBillingSyncEnabled(access));
 
     if (isBillingSyncEnabled(access)) {
       void syncCloudRecordsAfterActivation();

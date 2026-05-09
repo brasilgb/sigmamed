@@ -21,6 +21,7 @@ type MedicationRow = {
   instructions: string | null;
   active: number;
   scheduled_time: string | null;
+  dose_interval: string | null;
   reminder_enabled: number;
   repeat_reminder_every_five_minutes: number;
   reminder_minutes_before: number;
@@ -57,6 +58,7 @@ function mapMedication(row: MedicationRow): Medication {
     instructions: row.instructions,
     active: Boolean(row.active),
     scheduledTime: row.scheduled_time,
+    doseInterval: row.dose_interval ?? '24:00',
     reminderEnabled: Boolean(row.reminder_enabled),
     repeatReminderEveryFiveMinutes: Boolean(row.repeat_reminder_every_five_minutes),
     reminderMinutesBefore: row.reminder_minutes_before,
@@ -214,8 +216,8 @@ export class MedicationRepository {
 
     const result = await database.runAsync(
       `INSERT INTO medications
-        (uuid, profile_id, name, dosage, instructions, active, scheduled_time, reminder_enabled, repeat_reminder_every_five_minutes, reminder_minutes_before, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        (uuid, profile_id, name, dosage, instructions, active, scheduled_time, dose_interval, reminder_enabled, repeat_reminder_every_five_minutes, reminder_minutes_before, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       uuid,
       profileId,
       input.name,
@@ -223,6 +225,7 @@ export class MedicationRepository {
       input.instructions,
       input.active ? 1 : 0,
       input.scheduledTime,
+      input.doseInterval ?? '24:00',
       input.reminderEnabled ? 1 : 0,
       input.repeatReminderEveryFiveMinutes ? 1 : 0,
       input.reminderMinutesBefore
@@ -246,13 +249,14 @@ export class MedicationRepository {
     const database = await getDatabase();
     await database.runAsync(
       `UPDATE medications
-       SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, reminder_enabled = ?, repeat_reminder_every_five_minutes = ?, reminder_minutes_before = ?, updated_at = CURRENT_TIMESTAMP, synced_at = NULL
+       SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, dose_interval = ?, reminder_enabled = ?, repeat_reminder_every_five_minutes = ?, reminder_minutes_before = ?, updated_at = CURRENT_TIMESTAMP, synced_at = NULL
        WHERE id = ?`,
       input.name,
       input.dosage,
       input.instructions,
       input.active ? 1 : 0,
       input.scheduledTime,
+      input.doseInterval ?? '24:00',
       input.reminderEnabled ? 1 : 0,
       input.repeatReminderEveryFiveMinutes ? 1 : 0,
       input.reminderMinutesBefore,
@@ -412,6 +416,7 @@ export class MedicationRepository {
             instructions: medication.instructions,
             active: medication.active,
             scheduled_time: toRemoteScheduledTime(medication.scheduledTime, medication.updatedAt),
+            dose_interval: medication.doseInterval ?? '24:00',
             reminder_enabled: medication.reminderEnabled,
             reminder_minutes_before: medication.reminderMinutesBefore,
             repeat_reminder_every_five_minutes: medication.repeatReminderEveryFiveMinutes,

@@ -15,6 +15,10 @@ type CloudReminderModalProps = {
   enabled: boolean;
 };
 
+let didDismissCloudReminderInMemory = false;
+let isCloudReminderCheckInFlight = false;
+let isCloudReminderVisibleInMemory = false;
+
 export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const didCheckRef = useRef(false);
@@ -25,38 +29,50 @@ export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
     if (!enabled) {
       didCheckRef.current = false;
       isClosingRef.current = false;
-      didDismissRef.current = false;
       setIsVisible(false);
       return;
     }
 
-    if (didCheckRef.current || didDismissRef.current) {
+    if (
+      didCheckRef.current ||
+      didDismissRef.current ||
+      didDismissCloudReminderInMemory ||
+      isCloudReminderCheckInFlight ||
+      isCloudReminderVisibleInMemory
+    ) {
       return;
     }
 
     let isMounted = true;
     didCheckRef.current = true;
+    isCloudReminderCheckInFlight = true;
 
     async function checkCloudAccess() {
-      if (isClosingRef.current) {
-        return;
-      }
+      try {
+        if (isClosingRef.current) {
+          return;
+        }
 
-      const access = await getBillingSyncAccess().catch(() => null);
+        const access = await getBillingSyncAccess().catch(() => null);
 
-      const isPending = await getCloudReminderPending();
+        const isPending = await getCloudReminderPending();
 
-      if (!isPending || didDismissRef.current || isClosingRef.current) {
-        return;
-      }
+        if (!isPending || didDismissRef.current || didDismissCloudReminderInMemory || isClosingRef.current) {
+          return;
+        }
 
-      if (isMounted && !isBillingSyncEnabled(access) && !didDismissRef.current && !isClosingRef.current) {
-        setIsVisible(true);
-        return;
-      }
+        if (isMounted && !isBillingSyncEnabled(access) && !didDismissRef.current && !didDismissCloudReminderInMemory && !isClosingRef.current) {
+          await setCloudReminderPending(false);
+          isCloudReminderVisibleInMemory = true;
+          setIsVisible(true);
+          return;
+        }
 
-      if (isMounted) {
-        await setCloudReminderPending(false);
+        if (isMounted) {
+          await setCloudReminderPending(false);
+        }
+      } finally {
+        isCloudReminderCheckInFlight = false;
       }
     }
 
@@ -69,14 +85,18 @@ export function CloudReminderModal({ enabled }: CloudReminderModalProps) {
 
   async function close() {
     didDismissRef.current = true;
+    didDismissCloudReminderInMemory = true;
     isClosingRef.current = true;
+    isCloudReminderVisibleInMemory = false;
     setIsVisible(false);
     await setCloudReminderPending(false);
   }
 
   function openCloudSync() {
     didDismissRef.current = true;
+    didDismissCloudReminderInMemory = true;
     isClosingRef.current = true;
+    isCloudReminderVisibleInMemory = false;
     setIsVisible(false);
     void setCloudReminderPending(false);
     router.push('/cloud-sync' as never);

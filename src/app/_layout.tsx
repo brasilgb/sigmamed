@@ -77,7 +77,6 @@ export default function RootLayout() {
     return (
       <View style={[styles.stateScreen, { backgroundColor: Colors[activeTheme].background }]}>
         <View style={[styles.loadingCard, { backgroundColor: Colors[activeTheme].surface }]}>
-          <View style={styles.loadingMark} />
           <ActivityIndicator size="large" color={Colors[activeTheme].tint} />
         </View>
       </View>
@@ -124,7 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
     shadowColor: BrandPalette.deepNavy,
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -133,12 +131,6 @@ const styles = StyleSheet.create({
       height: 10,
     },
     elevation: 4,
-  },
-  loadingMark: {
-    width: 28,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: BrandPalette.primary,
   },
   stateMessage: {
     textAlign: 'center',

@@ -1,4 +1,4 @@
-import DateTimePicker, { type DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -21,9 +21,13 @@ export function MeasurementDatePicker({
 }: MeasurementDatePickerProps) {
   const [openMode, setOpenMode] = useState<PickerMode | null>(null);
 
-  function handleValueChange(mode: PickerMode, _event: DateTimePickerChangeEvent, selectedDate: Date) {
+  function handleValueChange(mode: PickerMode, event: DateTimePickerEvent, selectedDate?: Date) {
     if (Platform.OS === 'android') {
       setOpenMode(null);
+    }
+
+    if (event.type === 'dismissed' || !selectedDate) {
+      return;
     }
 
     const nextDate = new Date(value);
@@ -37,12 +41,6 @@ export function MeasurementDatePicker({
     onChange(nextDate);
   }
 
-  function handleDismiss() {
-    if (Platform.OS === 'android') {
-      setOpenMode(null);
-    }
-  }
-
   return (
     <View style={styles.wrapper}>
       <ThemedText style={styles.label}>{label}</ThemedText>
@@ -54,8 +52,7 @@ export function MeasurementDatePicker({
               mode="date"
               display="compact"
               maximumDate={new Date()}
-              onValueChange={(event, selectedDate) => handleValueChange('date', event, selectedDate)}
-              onDismiss={handleDismiss}
+              onChange={(event, selectedDate) => handleValueChange('date', event, selectedDate)}
             />
           </View>
           <View style={styles.pickerShell}>
@@ -63,8 +60,7 @@ export function MeasurementDatePicker({
               value={value}
               mode="time"
               display="compact"
-              onValueChange={(event, selectedDate) => handleValueChange('time', event, selectedDate)}
-              onDismiss={handleDismiss}
+              onChange={(event, selectedDate) => handleValueChange('time', event, selectedDate)}
             />
           </View>
         </View>
@@ -85,8 +81,7 @@ export function MeasurementDatePicker({
               display="default"
               maximumDate={openMode === 'date' ? new Date() : undefined}
               is24Hour
-              onValueChange={(event, selectedDate) => handleValueChange(openMode, event, selectedDate)}
-              onDismiss={handleDismiss}
+              onChange={(event, selectedDate) => handleValueChange(openMode, event, selectedDate)}
             />
           ) : null}
         </>

@@ -120,6 +120,44 @@ export async function removeManagedProfilePhoto(uri: string | null | undefined) 
   }
 }
 
+export function isRemoteProfilePhotoUri(uri: string | null | undefined) {
+  return Boolean(uri?.startsWith('http://') || uri?.startsWith('https://'));
+}
+
+export async function loadRemoteProfilePhotoDataUri(uri: string) {
+  const response = await fetch(uri, {
+    headers: await getAvatarHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Falha ao carregar avatar remoto.');
+  }
+
+  const contentType = response.headers.get('content-type') ?? getMimeType(uri);
+  const blob = await response.blob();
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('Falha ao preparar avatar remoto.'));
+    };
+    reader.onerror = () => reject(new Error('Falha ao preparar avatar remoto.'));
+    reader.readAsDataURL(blob);
+  }).then((dataUri) => {
+    if (dataUri.startsWith('data:application/octet-stream')) {
+      return dataUri.replace('data:application/octet-stream', `data:${contentType}`);
+    }
+
+    return dataUri;
+  });
+}
+
 export async function uploadRemoteAvatar(uri: string) {
   const extension = getFileExtension(uri);
   const formData = new FormData();

@@ -244,4 +244,12 @@ export const migrations = [
   `
     ALTER TABLE profiles ADD COLUMN age INTEGER;
   `,
+  `
+    ALTER TABLE medications ADD COLUMN dose_interval TEXT DEFAULT '24:00';
+  `,
+  `
+    UPDATE medications
+    SET dose_interval = '24:00'
+    WHERE dose_interval IS NULL OR trim(dose_interval) = '';
+  `,
 ];

@@ -69,6 +69,67 @@ Authorization: Bearer <token>
 Accept: application/json
 ```
 
+### 3) Recuperar senha
+
+Solicitar envio do código de recuperação:
+
+POST `/api/v1/auth/forgot-password`
+
+Body JSON:
+
+```json
+{
+  "email": "usuario@exemplo.com"
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "data": {
+    "sent": true
+  },
+  "meta": {},
+  "message": "Enviamos as instruções de recuperação para o e-mail informado."
+}
+```
+
+Redefinir a senha usando o código recebido:
+
+POST `/api/v1/auth/reset-password`
+
+Body JSON:
+
+```json
+{
+  "email": "usuario@exemplo.com",
+  "code": "123456",
+  "password": "novaSenha123",
+  "password_confirmation": "novaSenha123"
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "data": {
+    "reset": true
+  },
+  "meta": {},
+  "message": "Senha alterada com sucesso."
+}
+```
+
+Regras:
+
+- senha mínima de 6 caracteres
+- código temporário, de uso único e vinculado ao e-mail
+- aplicar rate limit nas duas rotas
+- não revelar se o e-mail existe em `/forgot-password`
+- esse fluxo altera somente a senha da nuvem; PIN local e biometria continuam separados no app
+
 ## Tenant e Tenancy
 
 O backend usa multi-tenancy por coluna (`tenant_id`).

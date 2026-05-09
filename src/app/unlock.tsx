@@ -25,6 +25,7 @@ export default function UnlockScreen() {
   const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [isPinBusy, setIsPinBusy] = useState(false);
   const [isBiometricBusy, setIsBiometricBusy] = useState(false);
+  const [isPinFallbackVisible, setIsPinFallbackVisible] = useState(false);
   const autoBiometricAttemptedRef = useRef(false);
   const biometricInFlightRef = useRef(false);
   const isBusy = isPinBusy || isBiometricBusy;
@@ -41,6 +42,10 @@ export default function UnlockScreen() {
 
       try {
         const success = await unlockByBiometric().catch(() => false);
+
+        if (!success) {
+          setIsPinFallbackVisible(true);
+        }
 
         if (!success && !options.silent) {
           setError('Biometria indisponível ou não validada. Use seu PIN.');
@@ -64,6 +69,10 @@ export default function UnlockScreen() {
 
   if (!user) {
     return <Redirect href="/(auth)/welcome" />;
+  }
+
+  if (!user.hasPin) {
+    return <Redirect href="/(auth)/setup-pin" />;
   }
 
   if (isUnlocked) {
@@ -118,13 +127,15 @@ export default function UnlockScreen() {
     : isLoadingPlan
       ? 'Carregando plano...'
       : 'Nuvem não ativada';
+  const canUnlockWithBiometrics = Boolean(user.useBiometric && biometricAvailable);
+  const shouldShowPinUnlock = !canUnlockWithBiometrics || isPinFallbackVisible;
 
   return (
     <AuthScreen
       title={`Olá, ${user.name.split(' ')[0]}`}
       subtitle={
-        biometricHardwareAvailable
-          ? 'Use seu PIN para continuar. Se a biometria estiver ativa, você também pode entrar por ela.'
+        canUnlockWithBiometrics
+          ? 'Use sua biometria para continuar. Se cancelar, desbloqueie com o PIN.'
           : 'Use seu PIN para continuar.'
       }>
       <View
@@ -160,36 +171,40 @@ export default function UnlockScreen() {
         </View>
       </View>
 
-      <AuthInput
-        label="PIN"
-        keyboardType="number-pad"
-        maxLength={6}
-        placeholder="4 ou 6 dígitos"
-        secureTextEntry
-        value={pin}
-        onChangeText={setPin}
-        onSubmitEditing={() => void handlePinUnlock()}
-      />
+      {shouldShowPinUnlock ? (
+        <AuthInput
+          label="PIN"
+          keyboardType="number-pad"
+          maxLength={6}
+          placeholder="4 ou 6 dígitos"
+          secureTextEntry
+          value={pin}
+          onChangeText={setPin}
+          onSubmitEditing={() => void handlePinUnlock()}
+        />
+      ) : null}
 
       {biometricUnavailableMessage ? (
         <ThemedText style={styles.error}>{biometricUnavailableMessage}</ThemedText>
       ) : null}
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
 
-      <AuthButton
-        label={getPinButtonLabel()}
-        disabled={isBusy}
-        onPress={handlePinUnlock}
-      />
+      {shouldShowPinUnlock ? (
+        <AuthButton
+          label={getPinButtonLabel()}
+          disabled={isBusy}
+          onPress={handlePinUnlock}
+        />
+      ) : null}
 
-      {user.useBiometric && biometricAvailable ? (
+      {canUnlockWithBiometrics ? (
         <AuthButton
           label={getBiometricButtonLabel()}
-          variant="secondary"
           disabled={isBusy}
           onPress={() => void handleBiometricUnlock()}
         />
       ) : null}
+
     </AuthScreen>
   );
 }

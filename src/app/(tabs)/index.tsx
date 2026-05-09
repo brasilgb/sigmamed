@@ -200,6 +200,13 @@ export default function HomeTabScreen() {
         <View style={styles.heroTop}>
           <View style={styles.heroActionsRow}>
             <View style={styles.heroActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir nuvem"
+                style={styles.iconButton}
+                onPress={() => router.push('/cloud-sync' as never)}>
+                <IconSymbol name="cloud.fill" size={18} color={BrandPalette.white} />
+              </Pressable>
               {canManageProfiles ? (
                 <Pressable
                   accessibilityRole="button"

@@ -129,7 +129,8 @@ O app separa conta de login e pessoa acompanhada:
 | `dosage` | TEXT NOT NULL | Dose descrita. |
 | `instructions` | TEXT | Instrucoes de uso. |
 | `active` | INTEGER NOT NULL DEFAULT `1` | Medicacao ativa/inativa. |
-| `scheduled_time` | TEXT | Horario previsto. |
+| `scheduled_time` | TEXT | Horario previsto da primeira dose no formato `HH:mm`. |
+| `dose_interval` | TEXT | Intervalo entre doses no formato `HH:mm`, por exemplo `12:00` para repetir a cada 12 horas. Quando vier vazio/nulo, o app usa `24:00`. Nao e data. |
 | `reminder_enabled` | INTEGER NOT NULL DEFAULT `0` | Lembrete habilitado. |
 | `reminder_minutes_before` | INTEGER NOT NULL DEFAULT `5` | Antecedencia do lembrete. |
 | `repeat_reminder_every_five_minutes` | INTEGER NOT NULL DEFAULT `0` | Repetir lembrete a cada 5 minutos. |

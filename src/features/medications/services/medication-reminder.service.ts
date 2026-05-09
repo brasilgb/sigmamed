@@ -6,6 +6,7 @@ import type { Medication } from '@/types/health';
 const REMINDER_KIND = 'medication-reminder';
 const REMINDER_CHANNEL_ID = 'medication-reminders';
 const REMINDER_VIBRATION_PATTERN = [0, 500, 250, 500];
+const DEFAULT_DOSE_INTERVAL_MINUTES = 24 * 60;
 
 let notificationsConfigured = false;
 
@@ -58,6 +59,23 @@ function parseTime(value: string) {
   return { hour, minute };
 }
 
+function parseIntervalMinutes(value: string | null | undefined) {
+  if (!value) {
+    return DEFAULT_DOSE_INTERVAL_MINUTES;
+  }
+
+  const match = value.match(/^(\d{2}):([0-5]\d)$/);
+
+  if (!match) {
+    return DEFAULT_DOSE_INTERVAL_MINUTES;
+  }
+
+  const totalMinutes = Number(match[1]) * 60 + Number(match[2]);
+  return totalMinutes > 0 && totalMinutes <= DEFAULT_DOSE_INTERVAL_MINUTES
+    ? totalMinutes
+    : DEFAULT_DOSE_INTERVAL_MINUTES;
+}
+
 async function cancelMedicationReminderNotifications() {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
@@ -79,22 +97,28 @@ async function ensureNotificationPermissions() {
   return requested.granted || requested.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
 }
 
-function buildReminderBody(medication: Medication) {
+function formatTime(date: Date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function buildReminderBody(medication: Medication, doseTime?: Date) {
   const base = `${medication.name} ${medication.dosage}`.trim();
-  const timeText = medication.scheduledTime ? `Dose prevista às ${medication.scheduledTime}.` : 'Dose prevista em 5 minutos.';
+  const scheduledTime = doseTime ? formatTime(doseTime) : medication.scheduledTime;
+  const timeText = scheduledTime ? `Dose prevista às ${scheduledTime}.` : 'Dose prevista em 5 minutos.';
   return `${base}. ${timeText}`;
 }
 
-function buildReminderContent(medication: Medication, repeating = false): Notifications.NotificationContentInput {
+function buildReminderContent(medication: Medication, repeating = false, doseTime?: Date): Notifications.NotificationContentInput {
   return {
     title: repeating ? 'Lembrete recorrente de medicamento' : 'Lembrete de medicamento',
-    body: repeating ? `${medication.name} ${medication.dosage}`.trim() : buildReminderBody(medication),
+    body: repeating ? `${medication.name} ${medication.dosage}`.trim() : buildReminderBody(medication, doseTime),
     sound: true,
     vibrate: REMINDER_VIBRATION_PATTERN,
     priority: Notifications.AndroidNotificationPriority.HIGH,
     data: {
       kind: REMINDER_KIND,
       medicationId: medication.id,
+      scheduledAt: doseTime?.toISOString() ?? null,
       repeating,
     },
   };
@@ -110,6 +134,30 @@ function buildTodayAtTime(value: string) {
   const current = new Date();
   current.setHours(parsed.hour, parsed.minute, 0, 0);
   return current;
+}
+
+function buildDoseTimes(firstDoseTime: Date, intervalMinutes: number | null) {
+  const dates = [new Date(firstDoseTime)];
+
+  if (!intervalMinutes) {
+    return dates;
+  }
+
+  const cursor = new Date(firstDoseTime);
+  const endOfDay = new Date(firstDoseTime);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  while (dates.length < 12) {
+    cursor.setMinutes(cursor.getMinutes() + intervalMinutes);
+
+    if (cursor > endOfDay) {
+      break;
+    }
+
+    dates.push(new Date(cursor));
+  }
+
+  return dates;
 }
 
 function roundUpToNextFiveMinutes(date: Date) {
@@ -152,19 +200,27 @@ async function scheduleMedicationReminder(medication: Medication) {
   }
 
   const now = new Date();
-  const reminderTime = new Date(doseTime);
-  reminderTime.setMinutes(reminderTime.getMinutes() - medication.reminderMinutesBefore);
+  const doseTimes = buildDoseTimes(doseTime, parseIntervalMinutes(medication.doseInterval));
 
-  if (reminderTime > now) {
-    await Notifications.scheduleNotificationAsync({
-      content: buildReminderContent(medication),
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: reminderTime,
-        channelId: REMINDER_CHANNEL_ID,
-      },
-    });
-  }
+  await Promise.all(
+    doseTimes.map(async (doseDate) => {
+      const reminderTime = new Date(doseDate);
+      reminderTime.setMinutes(reminderTime.getMinutes() - medication.reminderMinutesBefore);
+
+      if (reminderTime <= now) {
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: buildReminderContent(medication, false, doseDate),
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: reminderTime,
+          channelId: REMINDER_CHANNEL_ID,
+        },
+      });
+    })
+  );
 
   if (!medication.repeatReminderEveryFiveMinutes) {
     return;

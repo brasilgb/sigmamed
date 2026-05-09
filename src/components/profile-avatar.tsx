@@ -2,6 +2,7 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, ModulePalette } from '@/constants/theme';
+import { useProfilePhotoSource } from '@/features/auth/hooks/use-profile-photo-source';
 
 type ProfileAvatarProps = {
   name: string;
@@ -21,10 +22,17 @@ function getInitials(name: string) {
 }
 
 export function ProfileAvatar({ name, photoUri, size = 56 }: ProfileAvatarProps) {
+  const photoSource = useProfilePhotoSource(photoUri);
   const initials = getInitials(name);
 
-  if (photoUri) {
-    return <Image source={{ uri: photoUri }} style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]} />;
+  if (photoSource.uri) {
+    return (
+      <Image
+        source={{ uri: photoSource.uri }}
+        style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
+        onError={photoSource.onError}
+      />
+    );
   }
 
   return (

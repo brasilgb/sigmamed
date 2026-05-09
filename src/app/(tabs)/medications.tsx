@@ -91,6 +91,10 @@ export default function MedicationsTabScreen() {
           {activeMedications.map((medication) => {
             const isTakenToday = medication.todayStatus === 'taken';
             const profileName = getProfileName(medication.profileId);
+            const details = [
+              medication.instructions,
+              medication.doseInterval ? `Intervalo: ${medication.doseInterval}` : null,
+            ].filter(Boolean).join(' · ');
 
             return (
               <View key={medication.id} style={styles.medicationCard}>
@@ -113,7 +117,7 @@ export default function MedicationsTabScreen() {
                   </View>
                 </View>
 
-                {medication.instructions ? <ThemedText style={styles.recordNotes}>{medication.instructions}</ThemedText> : null}
+                {details ? <ThemedText style={styles.recordNotes}>{details}</ThemedText> : null}
 
                 {medication.todayLoggedAt ? (
                   <ThemedText style={styles.recordStatus}>

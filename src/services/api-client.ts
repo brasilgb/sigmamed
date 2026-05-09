@@ -26,6 +26,8 @@ const apiMessageTranslations: Record<string, string> = {
   'feedback received.': 'Feedback recebido.',
   'feedbacks loaded.': 'Feedbacks carregados.',
   'login successful.': 'Login realizado com sucesso.',
+  'password reset link sent.': 'Enviamos as instruções de recuperação para o e-mail informado.',
+  'password reset successful.': 'Senha alterada com sucesso.',
   'pix payment created.': 'Pagamento Pix criado.',
   'profile created.': 'Perfil criado.',
   'profile loaded.': 'Perfil carregado.',

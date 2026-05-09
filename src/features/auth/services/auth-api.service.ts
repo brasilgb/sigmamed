@@ -6,6 +6,7 @@ type AuthApiTenant = {
 
 type AuthApiUser = {
   id: number | string;
+  account_usage?: string | null;
   name: string;
   email: string;
   age?: number | string | null;
@@ -24,10 +25,16 @@ type AuthApiProfile = {
   age?: number | string | null;
   sex?: string | null;
   height?: number | string | null;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  photo_path?: string | null;
   notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type RemoteProfile = AuthApiProfile;
+export type RemoteUser = AuthApiUser;
 
 type AuthApiData = {
   token?: string;
@@ -37,6 +44,9 @@ type AuthApiData = {
   user?: AuthApiUser;
   profile?: AuthApiProfile | null;
   profile_id?: number | string | null;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  photo_path?: string | null;
 };
 
 type AuthApiResponse = {
@@ -46,6 +56,9 @@ type AuthApiResponse = {
   tenant?: AuthApiTenant | null;
   user?: AuthApiUser;
   data?: AuthApiData | AuthApiUser;
+  avatar_url?: string | null;
+  photo_url?: string | null;
+  photo_path?: string | null;
 };
 
 type ProfileApiResponse =
@@ -79,18 +92,56 @@ function getTenantId(response: AuthApiResponse) {
 
 function getUser(response: AuthApiResponse) {
   if (response.user) {
-    return response.user;
+    return withResponsePhoto(response.user, response);
   }
 
   if (response.data && 'user' in response.data && response.data.user) {
-    return response.data.user;
+    return withResponsePhoto(response.data.user, response);
   }
 
   if (response.data && 'email' in response.data) {
-    return response.data;
+    return withResponsePhoto(response.data, response);
   }
 
   return null;
+}
+
+function withResponsePhoto(user: AuthApiUser, response: AuthApiResponse | AuthApiUser): AuthApiUser {
+  const data = 'data' in response ? response.data : null;
+  const dataPhoto =
+    data && !Array.isArray(data) && ('avatar_url' in data || 'photo_url' in data || 'photo_path' in data)
+      ? {
+          avatar_url: data.avatar_url,
+          photo_url: data.photo_url,
+          photo_path: data.photo_path,
+        }
+      : {};
+  const profilePhoto =
+    data && !Array.isArray(data) && 'profile' in data && data.profile
+      ? {
+          avatar_url: data.profile.avatar_url,
+          photo_url: data.profile.photo_url,
+          photo_path: data.profile.photo_path,
+        }
+      : {};
+  const responsePhoto =
+    'avatar_url' in response || 'photo_url' in response || 'photo_path' in response
+      ? {
+          avatar_url: response.avatar_url,
+          photo_url: response.photo_url,
+          photo_path: response.photo_path,
+        }
+      : {};
+
+  return {
+    ...user,
+    ...responsePhoto,
+    ...profilePhoto,
+    ...dataPhoto,
+    avatar_url: user.avatar_url ?? dataPhoto.avatar_url ?? profilePhoto.avatar_url ?? responsePhoto.avatar_url,
+    photo_url: user.photo_url ?? dataPhoto.photo_url ?? profilePhoto.photo_url ?? responsePhoto.photo_url,
+    photo_path: user.photo_path ?? dataPhoto.photo_path ?? profilePhoto.photo_path ?? responsePhoto.photo_path,
+  };
 }
 
 function getProfileId(response: AuthApiResponse) {
@@ -183,9 +234,69 @@ export async function loginRemoteUser(input: {
   };
 }
 
+export async function requestPasswordReset(input: { email: string }) {
+  await apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: {
+      email: input.email,
+    },
+  });
+}
+
+export async function resetRemotePassword(input: {
+  email: string;
+  code: string;
+  password: string;
+}) {
+  await apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: {
+      email: input.email,
+      code: input.code,
+      password: input.password,
+      password_confirmation: input.password,
+    },
+  });
+}
+
 export async function getRemoteAuthenticatedUser() {
   const context = await getRemoteSessionContext();
   return context.user;
+}
+
+export async function updateRemoteAuthenticatedUser(input: {
+  name: string;
+  email: string;
+  currentPassword?: string;
+  newPassword?: string;
+}) {
+  const response = await apiRequest<AuthApiResponse | AuthApiUser>('/auth/me', {
+    method: 'PATCH',
+    authenticated: true,
+    body: {
+      name: input.name,
+      email: input.email,
+      current_password: input.currentPassword || undefined,
+      password: input.newPassword || undefined,
+      password_confirmation: input.newPassword || undefined,
+    },
+  });
+
+  if ('data' in response && response.data) {
+    if ('user' in response.data && response.data.user) {
+      return withResponsePhoto(response.data.user, response);
+    }
+
+    if ('email' in response.data) {
+      return withResponsePhoto(response.data, response);
+    }
+  }
+
+  if ('user' in response && response.user) {
+    return withResponsePhoto(response.user, response);
+  }
+
+  return withResponsePhoto(response as AuthApiUser, response);
 }
 
 export async function getRemoteSessionContext() {
@@ -197,7 +308,7 @@ export async function getRemoteSessionContext() {
   if ('data' in response && response.data) {
     if ('user' in response.data && response.data.user) {
       return {
-        user: response.data.user,
+        user: withResponsePhoto(response.data.user, response),
         tenantId: 'tenant' in response.data ? response.data.tenant?.id ?? null : null,
         profileId: getProfileId(response),
       };
@@ -205,7 +316,7 @@ export async function getRemoteSessionContext() {
 
     if ('email' in response.data) {
       return {
-        user: response.data,
+        user: withResponsePhoto(response.data, response),
         tenantId: null,
         profileId: response.data.profile_id ?? null,
       };
@@ -214,14 +325,15 @@ export async function getRemoteSessionContext() {
 
   if ('user' in response && response.user) {
     return {
-      user: response.user,
+      user: withResponsePhoto(response.user, response),
       tenantId: getTenantId(response),
       profileId: getProfileId(response),
     };
+
   }
 
   return {
-    user: response as AuthApiUser,
+    user: withResponsePhoto(response as AuthApiUser, response),
     tenantId: null,
     profileId: 'profile_id' in response ? response.profile_id ?? null : null,
   };
@@ -243,27 +355,33 @@ export function normalizeRemoteAvatarUrl(uri: string | null | undefined) {
     return null;
   }
 
+  const normalizedUri = uri.trim();
+
+  if (!normalizedUri) {
+    return null;
+  }
+
   const apiOrigin = new URL(getApiBaseUrl()).origin;
 
-  if (uri.startsWith('http://') || uri.startsWith('https://')) {
+  if (normalizedUri.startsWith('http://') || normalizedUri.startsWith('https://')) {
     try {
-      const url = new URL(uri);
+      const url = new URL(normalizedUri);
 
       if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
         return `${apiOrigin}${url.pathname}${url.search}`;
       }
 
-      return uri;
+      return normalizedUri;
     } catch {
-      return uri;
+      return normalizedUri;
     }
   }
 
-  if (uri.startsWith('/')) {
-    return `${apiOrigin}${uri}`;
+  if (normalizedUri.startsWith('/')) {
+    return `${apiOrigin}${normalizedUri}`;
   }
 
-  return `${apiOrigin}/${uri}`;
+  return `${apiOrigin}/${normalizedUri}`;
 }
 
 export function normalizeRemotePhotoPath(path: string | null | undefined) {
@@ -276,9 +394,15 @@ export function normalizeRemotePhotoPath(path: string | null | undefined) {
   }
 
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
-  const storagePath = normalizedPath.startsWith('storage/')
-    ? normalizedPath
-    : `storage/${normalizedPath}`;
+  const publicDiskPath = normalizedPath
+    .replace(/^public_html\/controle\//, '')
+    .replace(/^storage\/app\/public\//, '')
+    .replace(/^app\/public\//, '')
+    .replace(/^public\//, '')
+    .replace(/^avatars\/avatars\//, 'avatars/');
+  const storagePath = publicDiskPath.startsWith('storage/')
+    ? publicDiskPath
+    : `storage/${publicDiskPath}`;
 
   return normalizeRemoteAvatarUrl(`/${storagePath}`);
 }
@@ -349,11 +473,11 @@ export async function createRemoteProfile(input: {
   });
 
   if ('data' in response && response.data && !Array.isArray(response.data) && 'id' in response.data) {
-    return response.data.id;
+    return response.data;
   }
 
   if ('id' in response && response.id) {
-    return response.id;
+    return response;
   }
 
   return null;
@@ -378,4 +502,83 @@ export async function listRemoteProfiles(): Promise<RemoteProfile[]> {
   }
 
   return [];
+}
+
+export async function getRemoteProfile(profileId?: number | string | null): Promise<RemoteProfile | null> {
+  const response = await apiRequest<ProfileApiResponse>(profileId ? `/profiles/${profileId}` : '/profile', {
+    method: 'GET',
+    authenticated: true,
+  });
+
+  if ('data' in response && Array.isArray(response.data)) {
+    return response.data[0] ?? null;
+  }
+
+  if ('data' in response && response.data && !Array.isArray(response.data)) {
+    if ('profile' in response.data && response.data.profile) {
+      return response.data.profile;
+    }
+
+    if ('id' in response.data) {
+      return response.data;
+    }
+  }
+
+  if ('profile' in response && response.profile) {
+    return response.profile;
+  }
+
+  if ('id' in response && response.id) {
+    return response;
+  }
+
+  return null;
+}
+
+export async function updateRemoteProfile(profileId: number | string | null, input: {
+  fullName?: string | null;
+  age?: number | null;
+  sex?: string | null;
+  height?: number | null;
+  notes?: string | null;
+}) {
+  const response = await apiRequest<ProfileApiResponse>(profileId ? `/profiles/${profileId}` : '/profile', {
+    method: 'PUT',
+    authenticated: true,
+    body: {
+      name: input.fullName,
+      full_name: input.fullName,
+      age: input.age ?? null,
+      sex: input.sex ?? null,
+      height: input.height ?? null,
+      notes: input.notes ?? null,
+    },
+  });
+
+  if ('data' in response && response.data && !Array.isArray(response.data)) {
+    if ('profile' in response.data && response.data.profile) {
+      return response.data.profile;
+    }
+
+    if ('id' in response.data) {
+      return response.data;
+    }
+  }
+
+  if ('profile' in response && response.profile) {
+    return response.profile;
+  }
+
+  if ('id' in response && response.id) {
+    return response;
+  }
+
+  return getRemoteProfile(profileId);
+}
+
+export async function deleteRemoteProfile(profileId: number | string) {
+  await apiRequest(`/profiles/${profileId}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
 }

@@ -1,4 +1,5 @@
 import { apiRequest, ApiRequestError } from '@/services/api-client';
+import { getBillingSyncAccess, isBillingSyncEnabled } from '@/services/billing.service';
 
 export type SyncResource =
   | 'blood-pressure'
@@ -23,6 +24,29 @@ export type SyncResponse<TItem> = {
   data: TItem[];
 };
 
+let cachedSyncEnabled: boolean | null = null;
+let cachedSyncEnabledAt = 0;
+
+const SYNC_ACCESS_CACHE_MS = 30000;
+
+export function setCachedCloudSyncEnabled(enabled: boolean) {
+  cachedSyncEnabled = enabled;
+  cachedSyncEnabledAt = Date.now();
+}
+
+async function canUseCloudSync() {
+  const now = Date.now();
+
+  if (cachedSyncEnabled !== null && now - cachedSyncEnabledAt < SYNC_ACCESS_CACHE_MS) {
+    return cachedSyncEnabled;
+  }
+
+  const access = await getBillingSyncAccess().catch(() => null);
+  cachedSyncEnabled = isBillingSyncEnabled(access);
+  cachedSyncEnabledAt = now;
+  return cachedSyncEnabled;
+}
+
 export function isSyncDisabledError(error: unknown) {
   if (!(error instanceof ApiRequestError)) {
     return false;
@@ -37,6 +61,10 @@ export function isSyncDisabledError(error: unknown) {
 export async function pushSyncItems<TItem extends Record<string, unknown>, TResponse = TItem>(
   input: SyncPushInput<TItem>
 ) {
+  if (!(await canUseCloudSync())) {
+    throw new ApiRequestError('Sincronização não liberada para esta conta.', 402);
+  }
+
   return apiRequest<SyncResponse<TResponse>>('/sync/push', {
     method: 'POST',
     authenticated: true,
@@ -45,6 +73,10 @@ export async function pushSyncItems<TItem extends Record<string, unknown>, TResp
 }
 
 export async function pullSyncItems<TResponse>(input: SyncPullInput) {
+  if (!(await canUseCloudSync())) {
+    throw new ApiRequestError('Sincronização não liberada para esta conta.', 402);
+  }
+
   return apiRequest<SyncResponse<TResponse>>('/sync/pull', {
     method: 'POST',
     authenticated: true,

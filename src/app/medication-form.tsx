@@ -21,11 +21,13 @@ export default function MedicationFormScreen() {
   const dosageRef = useRef<TextInput>(null);
   const instructionsRef = useRef<TextInput>(null);
   const scheduledTimeRef = useRef<TextInput>(null);
+  const doseIntervalRef = useRef<TextInput>(null);
   const [name, setName] = useState('');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
   const [active, setActive] = useState(true);
   const [scheduledTime, setScheduledTime] = useState('');
+  const [doseInterval, setDoseInterval] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [repeatReminderEveryFiveMinutes, setRepeatReminderEveryFiveMinutes] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function MedicationFormScreen() {
       setInstructions(record.instructions ?? '');
       setActive(record.active);
       setScheduledTime(record.scheduledTime ?? '');
+      setDoseInterval(record.doseInterval ?? '');
       setReminderEnabled(record.reminderEnabled);
       setRepeatReminderEveryFiveMinutes(record.repeatReminderEveryFiveMinutes);
     });
@@ -66,6 +69,17 @@ export default function MedicationFormScreen() {
     return /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
   }
 
+  function isValidInterval(value: string) {
+    const match = value.match(/^(\d{2}):([0-5]\d)$/);
+
+    if (!match) {
+      return false;
+    }
+
+    const totalMinutes = Number(match[1]) * 60 + Number(match[2]);
+    return totalMinutes > 0 && totalMinutes <= 24 * 60;
+  }
+
   async function handleSubmit() {
     if (!name.trim() || !dosage.trim()) {
       setError('Informe nome e dosagem.');
@@ -74,6 +88,13 @@ export default function MedicationFormScreen() {
 
     if (reminderEnabled && !isValidTime(scheduledTime)) {
       setError('Informe o horário no formato 08:00 para agendar o lembrete.');
+      return;
+    }
+
+    const normalizedDoseInterval = doseInterval.trim() || '24:00';
+
+    if (!isValidInterval(normalizedDoseInterval)) {
+      setError('Informe o intervalo no formato 12:00, maior que 00:00 e até 24:00.');
       return;
     }
 
@@ -87,6 +108,7 @@ export default function MedicationFormScreen() {
         instructions: instructions.trim() || null,
         active,
         scheduledTime: isValidTime(scheduledTime) ? scheduledTime : null,
+        doseInterval: normalizedDoseInterval,
         reminderEnabled,
         repeatReminderEveryFiveMinutes,
         reminderMinutesBefore: 5,
@@ -151,9 +173,20 @@ export default function MedicationFormScreen() {
         placeholder="Ex.: 08:00"
         hint="Use HH:mm para o lembrete tocar 5 minutos antes."
         keyboardType="number-pad"
-        returnKeyType="done"
+        returnKeyType="next"
         value={scheduledTime}
         onChangeText={(value) => setScheduledTime(normalizeTimeInput(value))}
+        onSubmitEditing={() => doseIntervalRef.current?.focus()}
+      />
+      <RecordInput
+        ref={doseIntervalRef}
+        label="Intervalo entre doses"
+        placeholder="Ex.: 12:00"
+        hint="Se deixar em branco, usa 24:00. Ex.: 12:00 agenda outro alarme 12 horas depois."
+        keyboardType="number-pad"
+        returnKeyType="done"
+        value={doseInterval}
+        onChangeText={(value) => setDoseInterval(normalizeTimeInput(value))}
         onSubmitEditing={() => void handleSubmit()}
       />
       <View style={styles.preferenceCard}>

@@ -2,15 +2,27 @@ import { UserRepository } from '@/features/auth/repositories/user.repository';
 import {
   createRemoteProfile,
   deleteRemoteAccount,
+  deleteRemoteProfile,
+  getRemoteProfile,
   getRemoteAuthenticatedUser,
   getRemoteUserAge,
   getRemoteProfileId,
   getRemoteSessionContext,
   getRemoteUserPhotoUri,
+  listRemoteProfiles,
   loginRemoteUser,
   registerRemoteUser,
+  updateRemoteAuthenticatedUser,
+  updateRemoteProfile,
+  type RemoteProfile,
+  type RemoteUser,
 } from '@/features/auth/services/auth-api.service';
-import { deleteRemoteAvatar, uploadRemoteAvatar } from '@/features/auth/services/profile-photo.service';
+import {
+  deleteRemoteAvatar,
+  isManagedProfilePhotoUri,
+  removeManagedProfilePhoto,
+  uploadRemoteAvatar,
+} from '@/features/auth/services/profile-photo.service';
 import { pullRemoteRecords } from '@/services/remote-sync.service';
 import { syncPendingRecords } from '@/services/pending-sync.service';
 import { getActiveLocalProfileId, setActiveLocalProfileId } from '@/services/sync-metadata.service';
@@ -27,12 +39,108 @@ import {
 } from '@/features/auth/services/session-storage.service';
 import { hashSecret, matchesSecret } from '@/features/auth/services/security.service';
 import { ApiRequestError } from '@/services/api-client';
-import type { AuthProfile, AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
+import type { AccountUsage, AuthProfile, AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 const userRepository = new UserRepository();
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function normalizeAccountUsage(value: string | null | undefined, fallback: AccountUsage): AccountUsage {
+  return value === 'personal' || value === 'family' || value === 'professional' ? value : fallback;
+}
+
+function getRemoteProfileName(profile: RemoteProfile) {
+  return profile.name ?? profile.full_name ?? null;
+}
+
+function mapRemoteUserToLocalUser(remoteUser: RemoteUser | null, localUser: AuthUser): AuthUser {
+  if (!remoteUser) {
+    return localUser;
+  }
+
+  return {
+    ...localUser,
+    accountUsage: normalizeAccountUsage(remoteUser.account_usage, localUser.accountUsage),
+    name: remoteUser.name ?? localUser.name,
+    email: remoteUser.email ?? localUser.email,
+    age: getRemoteUserAge(remoteUser) ?? localUser.age,
+    photoUri: getRemoteUserPhotoUri(remoteUser) ?? localUser.photoUri,
+    updatedAt: remoteUser.updated_at ?? localUser.updatedAt,
+  };
+}
+
+function mergeRemoteUsers(...users: (RemoteUser | null | undefined)[]) {
+  const merged = users.reduce<RemoteUser | null>((currentUser, nextUser) => {
+    if (!nextUser) {
+      return currentUser;
+    }
+
+    if (!currentUser) {
+      return nextUser;
+    }
+
+    return {
+      ...currentUser,
+      ...nextUser,
+      account_usage: nextUser.account_usage ?? currentUser.account_usage,
+      age: nextUser.age ?? currentUser.age,
+      profile_id: nextUser.profile_id ?? currentUser.profile_id,
+      avatar_url: nextUser.avatar_url ?? currentUser.avatar_url,
+      photo_url: nextUser.photo_url ?? currentUser.photo_url,
+      photo_path: nextUser.photo_path ?? currentUser.photo_path,
+      created_at: nextUser.created_at ?? currentUser.created_at,
+      updated_at: nextUser.updated_at ?? currentUser.updated_at,
+    };
+  }, null);
+
+  return merged;
+}
+
+async function cacheRemoteUser(userId: number, remoteUser: RemoteUser | null, passwordHash?: string) {
+  const localUser = await userRepository.getById(userId);
+
+  if (!localUser || !remoteUser) {
+    return localUser;
+  }
+
+  return userRepository.updateUserAccount(userId, {
+    name: remoteUser.name ?? localUser.name,
+    email: normalizeEmail(remoteUser.email ?? localUser.email),
+    age: getRemoteUserAge(remoteUser) ?? localUser.age,
+    photoUri: getRemoteUserPhotoUri(remoteUser) ?? localUser.photoUri,
+    passwordHash,
+  });
+}
+
+async function cacheRemoteProfile(userId: number, profile: RemoteProfile) {
+  return userRepository.upsertRemoteProfile({
+    userId,
+    remoteProfileId: profile.id,
+    fullName: getRemoteProfileName(profile),
+    age: profile.age ?? null,
+    sex: profile.sex ?? null,
+    height: profile.height ?? null,
+    notes: profile.notes ?? null,
+  });
+}
+
+async function refreshRemoteProfiles(userId: number) {
+  const remoteProfiles = await listRemoteProfiles();
+  const cachedProfiles = await Promise.all(
+    remoteProfiles.map((profile) => cacheRemoteProfile(userId, profile))
+  );
+
+  if (cachedProfiles.length === 0) {
+    const remoteProfile = await getRemoteProfile().catch(() => null);
+
+    if (remoteProfile) {
+      return [await cacheRemoteProfile(userId, remoteProfile)];
+    }
+  }
+
+  return cachedProfiles;
 }
 
 export async function hasRegisteredUser() {
@@ -46,7 +154,25 @@ export async function restoreSessionUser() {
     return null;
   }
 
-  return userRepository.getById(userId);
+  const user = await userRepository.getById(userId);
+
+  if (!user) {
+    return user;
+  }
+
+  const remoteUser = await getRemoteAuthenticatedUser().catch(() => null);
+  const cachedUser = await cacheRemoteUser(user.id, remoteUser);
+
+  if (cachedUser && remoteUser) {
+    await refreshRemoteProfiles(cachedUser.id).catch(() => []);
+    return mapRemoteUserToLocalUser(remoteUser, cachedUser);
+  }
+
+  return user;
+}
+
+export async function getLocalBiometricLoginUser() {
+  return userRepository.getFirstUser();
 }
 
 export async function registerUser(input: RegisterInput): Promise<AuthUser> {
@@ -137,13 +263,13 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     remoteAuth.profileId ?? remoteContext?.profileId ?? (await getRemoteProfileId().catch(() => null));
 
   if (!remoteProfileId && accountUsage === 'personal') {
-    remoteProfileId = await createRemoteProfile({
+    remoteProfileId = (await createRemoteProfile({
       fullName: name,
       age: input.age,
       sex: input.sex,
       height: input.height,
       notes: null,
-    }).catch(() => null);
+    }).catch(() => null))?.id ?? null;
   }
 
   if (remoteProfileId) {
@@ -151,9 +277,10 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
     await userRepository.updateFirstProfileRemoteId(user.id, remoteProfileId);
   }
 
+  await refreshRemoteProfiles(user.id).catch(() => []);
   await setSessionUserId(user.id);
   void syncPendingRecords();
-  return user;
+  return mapRemoteUserToLocalUser(mergeRemoteUsers(remoteAuth.user, remoteContext?.user), user);
 }
 
 export async function loginUser(input: LoginInput): Promise<AuthUser> {
@@ -181,10 +308,11 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
     await setSessionProfileId(remoteProfileId);
   }
 
-  const remoteUser =
-    remoteAuth.user ??
-    remoteContext?.user ??
-    (await getRemoteAuthenticatedUser().catch(() => null));
+  const remoteUser = mergeRemoteUsers(
+    remoteAuth.user,
+    remoteContext?.user,
+    await getRemoteAuthenticatedUser().catch(() => null)
+  );
   const record = await userRepository.getCredentialRecordByEmail(email);
   let user: AuthUser | null = null;
 
@@ -200,34 +328,34 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
     if (remoteProfileId) {
       await userRepository.updateFirstProfileRemoteId(user.id, remoteProfileId);
     }
+
+    if (input.resetLocalPin) {
+      user = await userRepository.clearPinHash(user.id);
+    }
   } else {
     if (localUserCount > 0) {
       throw new Error('Este aparelho ja possui uma conta principal cadastrada.');
     }
 
-    const pin = input.pin?.trim() ?? '';
-
-    if (!(pin.length === 4 || pin.length === 6) || !/^\d+$/.test(pin)) {
-      throw new Error('Informe um PIN de 4 ou 6 dígitos para este aparelho.');
-    }
-
     user = await userRepository.createUserWithProfile({
-      accountUsage: 'personal',
+      accountUsage: normalizeAccountUsage(remoteUser?.account_usage, 'personal'),
       name: remoteUser?.name ?? email,
       email,
       age: getRemoteUserAge(remoteUser),
       passwordHash: await hashSecret(input.password),
-      pinHash: await hashSecret(pin),
+      pinHash: null,
       useBiometric: false,
       photoUri: getRemoteUserPhotoUri(remoteUser),
       remoteProfileId,
     });
+
   }
 
   await setSessionUserId(user.id);
+  await refreshRemoteProfiles(user.id).catch(() => []);
   await pullRemoteRecords().catch(() => undefined);
   void syncPendingRecords();
-  return user;
+  return mapRemoteUserToLocalUser(remoteUser, user);
 }
 
 export async function unlockWithPin(userId: number, pin: string) {
@@ -249,7 +377,19 @@ export async function unlockWithPin(userId: number, pin: string) {
     throw new Error('Conta não encontrada.');
   }
 
-  return user;
+  const remoteUser = await getRemoteAuthenticatedUser().catch(() => null);
+  const cachedUser = await cacheRemoteUser(user.id, remoteUser);
+  return mapRemoteUserToLocalUser(remoteUser, cachedUser ?? user);
+}
+
+export async function setLocalUnlockPin(userId: number, pin: string): Promise<AuthUser> {
+  const normalizedPin = pin.trim();
+
+  if (!(normalizedPin.length === 4 || normalizedPin.length === 6) || !/^\d+$/.test(normalizedPin)) {
+    throw new Error('O PIN deve ter 4 ou 6 dígitos numéricos.');
+  }
+
+  return userRepository.updatePinHash(userId, await hashSecret(normalizedPin));
 }
 
 export async function logoutUser() {
@@ -321,31 +461,51 @@ export async function updateAccount(userId: number, input: UpdateAccountInput): 
     }
   }
 
-  const photoUri = input.photoUri;
+  let photoUri = input.photoUri;
 
   if (photoUri && photoUri !== record.photo_uri) {
-    await uploadRemoteAvatar(photoUri);
+    photoUri = await uploadRemoteAvatar(photoUri);
+
+    if (isManagedProfilePhotoUri(input.photoUri)) {
+      await removeManagedProfilePhoto(input.photoUri);
+    }
   }
 
   if (!photoUri && record.photo_uri) {
     await deleteRemoteAvatar();
   }
 
-  return userRepository.updateUserAccount(userId, {
+  const remoteUser = await updateRemoteAuthenticatedUser({
     name,
     email,
-    age: record.age,
-    photoUri,
-    passwordHash: newPassword ? await hashSecret(newPassword) : undefined,
+    currentPassword,
+    newPassword,
   });
+  const passwordHash = newPassword ? await hashSecret(newPassword) : undefined;
+  const cachedUser = await userRepository.updateUserAccount(userId, {
+    name,
+    email: normalizeEmail(remoteUser.email ?? email),
+    age: getRemoteUserAge(remoteUser) ?? record.age,
+    photoUri: getRemoteUserPhotoUri(remoteUser) ?? photoUri,
+    passwordHash,
+  });
+
+  return mapRemoteUserToLocalUser(remoteUser, cachedUser);
 }
 
 export async function getAccountProfiles(userId: number): Promise<AuthProfile[]> {
-  return userRepository.getProfilesByUserId(userId);
+  return refreshRemoteProfiles(userId);
 }
 
 export async function getAccountProfileById(profileId: number): Promise<AuthProfile | null> {
-  return userRepository.getProfileById(profileId);
+  const localProfile = await userRepository.getProfileById(profileId);
+
+  if (!localProfile?.remoteProfileId) {
+    return localProfile;
+  }
+
+  const remoteProfile = await getRemoteProfile(localProfile.remoteProfileId).catch(() => null);
+  return remoteProfile ? cacheRemoteProfile(localProfile.userId, remoteProfile) : localProfile;
 }
 
 export async function getActiveAccountProfileId() {
@@ -356,11 +516,17 @@ export async function getActiveAccountProfile() {
   const profileId = await getActiveLocalProfileId();
 
   if (profileId) {
-    return userRepository.getProfileById(profileId);
+    return getAccountProfileById(profileId);
   }
 
   const userId = await getSessionUserId();
-  return userId ? userRepository.getProfileByUserId(userId) : null;
+
+  if (!userId) {
+    return null;
+  }
+
+  const profiles = await refreshRemoteProfiles(userId).catch(() => []);
+  return profiles[0] ?? userRepository.getProfileByUserId(userId);
 }
 
 export async function setActiveAccountProfile(profileId: number) {
@@ -381,7 +547,14 @@ export async function updateActiveAccountProfile(input: {
     throw new Error('Informe uma altura valida em centimetros.');
   }
 
-  return userRepository.updateProfile(profileId, input);
+  const localProfile = await userRepository.getProfileById(profileId);
+  const remoteProfile = await updateRemoteProfile(localProfile?.remoteProfileId ?? null, input);
+
+  if (!remoteProfile || !localProfile) {
+    return localProfile ? userRepository.updateProfile(localProfile.id, input) : null;
+  }
+
+  return cacheRemoteProfile(localProfile.userId, remoteProfile);
 }
 
 export async function updateAccountProfile(profileId: number, input: {
@@ -407,7 +580,19 @@ export async function updateAccountProfile(profileId: number, input: {
     throw new Error('Informe uma altura valida em centimetros.');
   }
 
-  return userRepository.updateProfile(profileId, input);
+  const localProfile = await userRepository.getProfileById(profileId);
+
+  if (!localProfile) {
+    throw new Error('Perfil não encontrado.');
+  }
+
+  const remoteProfile = await updateRemoteProfile(localProfile.remoteProfileId, input);
+
+  if (!remoteProfile) {
+    throw new Error('Falha ao atualizar perfil na nuvem.');
+  }
+
+  return cacheRemoteProfile(localProfile.userId, remoteProfile);
 }
 
 export async function deleteAccountProfile(userId: number, profileId: number): Promise<void> {
@@ -421,6 +606,13 @@ export async function deleteAccountProfile(userId: number, profileId: number): P
     throw new Error('Contas pessoais não podem excluir o perfil principal.');
   }
 
+  const profile = await userRepository.getProfileById(profileId);
+
+  if (!profile?.remoteProfileId) {
+    throw new Error('Perfil remoto não encontrado.');
+  }
+
+  await deleteRemoteProfile(profile.remoteProfileId);
   await userRepository.deleteProfile(profileId, userId);
 }
 
@@ -454,6 +646,11 @@ export async function createAccountProfile(input: {
     throw new Error('Informe uma altura valida em centimetros.');
   }
 
-  const remoteProfileId = await createRemoteProfile(input).catch(() => null);
-  return userRepository.createProfile({ ...input, remoteProfileId });
+  const remoteProfile = await createRemoteProfile(input);
+
+  if (!remoteProfile) {
+    throw new Error('Falha ao cadastrar acompanhado na nuvem.');
+  }
+
+  return cacheRemoteProfile(input.userId, remoteProfile);
 }

@@ -120,6 +120,88 @@ Compatibilidade atual do app:
 - Foto remota do usuario pode vir como `avatar_url`, `photo_url` ou `photo_path`.
 - O contrato preferencial continua sendo `{ "data": { ... } }`.
 
+### Recuperação de Senha
+
+Fluxo esperado para usuário que esqueceu a senha:
+
+1. O usuário informa o e-mail na tela de login.
+2. O app chama `POST /api/v1/auth/forgot-password`.
+3. O backend gera um código temporário de recuperação e envia por e-mail.
+4. O usuário informa o código, a nova senha e a confirmação da senha.
+5. O app chama `POST /api/v1/auth/reset-password`.
+6. Em sucesso, o app volta para o login e o próximo login atualiza o hash local da senha no SQLite.
+
+Solicitar recuperação:
+
+```http
+POST /api/v1/auth/forgot-password
+Accept: application/json
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "email": "usuario@exemplo.com"
+}
+```
+
+Response esperado:
+
+```json
+{
+  "data": {
+    "sent": true
+  },
+  "meta": {},
+  "message": "Enviamos as instruções de recuperação para o e-mail informado."
+}
+```
+
+Redefinir senha:
+
+```http
+POST /api/v1/auth/reset-password
+Accept: application/json
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "email": "usuario@exemplo.com",
+  "code": "123456",
+  "password": "novaSenha123",
+  "password_confirmation": "novaSenha123"
+}
+```
+
+Response esperado:
+
+```json
+{
+  "data": {
+    "reset": true
+  },
+  "meta": {},
+  "message": "Senha alterada com sucesso."
+}
+```
+
+Regras esperadas no backend:
+
+- `email` deve ser obrigatório e válido.
+- `password` deve ter no mínimo 6 caracteres e ser confirmado por `password_confirmation`.
+- `code` deve ser obrigatório, temporário, de uso único e vinculado ao e-mail.
+- O código deve expirar, sugestão: 10 a 30 minutos.
+- Aplicar rate limit em `forgot-password` e `reset-password`.
+- Não revelar se o e-mail existe ou não no response de `forgot-password`; retornar mensagem genérica para evitar enumeração de contas.
+- Ao redefinir senha com sucesso, invalidar códigos pendentes e revogar tokens ativos da conta, se essa for a política escolhida.
+
+Regra mobile: recuperação de senha é online-only e altera apenas a senha da conta na nuvem. PIN local e biometria não são alterados por esse fluxo. Depois que o usuário fizer login com a nova senha, o app atualiza o `password_hash` local automaticamente.
+
 ### Exclusão de Conta
 
 Endpoint:

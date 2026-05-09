@@ -19,6 +19,7 @@ import {
   getActiveAccountProfile,
   updateActiveAccountProfile,
 } from '@/features/auth/services/auth.service';
+import { useProfilePhotoSource } from '@/features/auth/hooks/use-profile-photo-source';
 import { useBillingSyncAccess } from '@/hooks/use-billing-sync-access';
 import {
   getBillingCycleLabel,
@@ -85,6 +86,7 @@ export default function SettingsScreen() {
   const { isLoading: isLoadingPlan, syncAccess } = useBillingSyncAccess({ enabled: Boolean(user) });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const photoSource = useProfilePhotoSource(photoUri);
 
   useEffect(() => {
     if (!user) {
@@ -327,8 +329,8 @@ export default function SettingsScreen() {
         <ThemedText style={styles.sectionTitle}>Dados principais</ThemedText>
         <View style={styles.profileCard}>
           <View style={styles.avatarWrap}>
-            {photoUri ? (
-              <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+            {photoSource.uri ? (
+              <Image source={{ uri: photoSource.uri }} style={styles.avatarImage} onError={photoSource.onError} />
             ) : (
               <View style={styles.avatarFallback}>
                 <ThemedText style={styles.avatarInitials}>{initials}</ThemedText>

@@ -425,9 +425,27 @@ Usar:
 
 * `POST /api/v1/auth/register`
 * `POST /api/v1/auth/login`
+* `POST /api/v1/auth/forgot-password`
+* `POST /api/v1/auth/reset-password`
 * `POST /api/v1/auth/logout`
 * `GET /api/v1/auth/me`
 * `PATCH /api/v1/auth/me`
+
+### Recuperação de senha
+
+O backend deve oferecer recuperação de senha online por e-mail:
+
+* `POST /api/v1/auth/forgot-password`: recebe `email`, gera código temporário e envia por e-mail.
+* `POST /api/v1/auth/reset-password`: recebe `email`, `code`, `password` e `password_confirmation`.
+
+Regras:
+
+* senha mínima de 6 caracteres
+* código temporário, de uso único, vinculado ao e-mail e com expiração curta
+* rate limit nas rotas públicas de recuperação
+* resposta genérica em `forgot-password`, sem revelar se o e-mail existe
+* invalidar códigos pendentes após sucesso
+* PIN local e biometria do app não participam desse fluxo
 
 ## Resolução do Tenant
 

@@ -71,6 +71,7 @@ export type Medication = {
   instructions: string | null;
   active: boolean;
   scheduledTime: string | null;
+  doseInterval: string | null;
   reminderEnabled: boolean;
   repeatReminderEveryFiveMinutes: boolean;
   reminderMinutesBefore: number;

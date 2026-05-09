@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput } from 'react-native';
 
 import { Colors } from '@/constants/theme';
@@ -11,22 +11,66 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { biometricAvailable, hasLocalBiometricLogin, isUnlocked, login, loginByBiometric } = useAuth();
+  const params = useLocalSearchParams<{ resetPin?: string }>();
   const passwordRef = useRef<TextInput>(null);
-  const pinRef = useRef<TextInput>(null);
+  const autoBiometricAttemptedRef = useRef(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [pin, setPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBiometricBusy, setIsBiometricBusy] = useState(false);
+
+  const canUnlockWithBiometrics = Boolean(hasLocalBiometricLogin && biometricAvailable && !params.resetPin);
+
+  const handleBiometricUnlock = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (!canUnlockWithBiometrics || isBiometricBusy) {
+        return;
+      }
+
+      try {
+        setIsBiometricBusy(true);
+        setError(null);
+        const success = await loginByBiometric().catch(() => false);
+
+        if (success) {
+          router.replace('/(tabs)');
+          return;
+        }
+
+        if (!options.silent) {
+          setError('Biometria cancelada. Entre com e-mail e senha.');
+        }
+      } finally {
+        setIsBiometricBusy(false);
+      }
+    },
+    [canUnlockWithBiometrics, isBiometricBusy, loginByBiometric]
+  );
+
+  useEffect(() => {
+    if (!canUnlockWithBiometrics || autoBiometricAttemptedRef.current) {
+      return;
+    }
+
+    autoBiometricAttemptedRef.current = true;
+    void handleBiometricUnlock({ silent: true });
+  }, [canUnlockWithBiometrics, handleBiometricUnlock]);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      router.replace('/(tabs)');
+    }
+  }, [isUnlocked]);
 
   async function handleSubmit() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await login({ email, password, pin });
-      router.replace('/(tabs)');
+      const loggedUser = await login({ email, password, resetLocalPin: params.resetPin === '1' });
+      router.replace(loggedUser.hasPin ? '/(tabs)' : '/(auth)/setup-pin');
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao entrar.');
     } finally {
@@ -60,7 +104,7 @@ export default function LoginScreen() {
         autoComplete="current-password"
         value={password}
         onChangeText={setPassword}
-        onSubmitEditing={() => pinRef.current?.focus()}
+        onSubmitEditing={() => void handleSubmit()}
         rightElement={
           <Pressable
             accessibilityRole="button"
@@ -71,25 +115,23 @@ export default function LoginScreen() {
           </Pressable>
         }
       />
-      <AuthInput
-        ref={pinRef}
-        label="PIN deste aparelho"
-        keyboardType="number-pad"
-        maxLength={6}
-        returnKeyType="done"
-        textContentType="oneTimeCode"
-        autoComplete="one-time-code"
-        value={pin}
-        onChangeText={setPin}
-        onSubmitEditing={() => void handleSubmit()}
-        hint="Obrigatório no primeiro acesso neste celular. Depois ele desbloqueia o app offline."
-      />
       {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
+      {canUnlockWithBiometrics ? (
+        <AuthButton
+          label={isBiometricBusy ? 'Validando biometria...' : 'Entrar com biometria'}
+          variant="secondary"
+          disabled={isSubmitting || isBiometricBusy}
+          onPress={() => void handleBiometricUnlock()}
+        />
+      ) : null}
       <AuthButton
         label={isSubmitting ? 'Entrando...' : 'Entrar'}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isBiometricBusy}
         onPress={handleSubmit}
       />
+      <Pressable onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: { email } })}>
+        <ThemedText style={styles.link}>Esqueci minha senha</ThemedText>
+      </Pressable>
       <Pressable onPress={() => router.replace('/(auth)/register')}>
         <ThemedText style={styles.link}>Criar conta</ThemedText>
       </Pressable>

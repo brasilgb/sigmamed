@@ -6,6 +6,7 @@ export type AuthUser = {
   age: number | null;
   photoUri: string | null;
   useBiometric: boolean;
+  hasPin: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,7 +45,7 @@ export type RegisterInput = {
 export type LoginInput = {
   email: string;
   password: string;
-  pin?: string;
+  resetLocalPin?: boolean;
 };
 
 export type UpdateAccountInput = {

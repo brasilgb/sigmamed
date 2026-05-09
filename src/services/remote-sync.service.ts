@@ -48,6 +48,7 @@ type RemoteMedication = RemoteBaseItem & {
   instructions?: string | null;
   active: boolean | number;
   scheduled_time?: string | null;
+  dose_interval?: string | null;
   reminder_enabled: boolean | number;
   reminder_minutes_before?: number | null;
   repeat_reminder_every_five_minutes: boolean | number;
@@ -77,6 +78,10 @@ function asTime(value: string | null | undefined) {
 
   const timeMatch = value.match(/\b(\d{2}):(\d{2})(?::\d{2})?\b/);
   return timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : value;
+}
+
+function asDoseInterval(value: string | null | undefined) {
+  return asTime(value) ?? '24:00';
 }
 
 async function pullRemoteProfiles() {
@@ -263,7 +268,7 @@ async function upsertMedications(items: RemoteMedication[]) {
     if (existing) {
       await database.runAsync(
         `UPDATE medications
-         SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?,
+         SET name = ?, dosage = ?, instructions = ?, active = ?, scheduled_time = ?, dose_interval = ?,
              reminder_enabled = ?, reminder_minutes_before = ?, repeat_reminder_every_five_minutes = ?,
              profile_id = ?, updated_at = ?, deleted_at = ?, synced_at = CURRENT_TIMESTAMP
          WHERE uuid = ?`,
@@ -272,6 +277,7 @@ async function upsertMedications(items: RemoteMedication[]) {
         item.instructions ?? null,
         active,
         asTime(item.scheduled_time),
+        asDoseInterval(item.dose_interval),
         reminderEnabled,
         item.reminder_minutes_before ?? 5,
         repeatReminder,
@@ -283,9 +289,9 @@ async function upsertMedications(items: RemoteMedication[]) {
     } else {
       await database.runAsync(
         `INSERT INTO medications
-          (uuid, profile_id, name, dosage, instructions, active, scheduled_time, reminder_enabled,
+          (uuid, profile_id, name, dosage, instructions, active, scheduled_time, dose_interval, reminder_enabled,
            reminder_minutes_before, repeat_reminder_every_five_minutes, created_at, updated_at, deleted_at, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         item.uuid,
         profileId,
         item.name,
@@ -293,6 +299,7 @@ async function upsertMedications(items: RemoteMedication[]) {
         item.instructions ?? null,
         active,
         asTime(item.scheduled_time),
+        asDoseInterval(item.dose_interval),
         reminderEnabled,
         item.reminder_minutes_before ?? 5,
         repeatReminder,

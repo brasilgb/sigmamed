@@ -17,15 +17,20 @@ import {
 import {
   deleteLocalAccount,
   hasRegisteredUser,
+  getLocalBiometricLoginUser,
   loginUser,
   logoutUser,
   registerUser,
   restoreSessionUser,
   setBiometricPreference,
+  setLocalUnlockPin,
   updateAccount,
   unlockWithPin,
 } from '@/features/auth/services/auth.service';
-import { setCloudReminderPending } from '@/features/auth/services/session-storage.service';
+import {
+  setCloudReminderPending,
+  setSessionUserId,
+} from '@/features/auth/services/session-storage.service';
 import type { AuthUser, LoginInput, RegisterInput, UpdateAccountInput } from '@/features/auth/types/auth';
 
 type AuthContextValue = {
@@ -35,9 +40,12 @@ type AuthContextValue = {
   user: AuthUser | null;
   biometricAvailable: boolean;
   biometricHardwareAvailable: boolean;
+  hasLocalBiometricLogin: boolean;
   register: (input: RegisterInput) => Promise<void>;
-  login: (input: LoginInput) => Promise<void>;
+  login: (input: LoginInput) => Promise<AuthUser>;
+  loginByBiometric: () => Promise<boolean>;
   unlockByPin: (pin: string) => Promise<void>;
+  setLocalPin: (pin: string, options?: { useBiometric?: boolean }) => Promise<void>;
   unlockByBiometric: () => Promise<boolean>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -59,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricHardwareAvailable, setBiometricHardwareAvailable] = useState(false);
+  const [hasLocalBiometricLogin, setHasLocalBiometricLogin] = useState(false);
   const autoLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -66,11 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function hydrate() {
       try {
-        const [registered, restoredUser, biometricSupport, biometricHardware] = await Promise.all([
+        const [registered, restoredUser, biometricSupport, biometricHardware, localBiometricUser] = await Promise.all([
           hasRegisteredUser(),
           restoreSessionUser(),
           isBiometricSupported().catch(() => false),
           hasBiometricHardware().catch(() => false),
+          getLocalBiometricLoginUser().catch(() => null),
         ]);
 
         if (!isMounted) {
@@ -81,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(restoredUser);
         setBiometricAvailable(biometricSupport);
         setBiometricHardwareAvailable(biometricHardware);
+        setHasLocalBiometricLogin(Boolean(localBiometricUser?.useBiometric));
         setIsUnlocked(false);
       } finally {
         if (isMounted) {
@@ -139,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       biometricAvailable,
       biometricHardwareAvailable,
+      hasLocalBiometricLogin,
       register: async (input) => {
         const createdUser = await registerUser(input);
         await setCloudReminderPending(true);
@@ -148,10 +160,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       login: async (input) => {
         const loggedUser = await loginUser(input);
-        await setCloudReminderPending(true);
         setHasAccount(true);
         setUser(loggedUser);
+        setHasLocalBiometricLogin(Boolean(loggedUser.useBiometric));
+        setIsUnlocked(loggedUser.hasPin);
+        return loggedUser;
+      },
+      loginByBiometric: async () => {
+        const localUser = user ?? await getLocalBiometricLoginUser();
+        const canUseBiometrics = await isBiometricSupported().catch(() => false);
+
+        if (!localUser?.useBiometric || !canUseBiometrics) {
+          return false;
+        }
+
+        const success = await authenticateWithBiometrics().catch(() => false);
+
+        if (!success) {
+          return false;
+        }
+
+        await setSessionUserId(localUser.id);
+        setHasAccount(true);
+        setUser(localUser);
+        setHasLocalBiometricLogin(true);
         setIsUnlocked(true);
+        return true;
       },
       unlockByPin: async (pin) => {
         if (!user) {
@@ -159,28 +193,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const unlockedUser = await unlockWithPin(user.id, pin);
-        await setCloudReminderPending(true);
         setUser(unlockedUser);
         setIsUnlocked(true);
       },
       unlockByBiometric: async () => {
-        if (!user?.useBiometric) {
+        const canUseBiometrics = await isBiometricSupported().catch(() => false);
+
+        if (!user?.useBiometric || !canUseBiometrics) {
           return false;
         }
 
         const success = await authenticateWithBiometrics().catch(() => false);
 
         if (success) {
-          await setCloudReminderPending(true);
           setIsUnlocked(true);
         }
 
         return success;
       },
+      setLocalPin: async (pin, options) => {
+        if (!user) {
+          throw new Error('Nenhuma conta ativa no dispositivo.');
+        }
+
+        const updatedUser = await setLocalUnlockPin(user.id, pin);
+
+        if (options?.useBiometric) {
+          await setBiometricPreference(user.id, true);
+        }
+
+        setUser({
+          ...updatedUser,
+          useBiometric: Boolean(options?.useBiometric),
+        });
+        setHasLocalBiometricLogin(Boolean(options?.useBiometric));
+        setIsUnlocked(true);
+      },
       logout: async () => {
         await logoutUser();
         setUser(null);
         setHasAccount(await hasRegisteredUser());
+        setHasLocalBiometricLogin(Boolean((await getLocalBiometricLoginUser().catch(() => null))?.useBiometric));
         setIsUnlocked(false);
       },
       deleteAccount: async () => {
@@ -191,6 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await deleteLocalAccount(user.id);
         setUser(null);
         setHasAccount(false);
+        setHasLocalBiometricLogin(false);
         setIsUnlocked(false);
       },
       lock: () => {
@@ -214,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...user,
           useBiometric: enabled,
         });
+        setHasLocalBiometricLogin(enabled);
       },
       updateAccount: async (input) => {
         if (!user) {
@@ -224,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(updatedUser);
       },
     }),
-    [biometricAvailable, biometricHardwareAvailable, hasAccount, isLoading, isUnlocked, user]
+    [biometricAvailable, biometricHardwareAvailable, hasAccount, hasLocalBiometricLogin, isLoading, isUnlocked, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
