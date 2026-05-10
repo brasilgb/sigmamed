@@ -35,7 +35,7 @@ export function useProfileSelection({ enabled = true }: UseProfileSelectionOptio
         return;
       }
 
-      const profileRows = await getAccountProfiles(user.id);
+      const profileRows = await getAccountProfiles(user.id).catch(() => []);
 
       if (!isMounted) {
         return;

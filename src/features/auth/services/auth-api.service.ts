@@ -1,12 +1,22 @@
 import { apiRequest, getApiBaseUrl } from '@/services/api-client';
+import { clearRemoteSession } from '@/features/auth/services/session-storage.service';
 
 type AuthApiTenant = {
   id?: number | string;
+  account_usage?: string | null;
+  accountUsage?: string | null;
+  account_type?: string | null;
+  profile_type?: string | null;
+  type?: string | null;
 };
 
 type AuthApiUser = {
   id: number | string;
   account_usage?: string | null;
+  accountUsage?: string | null;
+  account_type?: string | null;
+  profile_type?: string | null;
+  type?: string | null;
   name: string;
   email: string;
   age?: number | string | null;
@@ -40,6 +50,11 @@ type AuthApiData = {
   token?: string;
   plainTextToken?: string;
   access_token?: string;
+  account_usage?: string | null;
+  accountUsage?: string | null;
+  account_type?: string | null;
+  profile_type?: string | null;
+  type?: string | null;
   tenant?: AuthApiTenant | null;
   user?: AuthApiUser;
   profile?: AuthApiProfile | null;
@@ -53,6 +68,11 @@ type AuthApiResponse = {
   token?: string;
   plainTextToken?: string;
   access_token?: string;
+  account_usage?: string | null;
+  accountUsage?: string | null;
+  account_type?: string | null;
+  profile_type?: string | null;
+  type?: string | null;
   tenant?: AuthApiTenant | null;
   user?: AuthApiUser;
   data?: AuthApiData | AuthApiUser;
@@ -66,10 +86,11 @@ type ProfileApiResponse =
   | {
       data?:
         | AuthApiProfile
-        | { profile?: AuthApiProfile | null; profile_id?: number | string | null }
+        | { profile?: AuthApiProfile | null; profile_id?: number | string | null; profiles?: AuthApiProfile[] }
         | AuthApiProfile[];
       profile?: AuthApiProfile | null;
       profile_id?: number | string | null;
+      profiles?: AuthApiProfile[];
     };
 
 function getToken(response: AuthApiResponse) {
@@ -106,6 +127,40 @@ function getUser(response: AuthApiResponse) {
   return null;
 }
 
+function getResponseAccountUsage(response: AuthApiResponse | AuthApiUser) {
+  const data = 'data' in response ? response.data : null;
+  const dataAccountUsage = data && !Array.isArray(data) && typeof data === 'object'
+    ? data.account_usage ?? data.accountUsage ?? data.account_type ?? data.profile_type ?? data.type
+    : null;
+  const tenantAccountUsage = data && !Array.isArray(data) && typeof data === 'object' && 'tenant' in data
+    ? data.tenant?.account_usage ??
+      data.tenant?.accountUsage ??
+      data.tenant?.account_type ??
+      data.tenant?.profile_type ??
+      data.tenant?.type
+    : null;
+  const responseTenantAccountUsage =
+    'tenant' in response
+      ? response.tenant?.account_usage ??
+        response.tenant?.accountUsage ??
+        response.tenant?.account_type ??
+        response.tenant?.profile_type ??
+        response.tenant?.type
+      : null;
+
+  return (
+    ('account_usage' in response ? response.account_usage : null) ??
+    ('accountUsage' in response ? response.accountUsage : null) ??
+    ('account_type' in response ? response.account_type : null) ??
+    ('profile_type' in response ? response.profile_type : null) ??
+    ('type' in response ? response.type : null) ??
+    dataAccountUsage ??
+    tenantAccountUsage ??
+    responseTenantAccountUsage ??
+    null
+  );
+}
+
 function withResponsePhoto(user: AuthApiUser, response: AuthApiResponse | AuthApiUser): AuthApiUser {
   const data = 'data' in response ? response.data : null;
   const dataPhoto =
@@ -138,6 +193,7 @@ function withResponsePhoto(user: AuthApiUser, response: AuthApiResponse | AuthAp
     ...responsePhoto,
     ...profilePhoto,
     ...dataPhoto,
+    account_usage: user.account_usage ?? user.accountUsage ?? getResponseAccountUsage(response),
     avatar_url: user.avatar_url ?? dataPhoto.avatar_url ?? profilePhoto.avatar_url ?? responsePhoto.avatar_url,
     photo_url: user.photo_url ?? dataPhoto.photo_url ?? profilePhoto.photo_url ?? responsePhoto.photo_url,
     photo_path: user.photo_path ?? dataPhoto.photo_path ?? profilePhoto.photo_path ?? responsePhoto.photo_path,
@@ -257,6 +313,7 @@ export async function resetRemotePassword(input: {
       password_confirmation: input.password,
     },
   });
+  await clearRemoteSession();
 }
 
 export async function getRemoteAuthenticatedUser() {
@@ -317,7 +374,7 @@ export async function getRemoteSessionContext() {
     if ('email' in response.data) {
       return {
         user: withResponsePhoto(response.data, response),
-        tenantId: null,
+        tenantId: getTenantId(response as AuthApiResponse),
         profileId: response.data.profile_id ?? null,
       };
     }
@@ -334,7 +391,7 @@ export async function getRemoteSessionContext() {
 
   return {
     user: withResponsePhoto(response as AuthApiUser, response),
-    tenantId: null,
+    tenantId: getTenantId(response as AuthApiResponse),
     profileId: 'profile_id' in response ? response.profile_id ?? null : null,
   };
 }
@@ -491,6 +548,14 @@ export async function listRemoteProfiles(): Promise<RemoteProfile[]> {
 
   if ('data' in response && Array.isArray(response.data)) {
     return response.data;
+  }
+
+  if ('data' in response && response.data && !Array.isArray(response.data) && 'profiles' in response.data && Array.isArray(response.data.profiles)) {
+    return response.data.profiles;
+  }
+
+  if ('profiles' in response && Array.isArray(response.profiles)) {
+    return response.profiles;
   }
 
   if ('data' in response && response.data && !Array.isArray(response.data) && 'id' in response.data) {

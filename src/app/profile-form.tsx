@@ -6,7 +6,7 @@ import { AuthButton } from '@/components/auth/auth-button';
 import { FormShell } from '@/components/forms/form-shell';
 import { RecordInput } from '@/components/forms/record-input';
 import { ThemedText } from '@/components/themed-text';
-import { BrandPalette, Colors } from '@/constants/theme';
+import { BrandPalette, Colors, Radius, Space } from '@/constants/theme';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
   createAccountProfile,
@@ -41,18 +41,22 @@ export default function ProfileFormScreen() {
       return;
     }
 
-    getAccountProfileById(editingId).then((profile) => {
-      if (!profile) {
-        setError('Acompanhado não encontrado.');
-        return;
-      }
+    getAccountProfileById(editingId)
+      .then((profile) => {
+        if (!profile) {
+          setError('Acompanhado não encontrado.');
+          return;
+        }
 
-      setFullName(profile.fullName ?? '');
-      setAge(profile.age ? String(profile.age) : '');
-      setSex(profile.sex ?? '');
-      setHeight(profile.height ? String(profile.height) : '');
-      setNotes(profile.notes ?? '');
-    });
+        setFullName(profile.fullName ?? '');
+        setAge(profile.age ? String(profile.age) : '');
+        setSex(profile.sex ?? '');
+        setHeight(profile.height ? String(profile.height) : '');
+        setNotes(profile.notes ?? '');
+      })
+      .catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : 'Falha ao carregar acompanhado.');
+      });
   }, [editingId]);
 
   async function handleSubmit() {
@@ -106,7 +110,11 @@ export default function ProfileFormScreen() {
           });
 
       await setActiveAccountProfile(profile.id);
-      router.replace('/profiles');
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/profiles');
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Falha ao salvar acompanhado.');
     } finally {
@@ -193,7 +201,12 @@ export default function ProfileFormScreen() {
 
 const styles = StyleSheet.create({
   optionGroup: {
-    gap: 8,
+    borderRadius: Radius.lg,
+    backgroundColor: '#F0F8F6',
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+    padding: Space.md,
+    gap: 10,
   },
   optionLabel: {
     color: Colors.light.text,

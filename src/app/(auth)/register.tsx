@@ -426,7 +426,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   optionGroup: {
-    gap: 8,
+    borderRadius: Radius.md,
+    backgroundColor: '#F0F8F6',
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+    padding: 14,
+    gap: 10,
   },
   optionLabel: {
     color: Colors.light.text,

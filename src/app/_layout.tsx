@@ -87,7 +87,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack screenOptions={{ animation: 'fade_from_bottom', headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="unlock" />

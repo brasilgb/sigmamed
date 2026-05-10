@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { HistoryList } from '@/components/dashboard/history-list';
@@ -122,7 +122,7 @@ export default function HomeTabScreen() {
   const cloudPlanCycle = getBillingCycleLabel(syncAccess?.cycle ?? null);
   const shouldShowTrends = Boolean(trends && (!canManageProfiles || selectedProfile));
   const trendsHint = 'Últimos 7 dias';
-  const canShowOverview = Boolean(summary && (!canManageProfiles || selectedProfile));
+  const canShowOverview = Boolean(summary);
   const overviewCards = [
     {
       title: 'Pressão arterial',
@@ -161,8 +161,27 @@ export default function HomeTabScreen() {
   async function handleProfileSelect(profileId: number) {
     await selectActiveProfile(profileId);
     setIsProfilePickerOpen(false);
-    await Promise.all([refresh(), refreshProfileNames()]);
+    await refresh();
   }
+
+  async function handleOpenProfilePicker() {
+    setIsProfilePickerOpen(true);
+    await refreshProfileNames();
+  }
+
+  useEffect(() => {
+    if (!canManageProfiles || activeProfileId || selectableProfiles.length === 0) {
+      return;
+    }
+
+    const defaultProfile = selectableProfiles[0];
+
+    if (!defaultProfile) {
+      return;
+    }
+
+    void selectActiveProfile(defaultProfile.id);
+  }, [activeProfileId, canManageProfiles, selectableProfiles, selectActiveProfile]);
 
   async function handleFeedbackSubmit() {
     const normalizedComment = feedbackText.trim();
@@ -189,6 +208,38 @@ export default function HomeTabScreen() {
       setIsSendingFeedback(false);
     }
   }
+
+  const profileSelectorCard = canManageProfiles ? (
+    <Card style={styles.profilesCard}>
+      <Pressable
+        style={styles.profilesPressable}
+        onPress={() => {
+          void handleOpenProfilePicker();
+        }}>
+        <View style={styles.profilesCopy}>
+          <View style={styles.profilesIconWrap}>
+            <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
+          </View>
+          <View style={styles.profilesTextWrap}>
+            <ThemedText style={styles.profilesTitle}>
+              {selectedProfile?.fullName ?? 'Filtrar por acompanhado'}
+            </ThemedText>
+            <ThemedText style={styles.profilesText}>
+              {selectedProfile
+                ? 'Toque aqui para selecionar outro nome e atualizar a visão geral e os gráficos.'
+                : 'Toque aqui para escolher um nome e filtrar a visão geral e os gráficos.'}
+            </ThemedText>
+          </View>
+        </View>
+        <IconSymbol name="chevron.right" size={24} color={Colors.light.textSoft} />
+      </Pressable>
+      <View style={styles.profilesFooter}>
+        <Pressable style={styles.manageProfilesButton} onPress={() => router.push('/profiles' as never)}>
+          <ThemedText style={styles.manageProfilesText}>Gerenciar acompanhados</ThemedText>
+        </Pressable>
+      </View>
+    </Card>
+  ) : null;
 
   return (
     <Screen
@@ -246,15 +297,27 @@ export default function HomeTabScreen() {
         </View>
 
         {user ? (
-          <View style={styles.accountCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir configurações do perfil"
+            style={styles.accountCard}
+            onPress={() => router.push('/settings')}>
             <ProfileAvatar name={user.name} photoUri={user.photoUri} size={58} />
             <View style={styles.accountCopy}>
               <ThemedText style={styles.accountTitle}>{user.name}</ThemedText>
               <ThemedText style={styles.accountMeta}>{accountMeta}</ThemedText>
             </View>
-          </View>
+            <IconSymbol name="chevron.right" size={22} color="#BCD1E8" />
+          </Pressable>
         ) : null}
       </View>
+
+      {profileSelectorCard ? (
+        <View style={styles.section}>
+          <SectionHeader title="Acompanhado" hint="Filtro ativo" />
+          {profileSelectorCard}
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <SectionHeader title="Visão geral" hint="Hoje" />
@@ -276,19 +339,7 @@ export default function HomeTabScreen() {
               </Pressable>
             ))}
           </View>
-        ) : (
-          <Card style={styles.emptyTrendCard}>
-            <View style={styles.emptyTrendIcon}>
-              <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
-            </View>
-            <View style={styles.emptyTrendCopy}>
-              <ThemedText style={styles.emptyTrendTitle}>Escolha um acompanhado</ThemedText>
-              <ThemedText style={styles.emptyTrendText}>
-                Selecione uma pessoa para ver os cards de saúde na visão geral.
-              </ThemedText>
-            </View>
-          </Card>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -332,34 +383,6 @@ export default function HomeTabScreen() {
       {canManageProfiles || shouldShowTrends ? (
         <View style={styles.section}>
           <SectionHeader title="Resumo e tendências" hint={trendsHint} />
-
-          {canManageProfiles ? (
-            <Card style={styles.profilesCard}>
-              <Pressable style={styles.profilesPressable} onPress={() => setIsProfilePickerOpen(true)}>
-                <View style={styles.profilesCopy}>
-                  <View style={styles.profilesIconWrap}>
-                    <IconSymbol name="person.2.fill" size={22} color={BrandPalette.primary} />
-                  </View>
-                  <View style={styles.profilesTextWrap}>
-                    <ThemedText style={styles.profilesTitle}>
-                      {selectedProfile?.fullName ?? 'Selecionar acompanhado'}
-                    </ThemedText>
-                    <ThemedText style={styles.profilesText}>
-                      {selectedProfile
-                        ? 'Gráficos filtrados para este acompanhado.'
-                        : 'Escolha uma pessoa para ver os gráficos individuais.'}
-                    </ThemedText>
-                  </View>
-                </View>
-                <IconSymbol name="chevron.right" size={24} color={Colors.light.textSoft} />
-              </Pressable>
-              <View style={styles.profilesFooter}>
-                <Pressable style={styles.manageProfilesButton} onPress={() => router.push('/profiles' as never)}>
-                  <ThemedText style={styles.manageProfilesText}>Gerenciar acompanhados</ThemedText>
-                </Pressable>
-              </View>
-            </Card>
-          ) : null}
 
           {canManageProfiles && !selectedProfile ? (
             <Card style={styles.emptyTrendCard}>
@@ -768,8 +791,8 @@ const styles = StyleSheet.create({
   },
   profilesCard: {
     padding: 0,
-    backgroundColor: Colors.light.surface,
-    borderColor: '#CFE5DF',
+    backgroundColor: '#F0F8F6',
+    borderColor: '#9FD8CC',
   },
   profilesPressable: {
     padding: Space.lg,
@@ -787,7 +810,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: Radius.md,
-    backgroundColor: '#DDF1EC',
+    backgroundColor: '#CFEDE6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -796,18 +819,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   profilesTitle: {
-    color: Colors.light.text,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '800',
+    color: BrandPalette.deepNavy,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
   },
   profilesText: {
-    color: Colors.light.textMuted,
+    color: '#3F6670',
     lineHeight: 20,
+    fontWeight: '600',
   },
   profilesFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E2ECEF',
+    borderTopColor: '#CFE5DF',
     paddingHorizontal: Space.lg,
     paddingTop: Space.md,
     paddingBottom: Space.md,

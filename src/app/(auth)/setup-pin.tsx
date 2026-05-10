@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Keyboard, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { AuthInput } from '@/components/auth/auth-input';
@@ -15,12 +15,36 @@ export default function SetupPinScreen() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [useBiometric, setUseBiometric] = useState(false);
+  const [shouldHighlightBiometric, setShouldHighlightBiometric] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit() {
+  function validatePinFields() {
     if (pin !== confirmPin) {
       setError('Os PINs precisam ser iguais.');
+      return false;
+    }
+
+    setError(null);
+    return true;
+  }
+
+  function handleConfirmPinSubmit() {
+    if (!validatePinFields()) {
+      return;
+    }
+
+    if (biometricAvailable) {
+      Keyboard.dismiss();
+      setShouldHighlightBiometric(true);
+      return;
+    }
+
+    void handleSubmit();
+  }
+
+  async function handleSubmit() {
+    if (!validatePinFields()) {
       return;
     }
 
@@ -67,10 +91,15 @@ export default function SetupPinScreen() {
         secureTextEntry
         value={confirmPin}
         onChangeText={setConfirmPin}
-        onSubmitEditing={() => void handleSubmit()}
+        onSubmitEditing={handleConfirmPinSubmit}
       />
       {biometricHardwareAvailable ? (
-        <View style={[styles.preferenceRow, !biometricAvailable ? styles.preferenceRowDisabled : null]}>
+        <View
+          style={[
+            styles.preferenceRow,
+            !biometricAvailable ? styles.preferenceRowDisabled : null,
+            shouldHighlightBiometric && biometricAvailable ? styles.preferenceRowHighlighted : null,
+          ]}>
           <View style={styles.preferenceText}>
             <ThemedText style={styles.preferenceTitle}>Ativar biometria</ThemedText>
             <ThemedText style={styles.preferenceDescription}>
@@ -82,7 +111,10 @@ export default function SetupPinScreen() {
           <Switch
             value={biometricAvailable && useBiometric}
             disabled={!biometricAvailable}
-            onValueChange={setUseBiometric}
+            onValueChange={(value) => {
+              setShouldHighlightBiometric(false);
+              setUseBiometric(value);
+            }}
             trackColor={{ false: '#D7E2E6', true: '#A7E5D8' }}
             thumbColor={biometricAvailable && useBiometric ? Colors.light.tint : Colors.light.surface}
             ios_backgroundColor="#D7E2E6"
@@ -112,6 +144,10 @@ const styles = StyleSheet.create({
   },
   preferenceRowDisabled: {
     opacity: 0.7,
+  },
+  preferenceRowHighlighted: {
+    borderColor: Colors.light.tint,
+    borderWidth: 2,
   },
   preferenceText: {
     flex: 1,

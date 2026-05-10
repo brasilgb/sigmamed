@@ -61,6 +61,7 @@ Body JSON:
 Resposta esperada:
 
 - token de autenticação (personal access token ou `plainTextToken`)
+- usuário com `account_usage` (`personal` ou `family`)
 
 Use esse token para chamadas protegidas:
 
@@ -68,6 +69,8 @@ Use esse token para chamadas protegidas:
 Authorization: Bearer <token>
 Accept: application/json
 ```
+
+O app usa `account_usage` para saber se deve operar como conta pessoal ou familiar/cuidador. Esse campo deve vir em `POST /auth/login` e em `GET /auth/me`; sem ele, uma reinstalação pode não conseguir distinguir corretamente o tipo de conta.
 
 ### 3) Recuperar senha
 
@@ -126,6 +129,7 @@ Regras:
 
 - senha mínima de 6 caracteres
 - código temporário, de uso único e vinculado ao e-mail
+- e-mail de recuperação com `Meu Controle` no título/assunto e na assinatura
 - aplicar rate limit nas duas rotas
 - não revelar se o e-mail existe em `/forgot-password`
 - esse fluxo altera somente a senha da nuvem; PIN local e biometria continuam separados no app

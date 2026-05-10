@@ -442,10 +442,21 @@ Regras:
 
 * senha mínima de 6 caracteres
 * código temporário, de uso único, vinculado ao e-mail e com expiração curta
+* e-mail de recuperação deve usar `Meu Controle` como título/assunto principal e também na assinatura
 * rate limit nas rotas públicas de recuperação
 * resposta genérica em `forgot-password`, sem revelar se o e-mail existe
 * invalidar códigos pendentes após sucesso
 * PIN local e biometria do app não participam desse fluxo
+
+### Tipo de conta no login
+
+O backend deve retornar o tipo de conta do usuário em `POST /api/v1/auth/login` e `GET /api/v1/auth/me`.
+
+Campo esperado:
+
+* `account_usage`: `personal` ou `family`
+
+Esse campo é obrigatório para o app restaurar corretamente o modo da conta após reinstalação ou troca de aparelho. Sem ele, o mobile precisa inferir pelo perfil remoto e pode errar em cenários familiares/cuidador.
 
 ## Resolução do Tenant
 

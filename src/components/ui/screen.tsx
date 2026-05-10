@@ -1,15 +1,21 @@
-import { ReactNode, useContext } from 'react';
+import { ReactNode, useCallback, useContext } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  View,
   type ScrollViewProps,
 } from 'react-native';
 import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -35,6 +41,22 @@ export function Screen({
     default: Math.max(insets.bottom + 28, 42),
   });
   const bottomPadding = tabBarHeight ? tabBarHeight + tabBarClearance : insets.bottom + 24;
+  const enterProgress = useSharedValue(1);
+
+  useFocusEffect(
+    useCallback(() => {
+      enterProgress.value = 0;
+      enterProgress.value = withTiming(1, {
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, [enterProgress])
+  );
+
+  const animatedContentStyle = useAnimatedStyle(() => ({
+    opacity: 0.92 + enterProgress.value * 0.08,
+    transform: [{ translateY: (1 - enterProgress.value) * 8 }],
+  }));
 
   return (
     <SafeAreaView
@@ -50,7 +72,7 @@ export function Screen({
           }
           keyboardDismissMode="on-drag"
           {...props}>
-          <View style={styles.inner}>{children}</View>
+          <Animated.View style={[styles.inner, animatedContentStyle]}>{children}</Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

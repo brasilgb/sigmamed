@@ -30,6 +30,7 @@ Regra de produto: cada instalacao do app trabalha com somente uma conta principa
 
 Registro deve retornar `token`, `user`, `tenant` e, se disponivel, `profile` ou `profile_id` dentro de `data`.
 Login deve retornar `token` e `user` dentro de `data`; `tenant`, `profile` ou `profile_id` tambem podem ser retornados para evitar chamadas extras.
+O campo `account_usage` deve ser retornado no usuário tanto no login quanto em `GET /auth/me`, especialmente para reinstalação/troca de aparelho. Valores esperados: `personal` ou `family`.
 No cadastro, o app envia também o tipo de uso escolhido:
 
 - `personal`: uso pessoal. `age`, `sex` e `height` representam o próprio usuário e o backend deve criar tambem um registro em `profiles` para esse usuario.
@@ -79,6 +80,7 @@ Accept: application/json
   "data": {
     "user": {
       "id": 1,
+      "account_usage": "personal",
       "name": "João Silva",
       "email": "joao@exemplo.com",
       "age": 35,
@@ -104,6 +106,7 @@ O app usa:
 
 - `data.token` para `Authorization: Bearer`
 - `data.tenant.id` para `X-Tenant-Id` quando o tenant estiver disponível
+- `data.user.account_usage` para decidir se a conta é pessoal ou familiar/cuidador
 - `data.user.age` para exibir a idade do usuário
 - `data.profile.id`, `data.profile_id` ou `data.user.profile_id` para mapear o primeiro perfil remoto, quando enviado
 - `GET /api/v1/auth/me` para obter o tenant atual depois do login
@@ -117,6 +120,7 @@ Compatibilidade atual do app:
 
 - Token tambem e aceito como `token`, `plainTextToken` ou `access_token`, no topo da resposta ou em `data`.
 - Usuario tambem e aceito no topo da resposta ou diretamente em `data`.
+- Tipo de conta tambem e aceito como `account_usage`, `accountUsage`, `account_type` ou `profile_type`, preferencialmente dentro de `data.user`.
 - Foto remota do usuario pode vir como `avatar_url`, `photo_url` ou `photo_path`.
 - O contrato preferencial continua sendo `{ "data": { ... } }`.
 
@@ -196,6 +200,7 @@ Regras esperadas no backend:
 - `password` deve ter no mínimo 6 caracteres e ser confirmado por `password_confirmation`.
 - `code` deve ser obrigatório, temporário, de uso único e vinculado ao e-mail.
 - O código deve expirar, sugestão: 10 a 30 minutos.
+- O e-mail de recuperação deve usar `Meu Controle` como título/assunto principal e também na assinatura.
 - Aplicar rate limit em `forgot-password` e `reset-password`.
 - Não revelar se o e-mail existe ou não no response de `forgot-password`; retornar mensagem genérica para evitar enumeração de contas.
 - Ao redefinir senha com sucesso, invalidar códigos pendentes e revogar tokens ativos da conta, se essa for a política escolhida.

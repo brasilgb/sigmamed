@@ -35,6 +35,8 @@ export default function ProfilesScreen() {
     try {
       const profileRows = await getAccountProfiles(user.id);
       setProfiles(profileRows);
+    } catch {
+      setProfiles([]);
     } finally {
       setIsLoading(false);
     }

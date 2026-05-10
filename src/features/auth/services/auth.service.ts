@@ -48,7 +48,21 @@ function normalizeEmail(email: string) {
 }
 
 function normalizeAccountUsage(value: string | null | undefined, fallback: AccountUsage): AccountUsage {
-  return value === 'personal' || value === 'family' || value === 'professional' ? value : fallback;
+  const normalized = value?.trim().toLowerCase();
+
+  if (normalized === 'personal' || normalized === 'family' || normalized === 'professional') {
+    return normalized;
+  }
+
+  if (normalized === 'familiar' || normalized === 'cuidador' || normalized === 'caregiver') {
+    return 'family';
+  }
+
+  if (normalized === 'pessoal' || normalized === 'individual') {
+    return 'personal';
+  }
+
+  return fallback;
 }
 
 function getRemoteProfileName(profile: RemoteProfile) {
@@ -108,6 +122,7 @@ async function cacheRemoteUser(userId: number, remoteUser: RemoteUser | null, pa
   return userRepository.updateUserAccount(userId, {
     name: remoteUser.name ?? localUser.name,
     email: normalizeEmail(remoteUser.email ?? localUser.email),
+    accountUsage: normalizeAccountUsage(remoteUser.account_usage, localUser.accountUsage),
     age: getRemoteUserAge(remoteUser) ?? localUser.age,
     photoUri: getRemoteUserPhotoUri(remoteUser) ?? localUser.photoUri,
     passwordHash,
@@ -141,6 +156,49 @@ async function refreshRemoteProfiles(userId: number) {
   }
 
   return cachedProfiles;
+}
+
+function mergeProfileLists(localProfiles: AuthProfile[], remoteProfiles: AuthProfile[]) {
+  const mergedProfiles = [...localProfiles];
+
+  for (const remoteProfile of remoteProfiles) {
+    const existingIndex = mergedProfiles.findIndex((localProfile) => {
+      if (localProfile.id === remoteProfile.id) {
+        return true;
+      }
+
+      return Boolean(
+        localProfile.remoteProfileId &&
+          remoteProfile.remoteProfileId &&
+          localProfile.remoteProfileId === remoteProfile.remoteProfileId
+      );
+    });
+
+    if (existingIndex >= 0) {
+      mergedProfiles[existingIndex] = remoteProfile;
+    } else {
+      mergedProfiles.push(remoteProfile);
+    }
+  }
+
+  return mergedProfiles.sort((firstProfile, secondProfile) => {
+    const firstTime = new Date(firstProfile.updatedAt).getTime();
+    const secondTime = new Date(secondProfile.updatedAt).getTime();
+
+    if (Number.isFinite(firstTime) && Number.isFinite(secondTime) && firstTime !== secondTime) {
+      return secondTime - firstTime;
+    }
+
+    if (Number.isFinite(firstTime) && !Number.isFinite(secondTime)) {
+      return -1;
+    }
+
+    if (!Number.isFinite(firstTime) && Number.isFinite(secondTime)) {
+      return 1;
+    }
+
+    return secondProfile.id - firstProfile.id;
+  });
 }
 
 export async function hasRegisteredUser() {
@@ -317,9 +375,11 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
   let user: AuthUser | null = null;
 
   if (record) {
+    const accountUsage = normalizeAccountUsage(remoteUser?.account_usage, record.account_usage ?? 'personal');
     user = await userRepository.updateUserAccount(record.id, {
       name: remoteUser?.name ?? record.name,
       email,
+      accountUsage,
       age: getRemoteUserAge(remoteUser) ?? record.age,
       photoUri: getRemoteUserPhotoUri(remoteUser) ?? record.photo_uri,
       passwordHash: await hashSecret(input.password),
@@ -337,8 +397,11 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
       throw new Error('Este aparelho ja possui uma conta principal cadastrada.');
     }
 
+    const remoteProfiles = await listRemoteProfiles().catch(() => []);
+    const inferredAccountUsage = inferAccountUsageForNewDevice(remoteUser, remoteProfiles);
+
     user = await userRepository.createUserWithProfile({
-      accountUsage: normalizeAccountUsage(remoteUser?.account_usage, 'personal'),
+      accountUsage: inferredAccountUsage,
       name: remoteUser?.name ?? email,
       email,
       age: getRemoteUserAge(remoteUser),
@@ -347,6 +410,7 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
       useBiometric: false,
       photoUri: getRemoteUserPhotoUri(remoteUser),
       remoteProfileId,
+      createInitialProfile: inferredAccountUsage === 'personal',
     });
 
   }
@@ -356,6 +420,26 @@ export async function loginUser(input: LoginInput): Promise<AuthUser> {
   await pullRemoteRecords().catch(() => undefined);
   void syncPendingRecords();
   return mapRemoteUserToLocalUser(remoteUser, user);
+}
+
+function inferAccountUsageForNewDevice(remoteUser: RemoteUser | null, remoteProfiles: RemoteProfile[]): AccountUsage {
+  const explicitAccountUsage = normalizeAccountUsage(remoteUser?.account_usage, 'professional');
+
+  if (explicitAccountUsage !== 'professional') {
+    return explicitAccountUsage;
+  }
+
+  if (remoteProfiles.length === 0) {
+    return 'family';
+  }
+
+  const remoteUserName = remoteUser?.name?.trim().toLowerCase();
+  const hasOwnProfile = Boolean(
+    remoteUserName &&
+    remoteProfiles.some((profile) => getRemoteProfileName(profile)?.trim().toLowerCase() === remoteUserName)
+  );
+
+  return hasOwnProfile ? 'personal' : 'family';
 }
 
 export async function unlockWithPin(userId: number, pin: string) {
@@ -494,7 +578,14 @@ export async function updateAccount(userId: number, input: UpdateAccountInput): 
 }
 
 export async function getAccountProfiles(userId: number): Promise<AuthProfile[]> {
-  return refreshRemoteProfiles(userId);
+  const localProfiles = await userRepository.getProfilesByUserId(userId);
+
+  try {
+    const remoteProfiles = await refreshRemoteProfiles(userId);
+    return mergeProfileLists(localProfiles, remoteProfiles);
+  } catch {
+    return localProfiles;
+  }
 }
 
 export async function getAccountProfileById(profileId: number): Promise<AuthProfile | null> {

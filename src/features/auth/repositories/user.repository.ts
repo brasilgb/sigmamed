@@ -72,6 +72,7 @@ type UpsertRemoteProfileInput = {
 type UpdateUserInput = {
   name: string;
   email: string;
+  accountUsage?: AccountUsage;
   photoUri?: string | null;
   age?: number | null;
   passwordHash?: string;
@@ -287,10 +288,11 @@ export class UserRepository {
       if (input.passwordHash) {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, age = ?, photo_uri = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, account_usage = COALESCE(?, account_usage), age = ?, photo_uri = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.accountUsage ?? null,
           input.age ?? null,
           input.photoUri ?? null,
           input.passwordHash,
@@ -299,10 +301,11 @@ export class UserRepository {
       } else {
         await database.runAsync(
           `UPDATE users
-           SET name = ?, email = ?, age = ?, photo_uri = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, email = ?, account_usage = COALESCE(?, account_usage), age = ?, photo_uri = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
           input.name,
           input.email,
+          input.accountUsage ?? null,
           input.age ?? null,
           input.photoUri ?? null,
           userId

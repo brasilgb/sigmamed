@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthButton } from '@/components/auth/auth-button';
 import { ThemedText } from '@/components/themed-text';
@@ -15,11 +15,31 @@ import { formatDateTime } from '@/utils/date';
 
 export default function GlicoseTabScreen() {
   const { summary, refresh: refreshDashboard, isLoading: dashboardLoading } = useDashboardData(7);
-  const { glicoseReadings, refresh: refreshRecords, isLoading: recordsLoading } = useRecordManagement();
+  const { glicoseReadings, refresh: refreshRecords, isLoading: recordsLoading, deleteGlicose } = useRecordManagement();
   const { getProfileName, refreshProfileNames } = useProfileNames();
 
   async function handleRefresh() {
     await Promise.all([refreshDashboard(), refreshRecords(), refreshProfileNames()]);
+  }
+
+  function confirmDeleteReading(readingId: number) {
+    Alert.alert(
+      'Excluir medição',
+      'Deseja excluir esta leitura de glicose? Essa alteração também será sincronizada com a nuvem quando disponível.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              await deleteGlicose(readingId);
+              await Promise.all([refreshDashboard(), refreshRecords()]);
+            })();
+          },
+        },
+      ]
+    );
   }
 
   const latest = glicoseReadings[0];
@@ -91,12 +111,24 @@ export default function GlicoseTabScreen() {
                         <ThemedText style={styles.profileMeta}>Acompanhado: {profileName}</ThemedText>
                       ) : null}
                     </View>
-                    <AuthButton
-                      label="Editar"
-                      variant="secondary"
-                      onPress={() => router.push({ pathname: '/glicose-form', params: { id: String(item.id) } })}
-                      style={styles.editButton}
-                    />
+                    <View style={styles.recordActions}>
+                      <AuthButton
+                        label="Editar"
+                        variant="secondary"
+                        onPress={() => router.push({ pathname: '/glicose-form', params: { id: String(item.id) } })}
+                        style={styles.actionButton}
+                      />
+                      <AuthButton
+                        label="Excluir"
+                        variant="secondary"
+                        selected
+                        selectedBackgroundColor="#FFF1F1"
+                        selectedBorderColor="#F2B8B8"
+                        selectedTextColor={Colors.light.danger}
+                        onPress={() => confirmDeleteReading(item.id)}
+                        style={styles.actionButton}
+                      />
+                    </View>
                   </View>
                   <ThemedText style={styles.recordMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
                   {item.notes ? <ThemedText style={styles.recordNotes}>{item.notes}</ThemedText> : null}
@@ -187,8 +219,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  editButton: {
+  recordActions: {
+    gap: 8,
+  },
+  actionButton: {
     minWidth: 84,
+    minHeight: 42,
+    borderRadius: Radius.md,
   },
   recordTitle: {
     color: Colors.light.text,

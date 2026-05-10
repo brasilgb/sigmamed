@@ -233,9 +233,10 @@ export default function SettingsScreen() {
       setIsSubmitting(true);
       setError(null);
       setSuccessMessage(null);
-      const numericHeight = parseOptionalNumber(profileHeight);
 
-      if (Number.isNaN(numericHeight)) {
+      const numericHeight = showPersonalProfileCard ? parseOptionalNumber(profileHeight) : null;
+
+      if (showPersonalProfileCard && Number.isNaN(numericHeight)) {
         throw new Error('Informe uma altura válida em centímetros.');
       }
 
@@ -246,10 +247,13 @@ export default function SettingsScreen() {
         currentPassword,
         newPassword,
       });
-      await updateActiveAccountProfile({
-        sex: profileSex || null,
-        height: numericHeight,
-      });
+
+      if (showPersonalProfileCard) {
+        await updateActiveAccountProfile({
+          sex: profileSex || null,
+          height: numericHeight,
+        });
+      }
 
       setCurrentPassword('');
       setNewPassword('');
@@ -672,7 +676,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   optionGroup: {
-    gap: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F8F6',
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+    padding: 16,
+    gap: 10,
   },
   optionLabel: {
     color: Colors.light.text,

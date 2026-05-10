@@ -29,7 +29,7 @@ export default function AuthLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ animation: 'fade_from_bottom', headerShown: false }}>
       <Stack.Screen name="welcome" />
       <Stack.Screen name="register" />
       <Stack.Screen name="login" />
