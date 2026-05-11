@@ -41,6 +41,7 @@ const MAPPING = {
   'star.fill': 'star',
   'star': 'star-border',
   'checkmark.circle.fill': 'check-circle',
+  'questionmark.circle.fill': 'help',
 } satisfies Record<string, MaterialIconName>;
 
 /**

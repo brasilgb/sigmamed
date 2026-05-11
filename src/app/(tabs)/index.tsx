@@ -258,6 +258,13 @@ export default function HomeTabScreen() {
                 onPress={() => router.push('/cloud-sync' as never)}>
                 <IconSymbol name="cloud.fill" size={18} color={BrandPalette.white} />
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir ajuda"
+                style={styles.iconButton}
+                onPress={() => router.push('/help' as never)}>
+                <IconSymbol name="questionmark.circle.fill" size={19} color={BrandPalette.white} />
+              </Pressable>
               {canManageProfiles ? (
                 <Pressable
                   accessibilityRole="button"
@@ -284,6 +291,20 @@ export default function HomeTabScreen() {
               <ThemedText style={styles.brandBadgeText}>Meu Controle</ThemedText>
               <ThemedText style={styles.brandTagline}>Sua saúde em dia</ThemedText>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={isCloudActive ? 'Nuvem ativa, abrir detalhes' : 'Nuvem inativa, abrir planos'}
+              style={[styles.cloudStatusBadge, isCloudActive ? styles.cloudStatusBadgeActive : null]}
+              onPress={() => router.push('/cloud-sync' as never)}>
+              <IconSymbol
+                name={isCloudActive ? 'checkmark.circle.fill' : 'cloud.fill'}
+                size={16}
+                color={isCloudActive ? BrandPalette.wellness : '#D9E7F7'}
+              />
+              <ThemedText style={[styles.cloudStatusText, isCloudActive ? styles.cloudStatusTextActive : null]}>
+                {isCloudActive ? 'Nuvem ativa' : 'Nuvem inativa'}
+              </ThemedText>
+            </Pressable>
           </View>
         </View>
 
@@ -670,6 +691,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexWrap: 'wrap',
   },
   brandLogo: {
     width: 46,
@@ -691,6 +713,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
+  },
+  cloudStatusBadge: {
+    minHeight: 34,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cloudStatusBadgeActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    borderColor: 'rgba(16, 185, 129, 0.42)',
+  },
+  cloudStatusText: {
+    color: '#D9E7F7',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  cloudStatusTextActive: {
+    color: BrandPalette.wellness,
   },
   iconButton: {
     width: 38,

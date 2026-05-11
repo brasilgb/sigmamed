@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -18,6 +18,7 @@ import { formatDateTime } from '@/utils/date';
 import type { ReportData, ReportModule, ReportPeriodDays } from '@/types/health';
 
 const periods: ReportPeriodDays[] = [7, 30, 90];
+const logoAzul = require('../../assets/images/logo_azul.png');
 const allReportModules: ReportModule[] = ['pressure', 'glicose', 'weight', 'medications'];
 const reportModules: { label: string; value: ReportModule }[] = [
   { label: 'Pressão', value: 'pressure' },
@@ -29,7 +30,7 @@ const reportModules: { label: string; value: ReportModule }[] = [
 function formatPatientWeight(data: ReportData) {
   const latestWeight = data.summary.latestWeight;
 
-  return latestWeight ? `${latestWeight.weight.toFixed(1)} ${latestWeight.unit}` : 'Sem pesagem no período';
+  return latestWeight ? `${latestWeight.weight.toFixed(1)} ${latestWeight.unit}` : 'Sem pesagem cadastrada';
 }
 
 function getReportSubjectName(data: ReportData | null) {
@@ -133,7 +134,6 @@ export default function ReportScreen() {
   const showGlicose = selectedReportModules.includes('glicose');
   const showWeight = selectedReportModules.includes('weight');
   const showMedications = selectedReportModules.includes('medications');
-  const showReadingModules = showPressure || showGlicose || showWeight;
   const actionsDisabled = !data || !hasSelectedReportModules || isExporting || isSharing;
 
   return (
@@ -143,14 +143,19 @@ export default function ReportScreen() {
           <ThemedText style={styles.backText}>Voltar</ThemedText>
         </Pressable>
         <View style={styles.hero}>
-          <View style={styles.kickerWrap}>
-            <ThemedText style={styles.kicker}>Relatório</ThemedText>
+          <View style={styles.heroTop}>
+            <View style={styles.reportIconWrap}>
+              <Image source={logoAzul} style={styles.reportLogo} resizeMode="contain" />
+            </View>
+            <View style={styles.kickerWrap}>
+              <ThemedText style={styles.kicker}>Relatório</ThemedText>
+            </View>
           </View>
           <ThemedText type="title" style={styles.title}>
             Relatório de {getReportSubjectName(data)}.
           </ThemedText>
           <ThemedText style={styles.description}>
-            Consolide leituras, adesão e tendências do Meu Controle em uma visão única e exporte em PDF.
+            Gere uma ficha com as marcações cadastradas para imprimir ou compartilhar com o médico.
           </ThemedText>
         </View>
       </View>
@@ -291,78 +296,20 @@ export default function ReportScreen() {
             </Card>
           ) : null}
 
-          {isCompleteReport ? (
-            <View style={styles.summaryGrid}>
-              <Card style={styles.summaryCard}>
-                <ThemedText style={styles.summaryLabel}>Registros no período</ThemedText>
-                <ThemedText style={styles.summaryValue}>{data.summary.totalReadings}</ThemedText>
-                <ThemedText style={styles.summaryHint}>
-                  Pressão {data.pressure.summary.count} | Glicose {data.glicose.summary.count} | Peso {data.weight.summary.count}
-                </ThemedText>
-              </Card>
-              <Card style={styles.summaryCard}>
-                <ThemedText style={styles.summaryLabel}>Medicação</ThemedText>
-                <ThemedText style={styles.summaryValue}>{data.medications.summary.activeCount}</ThemedText>
-                <ThemedText style={styles.summaryHint}>
-                  ativas | adesão {data.medications.summary.adherenceRate}% no período
-                </ThemedText>
-              </Card>
-            </View>
-          ) : null}
-
-          {hasSelectedReportModules && !isCompleteReport ? (
+          {hasSelectedReportModules ? (
             <Card style={styles.summaryCardSingle}>
-              <ThemedText style={styles.summaryLabel}>Resumo selecionado</ThemedText>
-              {showPressure ? <ThemedText style={styles.latestRow}>Pressão: {data.pressure.summary.latestLabel}</ThemedText> : null}
-              {showGlicose ? <ThemedText style={styles.latestRow}>Glicose: {data.glicose.summary.latestLabel}</ThemedText> : null}
-              {showWeight ? <ThemedText style={styles.latestRow}>Peso: {data.weight.summary.latestLabel}</ThemedText> : null}
-              {showMedications ? <ThemedText style={styles.latestRow}>Medicações ativas: {data.medications.summary.activeCount}</ThemedText> : null}
-              {showMedications ? <ThemedText style={styles.latestRow}>Adesão no período: {data.medications.summary.adherenceRate}%</ThemedText> : null}
-            </Card>
-          ) : hasSelectedReportModules ? (
-            <Card style={styles.summaryCardSingle}>
-              <ThemedText style={styles.summaryLabel}>Últimas leituras</ThemedText>
-              <ThemedText style={styles.latestRow}>Pressão: {data.pressure.summary.latestLabel}</ThemedText>
-              <ThemedText style={styles.latestRow}>Glicose: {data.glicose.summary.latestLabel}</ThemedText>
-              <ThemedText style={styles.latestRow}>Peso: {data.weight.summary.latestLabel}</ThemedText>
+              <ThemedText style={styles.summaryLabel}>Registros cadastrados</ThemedText>
+              {showPressure ? <ThemedText style={styles.latestRow}>Pressão: {data.pressure.readings.length} marcações</ThemedText> : null}
+              {showGlicose ? <ThemedText style={styles.latestRow}>Glicose: {data.glicose.readings.length} marcações</ThemedText> : null}
+              {showWeight ? <ThemedText style={styles.latestRow}>Peso: {data.weight.readings.length} marcações</ThemedText> : null}
+              {showMedications ? <ThemedText style={styles.latestRow}>Medicações cadastradas: {data.medications.items.length}</ThemedText> : null}
             </Card>
           ) : null}
-
-          {showReadingModules ? <View style={styles.section}>
-            <SectionHeader title="Tendências" hint={`Últimos ${periodDays} dias`} />
-            {showPressure ? <Card>
-              <ThemedText style={styles.trendTitle}>{data.trends.pressure.label}</ThemedText>
-              <ThemedText style={styles.trendValue}>
-                {data.trends.pressure.latestValue !== null
-                  ? `${data.trends.pressure.latestValue.toFixed(0)} ${data.trends.pressure.unit}`
-                  : 'Sem dado'}
-              </ThemedText>
-              <ThemedText style={styles.trendDetail}>{data.trends.pressure.detail}</ThemedText>
-            </Card> : null}
-            {showGlicose ? <Card>
-              <ThemedText style={styles.trendTitle}>{data.trends.glicose.label}</ThemedText>
-              <ThemedText style={styles.trendValue}>
-                {data.trends.glicose.latestValue !== null
-                  ? `${data.trends.glicose.latestValue.toFixed(0)} ${data.trends.glicose.unit}`
-                  : 'Sem dado'}
-              </ThemedText>
-              <ThemedText style={styles.trendDetail}>{data.trends.glicose.detail}</ThemedText>
-            </Card> : null}
-            {showWeight ? <Card>
-              <ThemedText style={styles.trendTitle}>{data.trends.weight.label}</ThemedText>
-              <ThemedText style={styles.trendValue}>
-                {data.trends.weight.latestValue !== null
-                  ? `${data.trends.weight.latestValue.toFixed(1)} ${data.trends.weight.unit}`
-                  : 'Sem dado'}
-              </ThemedText>
-              <ThemedText style={styles.trendDetail}>{data.trends.weight.detail}</ThemedText>
-            </Card> : null}
-          </View> : null}
 
           {hasSelectedReportModules ? <View style={styles.section}>
             <SectionHeader
-              title="Detalhamento"
-              hint={showReadingModules ? 'Leituras recentes do período' : 'Medicações cadastradas'}
+              title="Marcações cadastradas"
+              hint={`Últimos ${periodDays} dias`}
             />
             {showPressure ? <Card>
               <ThemedText style={styles.blockTitle}>Pressão</ThemedText>
@@ -370,7 +317,10 @@ export default function ReportScreen() {
                 data.pressure.readings.map((item) => (
                   <View key={`pressure-${item.id}`} style={styles.listRow}>
                     <ThemedText style={styles.listTitle}>{item.systolic}/{item.diastolic} mmHg</ThemedText>
-                    <ThemedText style={styles.listMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                    <ThemedText style={styles.listMeta}>
+                      {formatDateTime(item.measuredAt)}{item.pulse ? ` | Pulso ${item.pulse} bpm` : ''}
+                    </ThemedText>
+                    {item.notes ? <ThemedText style={styles.listMeta}>Obs.: {item.notes}</ThemedText> : null}
                   </View>
                 ))
               ) : (
@@ -387,6 +337,7 @@ export default function ReportScreen() {
                       {item.glicoseValue} {item.unit} ({formatGlicoseContext(item.context)})
                     </ThemedText>
                     <ThemedText style={styles.listMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                    {item.notes ? <ThemedText style={styles.listMeta}>Obs.: {item.notes}</ThemedText> : null}
                   </View>
                 ))
               ) : (
@@ -400,7 +351,10 @@ export default function ReportScreen() {
                 data.weight.readings.map((item) => (
                   <View key={`weight-${item.id}`} style={styles.listRow}>
                     <ThemedText style={styles.listTitle}>{item.weight.toFixed(1)} {item.unit}</ThemedText>
-                    <ThemedText style={styles.listMeta}>{formatDateTime(item.measuredAt)}</ThemedText>
+                    <ThemedText style={styles.listMeta}>
+                      {formatDateTime(item.measuredAt)}{item.height ? ` | Altura ${item.height} cm` : ''}
+                    </ThemedText>
+                    {item.notes ? <ThemedText style={styles.listMeta}>Obs.: {item.notes}</ThemedText> : null}
                   </View>
                 ))
               ) : (
@@ -415,8 +369,13 @@ export default function ReportScreen() {
                   <View key={`medication-${item.id}`} style={styles.listRow}>
                     <ThemedText style={styles.listTitle}>{item.name} {item.dosage}</ThemedText>
                     <ThemedText style={styles.listMeta}>
-                      {item.scheduledTime ? `Horário: ${item.scheduledTime}` : 'Sem horário'} | {item.active ? 'Ativa' : 'Inativa'}
+                      {[
+                        item.scheduledTime ? `Horário: ${item.scheduledTime}` : 'Sem horário',
+                        item.doseInterval ? `Intervalo: ${item.doseInterval}` : null,
+                        item.active ? 'Ativa' : 'Inativa',
+                      ].filter(Boolean).join(' | ')}
                     </ThemedText>
+                    {item.instructions ? <ThemedText style={styles.listMeta}>Instruções: {item.instructions}</ThemedText> : null}
                   </View>
                 ))
               ) : (
@@ -454,6 +413,26 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: '#CFE5DF',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  reportIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: Radius.lg,
+    backgroundColor: BrandPalette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#CFE5DF',
+    overflow: 'hidden',
+  },
+  reportLogo: {
+    width: 44,
+    height: 44,
   },
   kickerWrap: {
     alignSelf: 'flex-start',

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import type { Medication } from '@/types/health';
 
-const REMINDER_KIND = 'medication-reminder';
+export const MEDICATION_REMINDER_NOTIFICATION_KIND = 'medication-reminder';
 const REMINDER_CHANNEL_ID = 'medication-reminders';
 const REMINDER_VIBRATION_PATTERN = [0, 500, 250, 500];
 const DEFAULT_DOSE_INTERVAL_MINUTES = 24 * 60;
@@ -81,7 +81,7 @@ async function cancelMedicationReminderNotifications() {
 
   await Promise.all(
     scheduled
-      .filter((item) => item.content.data?.kind === REMINDER_KIND)
+      .filter((item) => item.content.data?.kind === MEDICATION_REMINDER_NOTIFICATION_KIND)
       .map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier))
   );
 }
@@ -116,7 +116,7 @@ function buildReminderContent(medication: Medication, repeating = false, doseTim
     vibrate: REMINDER_VIBRATION_PATTERN,
     priority: Notifications.AndroidNotificationPriority.HIGH,
     data: {
-      kind: REMINDER_KIND,
+      kind: MEDICATION_REMINDER_NOTIFICATION_KIND,
       medicationId: medication.id,
       scheduledAt: doseTime?.toISOString() ?? null,
       repeating,

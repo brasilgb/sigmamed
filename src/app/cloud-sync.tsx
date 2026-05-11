@@ -83,6 +83,58 @@ function formatAmount(value: number) {
   }).format(value);
 }
 
+function getRemainingDaysLabel(expiresAt: string | null | undefined) {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const expirationDate = new Date(expiresAt);
+
+  if (Number.isNaN(expirationDate.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expirationDate.setHours(23, 59, 59, 999);
+
+  const remainingDays = Math.ceil((expirationDate.getTime() - today.getTime()) / 86400000);
+
+  if (remainingDays < 0) {
+    return 'Plano vencido';
+  }
+
+  if (remainingDays === 0) {
+    return 'Vence hoje';
+  }
+
+  if (remainingDays === 1) {
+    return '1 dia restante';
+  }
+
+  return `${remainingDays} dias restantes`;
+}
+
+function formatRemainingDays(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (value < 0) {
+    return 'Plano vencido';
+  }
+
+  if (value === 0) {
+    return 'Vence hoje';
+  }
+
+  if (value === 1) {
+    return '1 dia restante';
+  }
+
+  return `${value} dias restantes`;
+}
+
 export default function CloudSyncScreen() {
   const { user } = useAuth();
   const {
@@ -109,6 +161,8 @@ export default function CloudSyncScreen() {
   const activeCycleLabel = getBillingCycleLabel(syncAccess?.cycle ?? null);
   const activePlanSummary = `${activePlanLabel}${activeCycleLabel ? ` - ${activeCycleLabel}` : ''}`;
   const activePlanExpiresAt = syncAccess?.expires_at ? formatDate(syncAccess.expires_at) : null;
+  const activePlanRemainingDays =
+    getRemainingDaysLabel(syncAccess?.expires_at) ?? formatRemainingDays(syncAccess?.remaining_days);
   const isCheckoutUnavailable = checkout
     ? ['expired', 'rejected', 'cancelled', 'canceled', 'inactive'].includes(checkout.status)
     : false;
@@ -235,9 +289,15 @@ export default function CloudSyncScreen() {
           {isCloudActive ? (
             <>
               <ThemedText style={styles.statusDetail}>{activePlanSummary}</ThemedText>
-              <ThemedText style={styles.statusDetail}>
-                {activePlanExpiresAt ? `Válido até ${activePlanExpiresAt}` : 'Plano ativo sem data de vencimento informada.'}
-              </ThemedText>
+              {activePlanExpiresAt ? (
+                <ThemedText style={styles.statusDetail}>Válido até {activePlanExpiresAt}</ThemedText>
+              ) : null}
+              {activePlanRemainingDays ? (
+                <View style={styles.expirationBadge}>
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={BrandPalette.primary} />
+                  <ThemedText style={styles.expirationBadgeText}>{activePlanRemainingDays}</ThemedText>
+                </View>
+              ) : null}
             </>
           ) : null}
         </View>
@@ -523,6 +583,25 @@ const styles = StyleSheet.create({
   statusDetail: {
     color: Colors.light.textMuted,
     lineHeight: 20,
+  },
+  expirationBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.pill,
+    backgroundColor: '#E9F7F4',
+    borderWidth: 1,
+    borderColor: '#CBE8E1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  expirationBadgeText: {
+    color: BrandPalette.primary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
   },
   planList: {
     gap: 10,

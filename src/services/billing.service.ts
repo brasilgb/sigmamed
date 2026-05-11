@@ -12,6 +12,7 @@ export type BillingSyncAccess = {
   plan: BillingPlan | null;
   cycle: 'monthly' | 'annual' | null;
   expires_at: string | null;
+  remaining_days?: number | null;
   provider: string | null;
   paid_at?: string | null;
 };
@@ -113,8 +114,43 @@ function asNullableString(value: unknown) {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+function asNullableDateString(value: unknown) {
+  const text = asNullableString(value);
+
+  if (!text) {
+    return null;
+  }
+
+  const normalized = text.trim().toLowerCase();
+
+  if (normalized.includes('sem data') || normalized === 'null' || normalized === 'undefined') {
+    return null;
+  }
+
+  return Number.isNaN(new Date(text).getTime()) ? null : text;
+}
+
+function asNullableNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 function normalizeBillingSyncAccess(input: unknown): BillingSyncAccess {
   const record = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const subscription = record.subscription && typeof record.subscription === 'object'
+    ? record.subscription as Record<string, unknown>
+    : {};
+  const billing = record.billing && typeof record.billing === 'object'
+    ? record.billing as Record<string, unknown>
+    : {};
   const status = asBillingStatus(record.status);
   const syncEnabled = asBoolean(record.sync_enabled ?? record.syncEnabled) || status === 'active';
 
@@ -123,7 +159,38 @@ function normalizeBillingSyncAccess(input: unknown): BillingSyncAccess {
     status: syncEnabled ? 'active' : status,
     plan: asBillingPlan(record.plan),
     cycle: asBillingCycle(record.cycle),
-    expires_at: asNullableString(record.expires_at ?? record.expiresAt),
+    expires_at: asNullableDateString(
+      record.expires_at ??
+        record.expiresAt ??
+        record.valid_until ??
+        record.validUntil ??
+        record.ends_at ??
+        record.endsAt ??
+        record.current_period_end ??
+        record.currentPeriodEnd ??
+        subscription.expires_at ??
+        subscription.expiresAt ??
+        subscription.valid_until ??
+        subscription.validUntil ??
+        subscription.ends_at ??
+        subscription.endsAt ??
+        subscription.current_period_end ??
+        subscription.currentPeriodEnd ??
+        billing.expires_at ??
+        billing.expiresAt
+    ),
+    remaining_days: asNullableNumber(
+      record.remaining_days ??
+        record.remainingDays ??
+        record.days_remaining ??
+        record.daysRemaining ??
+        subscription.remaining_days ??
+        subscription.remainingDays ??
+        subscription.days_remaining ??
+        subscription.daysRemaining ??
+        billing.remaining_days ??
+        billing.days_remaining
+    ),
     provider: asNullableString(record.provider),
     paid_at: asNullableString(record.paid_at ?? record.paidAt),
   };

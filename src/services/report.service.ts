@@ -1,4 +1,5 @@
 import * as Print from 'expo-print';
+import { Image } from 'react-native';
 
 import { getDatabase } from '@/database/client';
 import { MedicationRepository } from '@/features/medications/medication.repository';
@@ -23,6 +24,7 @@ import type {
 const userRepository = new UserRepository();
 const medicationRepository = new MedicationRepository();
 const allReportModules: ReportModule[] = ['pressure', 'glicose', 'weight', 'medications'];
+const reportLogoSource = Image.resolveAssetSource(require('../../assets/images/logo_azul.png'));
 
 type ReportScope = ReportKind | ReportModule[];
 
@@ -106,6 +108,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
     weightCount,
     activeMedications,
     medicationStats,
+    latestWeight,
   ] = await Promise.all([
     getDashboardSummary(),
     getDashboardTrends(periodDays),
@@ -124,8 +127,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
        WHERE profile_id = ?
          AND deleted_at IS NULL
          AND datetime(measured_at) >= datetime('now', ?)
-       ORDER BY datetime(measured_at) DESC
-       LIMIT 8`,
+       ORDER BY datetime(measured_at) DESC`,
       profileId,
       periodModifier
     ),
@@ -143,8 +145,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
        WHERE profile_id = ?
          AND deleted_at IS NULL
          AND datetime(measured_at) >= datetime('now', ?)
-       ORDER BY datetime(measured_at) DESC
-       LIMIT 8`,
+       ORDER BY datetime(measured_at) DESC`,
       profileId,
       periodModifier
     ),
@@ -161,8 +162,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
        WHERE profile_id = ?
          AND deleted_at IS NULL
          AND datetime(measured_at) >= datetime('now', ?)
-       ORDER BY datetime(measured_at) DESC
-       LIMIT 8`,
+       ORDER BY datetime(measured_at) DESC`,
       profileId,
       periodModifier
     ),
@@ -218,6 +218,22 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
       profileId,
       periodModifier
     ),
+    database.getFirstAsync<WeightReading>(
+      `SELECT
+        id,
+        weight,
+        height,
+        unit,
+        measured_at as measuredAt,
+        notes,
+        created_at as createdAt
+       FROM weight_readings
+       WHERE profile_id = ?
+         AND deleted_at IS NULL
+       ORDER BY datetime(measured_at) DESC
+       LIMIT 1`,
+      profileId
+    ),
   ]);
 
   let patient: ReportData['patient'] = null;
@@ -233,7 +249,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
         patient = {
           name: profile?.fullName ?? currentUser.name,
           email: currentUser.email,
-          age: currentUser.age,
+          age: profile?.age ?? currentUser.age,
           birthDate: profile?.birthDate ?? null,
           sex: profile?.sex ?? null,
           height: profile?.height ?? null,
@@ -258,7 +274,7 @@ export async function getReportData(periodDays: ReportPeriodDays): Promise<Repor
     adherenceToday: medicationStats?.adherence ?? 0,
     latestPressure: pressureReadings[0] ?? null,
     latestGlicose: glicoseReadings[0] ?? null,
-    latestWeight: weightReadings[0] ?? null,
+    latestWeight: latestWeight ?? weightReadings[0] ?? null,
   };
 
   return {
@@ -386,25 +402,32 @@ function includesReportKind(scope: ReportScope, target: ReportModule) {
 }
 
 export function buildScopedReportHtml(report: ReportData, scope: ReportScope = allReportModules) {
+  const logoUri = reportLogoSource?.uri ?? '';
   const pressureRows = report.pressure.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.systolic}/${item.diastolic} mmHg`,
     item.pulse ? `${item.pulse} bpm` : '-',
+    item.notes ? escapeHtml(item.notes) : '-',
   ]);
   const glicoseRows = report.glicose.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.glicoseValue} ${item.unit}`,
     escapeHtml(formatGlicoseContext(item.context)),
+    item.notes ? escapeHtml(item.notes) : '-',
   ]);
   const weightRows = report.weight.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
     `${item.weight.toFixed(1)} ${item.unit}`,
+    item.height ? `${item.height} cm` : '-',
+    item.notes ? escapeHtml(item.notes) : '-',
   ]);
   const medicationRows = report.medications.items.map((item) => [
     escapeHtml(item.name),
     escapeHtml(item.dosage),
     item.scheduledTime ? escapeHtml(item.scheduledTime) : '-',
+    item.doseInterval ? escapeHtml(item.doseInterval) : '-',
     item.active ? 'Ativa' : 'Inativa',
+    item.instructions ? escapeHtml(item.instructions) : '-',
   ]);
   const patientBadges = report.patient
     ? [
@@ -412,77 +435,12 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
         report.patient.hasDiabetes ? 'Diabetes' : null,
       ].filter(Boolean) as string[]
     : [];
-  const selectedModules = normalizeReportScope(scope);
-  const isCompleteReport = selectedModules.length === allReportModules.length;
-  const onlyMedications = selectedModules.length === 1 && selectedModules[0] === 'medications';
   const showPressure = includesReportKind(scope, 'pressure');
   const showGlicose = includesReportKind(scope, 'glicose');
   const showWeight = includesReportKind(scope, 'weight');
   const showMedications = includesReportKind(scope, 'medications');
   const reportTitle = getReportTitle(scope);
   const subjectName = report.patient?.name ?? 'perfil ativo';
-  const totalScopedReadings =
-    (showPressure ? report.pressure.summary.count : 0) +
-    (showGlicose ? report.glicose.summary.count : 0) +
-    (showWeight ? report.weight.summary.count : 0);
-  const scopedSummary =
-    isCompleteReport
-      ? `
-        <div class="grid">
-          <div class="cell">
-            <div class="kicker">Registros</div>
-            <div class="value">${report.summary.totalReadings}</div>
-            <p>Pressão: ${report.pressure.summary.count}</p>
-            <p>Glicose: ${report.glicose.summary.count}</p>
-            <p>Peso: ${report.weight.summary.count}</p>
-          </div>
-          <div class="cell">
-            <div class="kicker">Medicação</div>
-            <div class="value">${report.medications.summary.activeCount}</div>
-            <p>ativas no momento</p>
-            <p>Aderência no período: ${report.medications.summary.adherenceRate}%</p>
-          </div>
-          <div class="cell">
-            <div class="kicker">Últimas leituras</div>
-            <p>Pressão: ${escapeHtml(report.pressure.summary.latestLabel)}</p>
-            <p>Glicose: ${escapeHtml(report.glicose.summary.latestLabel)}</p>
-            <p>Peso: ${escapeHtml(report.weight.summary.latestLabel)}</p>
-          </div>
-        </div>
-      `
-      : `
-        <div class="grid">
-          <div class="cell">
-            <div class="kicker">${onlyMedications ? 'Medicações ativas' : 'Registros'}</div>
-            <div class="value">${onlyMedications ? report.medications.summary.activeCount : totalScopedReadings}</div>
-            <p>${onlyMedications ? 'tratamentos ativos no momento' : 'leituras no período selecionado'}</p>
-          </div>
-          <div class="cell">
-            <div class="kicker">${onlyMedications ? 'Aderência' : 'Última leitura'}</div>
-            <div class="value">${onlyMedications ? `${report.medications.summary.adherenceRate}%` : ''}</div>
-            ${showPressure ? `<p>${escapeHtml(report.pressure.summary.latestLabel)}</p>` : ''}
-            ${showGlicose ? `<p>${escapeHtml(report.glicose.summary.latestLabel)}</p>` : ''}
-            ${showWeight ? `<p>${escapeHtml(report.weight.summary.latestLabel)}</p>` : ''}
-            ${showMedications ? `<p>Registros no período: ${report.medications.summary.logsCount}</p>` : ''}
-          </div>
-          <div class="cell">
-            <div class="kicker">Período</div>
-            <div class="value">${report.periodDays}</div>
-            <p>últimos dias</p>
-          </div>
-        </div>
-      `;
-  const trendsSection =
-    showPressure || showGlicose || showWeight
-      ? `
-        <section class="section">
-          <h2>Tendências</h2>
-          ${showPressure ? `<p><span class="badge">${escapeHtml(report.trends.pressure.label)}</span>${escapeHtml(report.trends.pressure.detail)}</p>` : ''}
-          ${showGlicose ? `<p><span class="badge">${escapeHtml(report.trends.glicose.label)}</span>${escapeHtml(report.trends.glicose.detail)}</p>` : ''}
-          ${showWeight ? `<p><span class="badge">${escapeHtml(report.trends.weight.label)}</span>${escapeHtml(report.trends.weight.detail)}</p>` : ''}
-        </section>
-      `
-      : '';
 
   return `
     <html>
@@ -496,6 +454,8 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
           .meta { color: #4E6671; margin-bottom: 20px; }
           .header { border: 1px solid #CBDADF; border-radius: 18px; padding: 18px; background: #F7FBFC; }
           .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+          .brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+          .report-logo { width: 48px; height: 48px; border-radius: 14px; object-fit: contain; border: 1px solid #CFE5DF; background: #fff; }
           .brand { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #102532; color: #fff; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
           .subtle { color: #4E6671; font-size: 13px; }
           .patient { margin-top: 16px; border-top: 1px solid #DCE7EA; padding-top: 16px; }
@@ -504,8 +464,6 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
           .kicker { font-size: 12px; text-transform: uppercase; color: #4E6671; font-weight: 700; margin-bottom: 6px; }
           .value { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
           .section { margin-top: 26px; }
-          .list { padding-left: 18px; margin: 0; }
-          .list li { margin-bottom: 8px; line-height: 1.5; }
           .badge { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #D8F1EC; color: #102532; font-size: 12px; font-weight: 700; margin: 0 8px 8px 0; }
           .empty { color: #4E6671; font-style: italic; }
           table { width: 100%; border-collapse: collapse; border: 1px solid #D7E2E6; border-radius: 12px; overflow: hidden; }
@@ -518,7 +476,10 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
         <section class="header">
           <div class="header-top">
             <div>
-              <div class="brand">Meu Controle</div>
+              <div class="brand-row">
+                ${logoUri ? `<img class="report-logo" src="${escapeHtml(logoUri)}" />` : ''}
+                <div class="brand">Meu Controle</div>
+              </div>
               <h1>${escapeHtml(reportTitle)}</h1>
               <p><strong>Acompanhado:</strong> ${escapeHtml(subjectName)}</p>
               <p class="meta">Período: últimos ${report.periodDays} dias | Gerado em ${escapeHtml(
@@ -544,35 +505,15 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
           }
         </section>
 
-        ${scopedSummary}
-        ${trendsSection}
-
-        ${showPressure ? renderTableSection('Pressão arterial', ['Data e hora', 'Leitura', 'Pulso'], pressureRows) : ''}
-        ${showGlicose ? renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto'], glicoseRows) : ''}
-        ${showWeight ? renderTableSection('Peso', ['Data e hora', 'Peso'], weightRows) : ''}
-        ${showMedications ? renderTableSection('Medicações', ['Medicação', 'Dosagem', 'Horário', 'Status'], medicationRows) : ''}
+        ${showPressure ? renderTableSection('Pressão arterial', ['Data e hora', 'Leitura', 'Pulso', 'Observações'], pressureRows) : ''}
+        ${showGlicose ? renderTableSection('Glicose', ['Data e hora', 'Valor', 'Contexto', 'Observações'], glicoseRows) : ''}
+        ${showWeight ? renderTableSection('Peso', ['Data e hora', 'Peso', 'Altura', 'Observações'], weightRows) : ''}
+        ${showMedications ? renderTableSection('Medicações', ['Medicação', 'Dosagem', 'Horário', 'Intervalo', 'Status', 'Instruções'], medicationRows) : ''}
 
         <section class="section">
           <h2>Finalidade do relatório</h2>
           <p>Este relatório organiza informações registradas pelo usuário para consulta posterior. Ele não gera diagnóstico, prescrição, atendimento médico, orientação clínica ou indicação de medicação.</p>
         </section>
-
-        ${isCompleteReport ? `<section class="section">
-          <h2>Atividade recente</h2>
-          ${
-            report.history.length > 0
-              ? `<ul class="list">${report.history
-                  .slice(0, 10)
-                  .map(
-                    (item) =>
-                      `<li><strong>${escapeHtml(item.title)}</strong> - ${escapeHtml(
-                        item.subtitle
-                      )} em ${escapeHtml(item.timestamp)}</li>`
-                  )
-                  .join('')}</ul>`
-              : '<p class="empty">Sem atividade recente.</p>'
-          }
-        </section>` : ''}
       </body>
     </html>
   `;
