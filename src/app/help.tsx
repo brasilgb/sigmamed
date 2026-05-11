@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -94,6 +95,36 @@ export default function HelpScreen() {
             <ThemedText style={styles.noticeText}>{note}</ThemedText>
           </View>
         ))}
+      </Card>
+
+      <Card style={styles.supportCard}>
+        <ThemedText style={styles.noticeTitle}>Suporte</ThemedText>
+        <ThemedText style={styles.noticeText}>
+          Para dúvidas sobre acesso, nuvem ou uso do app, fale com o suporte.
+        </ThemedText>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => {
+            void Linking.openURL('mailto:contato@sigmaos.com.br');
+          }}>
+          <ThemedText style={styles.supportLink}>contato@sigmaos.com.br</ThemedText>
+        </Pressable>
+      </Card>
+
+      <Card muted style={styles.copyrightCard}>
+        <ThemedText style={styles.copyrightText}>
+          Meu Controle é um produto SigmaOS.
+        </ThemedText>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => {
+            void Linking.openURL('https://sigmaos.com.br');
+          }}>
+          <ThemedText style={styles.supportLink}>sigmaos.com.br</ThemedText>
+        </Pressable>
+        <ThemedText style={styles.copyrightMuted}>
+          Copyright © SigmaOS. Todos os direitos reservados.
+        </ThemedText>
       </Card>
     </Screen>
   );
@@ -191,5 +222,30 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Colors.light.textMuted,
     lineHeight: 21,
+  },
+  supportCard: {
+    gap: 10,
+    borderColor: '#CFE5DF',
+    backgroundColor: '#F7FBFC',
+  },
+  supportLink: {
+    color: BrandPalette.primary,
+    fontWeight: '900',
+    lineHeight: 21,
+  },
+  copyrightCard: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  copyrightText: {
+    color: Colors.light.text,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  copyrightMuted: {
+    color: Colors.light.textSoft,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
   },
 });

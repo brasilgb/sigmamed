@@ -30,7 +30,7 @@ const reportModules: { label: string; value: ReportModule }[] = [
 function formatPatientWeight(data: ReportData) {
   const latestWeight = data.summary.latestWeight;
 
-  return latestWeight ? `${latestWeight.weight.toFixed(1)} ${latestWeight.unit}` : 'Sem pesagem cadastrada';
+  return latestWeight ? `${Math.round(latestWeight.weight)} ${latestWeight.unit}` : 'Sem pesagem cadastrada';
 }
 
 function getReportSubjectName(data: ReportData | null) {
@@ -350,7 +350,7 @@ export default function ReportScreen() {
               {data.weight.readings.length > 0 ? (
                 data.weight.readings.map((item) => (
                   <View key={`weight-${item.id}`} style={styles.listRow}>
-                    <ThemedText style={styles.listTitle}>{item.weight.toFixed(1)} {item.unit}</ThemedText>
+                    <ThemedText style={styles.listTitle}>{Math.round(item.weight)} {item.unit}</ThemedText>
                     <ThemedText style={styles.listMeta}>
                       {formatDateTime(item.measuredAt)}{item.height ? ` | Altura ${item.height} cm` : ''}
                     </ThemedText>

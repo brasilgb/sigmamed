@@ -68,11 +68,11 @@ function describeWeight(reading: WeightReading | null) {
     return 'Sem leituras no período';
   }
 
-  return `${reading.weight.toFixed(1)} ${reading.unit}`;
+  return `${Math.round(reading.weight)} ${reading.unit}`;
 }
 
 function describePatientWeight(reading: WeightReading | null) {
-  return reading ? `${reading.weight.toFixed(1)} ${reading.unit}` : '-';
+  return reading ? `${Math.round(reading.weight)} ${reading.unit}` : '-';
 }
 
 function buildMetricSummary(
@@ -417,7 +417,7 @@ export function buildScopedReportHtml(report: ReportData, scope: ReportScope = a
   ]);
   const weightRows = report.weight.readings.map((item) => [
     escapeHtml(formatDateTime(item.measuredAt)),
-    `${item.weight.toFixed(1)} ${item.unit}`,
+    `${Math.round(item.weight)} ${item.unit}`,
     item.height ? `${item.height} cm` : '-',
     item.notes ? escapeHtml(item.notes) : '-',
   ]);
